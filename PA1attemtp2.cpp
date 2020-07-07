@@ -288,19 +288,35 @@ void drawGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.0f),
 
 //note: assumes object is centered and normalized, from (-0.5,-0.5,-0.5)to(0.5,0.5,0.5).
 void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatrix = mat4(1.0f), float heightScale = 1, float widthScale = 1, float angle = 20, int corners = 4) {
+    corners = (corners < 3) ? 3 : corners;  //minimum 3 corners.
+    
     mat4 inertialWorldMatrix;
+    
     //Draw "V".
+    //total height = heightScale
+    //total width = spacing
     //loops for left and right half
+    float r_angle = radians((float)angle);
     float angle_i;
-    float spacing;
-    float base;
+    float letterWidth;
+    float base; 
+
+    //future calculations done early to determine modelPositioningMatrix for letter.
+    float future_apothem = (heightScale + widthScale) / 4;
+    letterWidth = (heightScale - fabs(widthScale * cosf(r_angle) * sinf(r_angle))) / cosf(r_angle) * sinf(r_angle) + widthScale * cosf(r_angle) * cosf(r_angle);
+    mat4 modelPositioningMatrix =
+        translate(mat4(1.0f),
+            vec3(-(letterWidth/2 + future_apothem),
+                0,
+                0));
+
     for (int i = 0; i < 2; ++i)
     {
-        angle_i = radians(angle*(-1+2*i));
+        angle_i = r_angle *(-1+2*i);
         base = widthScale * cosf(angle_i);
         float height = (heightScale - fabs(widthScale * cosf(angle_i) * sinf(angle_i))) / cosf(angle_i);
-        spacing = height * sinf(angle_i) + base * cosf(angle_i);  //only works with i = 0,1.
-        
+        float spacing = height * sinf(angle_i) + base * cosf(angle_i);  //only works with i = 0, 1.
+
         inertialWorldMatrix =
             //tramsformation to model as a whole
             relativeWorldMatrix *
@@ -308,8 +324,10 @@ void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatri
             //rotate(mat4(1.0f),
             //    radians(90.0f),
             //    vec3(1.0f, 0.0f, 0.0f))*
+            //move into position relative to center of model.
+            modelPositioningMatrix
             //space out halves.
-            translate(mat4(1.0f),
+            * translate(mat4(1.0f),
                 vec3(spacing * i,
                     0,
                     0))
@@ -321,7 +339,7 @@ void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatri
             * scale(mat4(1.0f),
                 vec3(base, height, 1.0f));
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &inertialWorldMatrix[0][0]);
-        //glDrawArrays(drawMode, 0, 36);
+        glDrawArrays(drawMode, 0, 36);
     }
     float bottomHeight = base * sinf(angle_i);
     float bottomBase = base * cosf(angle_i)*2;
@@ -332,9 +350,11 @@ void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatri
         //rotate(mat4(1.0f),
         //    radians(90.0f),
         //    vec3(1.0f, 0.0f, 0.0f))*
+        //move into position relative to center of model.
+        modelPositioningMatrix
         //position.
-        translate(mat4(1.0f),
-            vec3(spacing/2,
+        * translate(mat4(1.0f),
+            vec3(letterWidth /2,
                 (-heightScale + bottomHeight)/2,
                 0))
         //scale to fit bottom.
@@ -345,26 +365,34 @@ void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatri
 
 
     //Draw 9.
+    //total height = heightScale
+    //total width = 2 * apothem
+    modelPositioningMatrix =
+        translate(mat4(1.0f),
+            vec3(letterWidth,
+                -heightScale / 2,
+                0));
     //draw head
     for (int i = 0; i < corners; ++i)
     {
         angle_i = radians(360.0f/corners);
         float width = widthScale;
-        float diameter = (heightScale + width) / 2;
-        float apothem = cos(angle_i / 2) * (diameter / 2);
-        //float area = corners * sin(angle_i/2) * cos(angle_i/2) * powf(diameter / 2, 2);
-        base = 2* sin(angle_i/2) * (diameter/2);
+        float apothem = (heightScale + width) / 4;
         
+        base = 2 * apothem * tanf(angle_i/2);
+
         //head
         inertialWorldMatrix =
             //tramsformation to model as a whole
             relativeWorldMatrix *
-            //rotate 90 degrees. flat on ground
-            rotate(mat4(1.0f),
-                radians(90.0f),
-                vec3(1.0f, 0.0f, 0.0f))*
+            ////rotate 90 degrees. flat on ground
+            //rotate(mat4(1.0f),
+            //    radians(90.0f),
+            //    vec3(1.0f, 0.0f, 0.0f))*
+            //move into position relative to center of model.
+            modelPositioningMatrix
             //top height, center of polygon.
-            translate(mat4(1.0f),
+            * translate(mat4(1.0f),
                 vec3(0,
                     heightScale - apothem,
                     0))
@@ -375,7 +403,7 @@ void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatri
             //apothem distance.
             * translate(mat4(1.0f),
                 vec3(0,
-                    apothem - width/2,
+                    apothem - width/2,  //cube object is centered at origin, not its corner.
                     0))
             //scale to match target.
             * scale(mat4(1.0f),
@@ -384,16 +412,18 @@ void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatri
         glDrawArrays(drawMode, 0, 36);
 
         //tail
-        if (angle_i * i < radians(235.0f)) {
+        if (angle_i * i < radians(235.0f) && angle_i * i > 0.0f) {
             inertialWorldMatrix =
                 //tramsformation to model as a whole
                 relativeWorldMatrix *
-                //rotate 90 degrees. flat on ground
-                rotate(mat4(1.0f),
-                    radians(90.0f),
-                    vec3(1.0f, 0.0f, 0.0f)) *
+                ////rotate 90 degrees. flat on ground
+                //rotate(mat4(1.0f),
+                //    radians(90.0f),
+                //    vec3(1.0f, 0.0f, 0.0f)) *
+                //move into position relative to center of model.
+                modelPositioningMatrix
                 //bottom height, center of polygon.
-                translate(mat4(1.0f),
+                * translate(mat4(1.0f),
                     vec3(0,
                         apothem,
                         0))
@@ -620,10 +650,11 @@ int main(int argc, char*argv[])
         // Draw pillars
         mat4 lineWorldMatrix;
         //lineWorldMatrix = translate(mat4(1.0f), vec3(0.0f, 10.0f, 0.0f)) * scale(mat4(1.0f), vec3(2.0f, 20.0f, 2.0f));
-        //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
-        //glDrawArrays(drawMode, 0, 36);
+        lineWorldMatrix = translate(mat4(1.0f), vec3(0.0f, 2.0f, 0.0f)) * scale(mat4(1.0f), vec3(2.0f, 4.0f, 2.0f));
+        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
+        glDrawArrays(drawMode, 0, 36);
 
-        drawGrid(worldMatrixLocation,mat4(1.0f),40,0.5f);
+        drawGrid(worldMatrixLocation, mat4(1.0f), 40, 0.5f);
         lineWorldMatrix = translate(mat4(1.0f), vec3(10.0f, 10.0f, 10.0f));
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
         glDrawArrays(drawMode, 0, 36);
@@ -634,7 +665,6 @@ int main(int argc, char*argv[])
         glLineWidth(10);
         drawGrid(worldMatrixLocation, lineWorldMatrix, 10,1.2f);
         glLineWidth(1);
-
         drawV9(worldMatrixLocation, drawMode, mat4(1.0f),5,1, 20.0f, 8);
         //glBegin(GL_LINES);
         //glLineWidth(3);
