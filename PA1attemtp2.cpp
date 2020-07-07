@@ -241,7 +241,7 @@ int createVertexBufferObject()
 //
 //Function will create a grid centered at (0,Y,0) in (X,Y,Z).
 //Note: location of line object inside vertex array is hard-coded.
-void drawGrid(GLuint worldMatrixLocation, float sideLength = 100, float cellLength = 1) {
+void drawGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat3(1.0f), float sideLength = 100, float cellLength = 1) {
     //const float sideLength = 100; //# of cells on side.
     //const float cellLength = 1; //length of side of a cell.
 
@@ -252,6 +252,8 @@ void drawGrid(GLuint worldMatrixLocation, float sideLength = 100, float cellLeng
     {
         //Draw first set.
         lineWorldMatrix =
+            //tramsformation to grid as a whole
+            relativeWorldMatrix *
             //spaced interval along x-axis.
             translate(mat4(1.0f),
                 vec3(-cellLength * sideLength / 2 + i * cellLength,
@@ -265,6 +267,8 @@ void drawGrid(GLuint worldMatrixLocation, float sideLength = 100, float cellLeng
 
         //Draw perpendicular set.
         lineWorldMatrix =
+            //tramsformation to grid as a whole
+            relativeWorldMatrix *
             //spaced interval along z-axis.
             translate(mat4(1.0f),
                 vec3(0,
@@ -485,8 +489,48 @@ int main(int argc, char*argv[])
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
         glDrawArrays(drawMode, 0, 36);
 
-        drawGrid(worldMatrixLocation,40,2.5f);
+        drawGrid(worldMatrixLocation,mat4(1.0f),40,2.5f);
+        lineWorldMatrix = translate(mat4(1.0f), vec3(10.0f, 10.0f, 10.0f));
+        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
+        glDrawArrays(drawMode, 0, 36);
 
+        lineWorldMatrix = translate(mat4(1.0f), vec3(10.0f, 8.0f, 10.0f)) * scale(mat4(1.0f), vec3(0.5f, 1.0f, 2.0f));
+        //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
+        //glDrawArrays(GL_LINES, 36, 2);
+        glLineWidth(10);
+        drawGrid(worldMatrixLocation, lineWorldMatrix, 10,1.2f);
+        glLineWidth(1);
+        glBegin(GL_LINES);
+        glLineWidth(3);
+        glColor3f(0.0f, 1.0f, 0.0f);
+        glVertex2f(-0.7f, -1.0f);
+        glColor3f(0.0f, 0.4f, 1.0f);
+        glVertex2f(-0.7f, 1.0f);
+        glEnd();
+        glBegin(GL_LINES);
+
+        for (int i = 10; i != 0; i--) {
+
+            // po x osi
+            glVertex2f(-i, -0.1);
+            glVertex2f(-i, 0.1);
+            glVertex2f(i, -0.1);
+            glVertex2f(i, 0.1);
+            //po y osi
+            glVertex2f(-0.1, -i);
+            glVertex2f(0.1, -i);
+            glVertex2f(-0.1, i);
+            glVertex2f(0.1, i);
+
+            //po z osi
+            glColor3f(1.0f, 0.0f, 1.0f); //seems it doesnt register
+            glVertex3f(0, -0.3, -i);
+            glVertex3f(0, 0.3, -i);
+            glVertex3f(0, -0.3, i);
+            glVertex3f(0, 0.3, i);
+        }
+        glEnd();
+    
         // @TODO 3 - Update and draw projectiles
         // ...
 
@@ -581,8 +625,8 @@ int main(int argc, char*argv[])
             glClearColor(0.4f, 0.3f, 1.0f, 1.0f);
         }
 
-       // cameraHorizontalAngle -= dx * cameraAngularSpeed * dt;
-        //cameraVerticalAngle   -= dy * cameraAngularSpeed * dt;
+        cameraHorizontalAngle -= dx * cameraAngularSpeed * dt;
+        cameraVerticalAngle   -= dy * cameraAngularSpeed * dt;
         
         // Clamp vertical angle to [-85, 85] degrees
         cameraVerticalAngle = std::fmax(-85.0f, std::fmin(85.0f, cameraVerticalAngle));
@@ -632,6 +676,22 @@ int main(int argc, char*argv[])
         //    cameraPosition.y += currentCameraSpeed * dt;
         //}
         //cameraControls(window, &cameraPosition, &cameraLookAt, cameraSideVector, currentCameraSpeed, &cameraHorizontalAngle, &cameraVerticalAngle, dt);
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) // move camera to the left
+        {
+            cameraPosition -= cameraSideVector * currentCameraSpeed * dt;
+        }
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) // move camera to the right
+        {
+            cameraPosition += cameraSideVector * currentCameraSpeed * dt;
+        }
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) // move camera up
+        {
+            cameraPosition -= cameraLookAt * currentCameraSpeed * dt;
+        }
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) // move camera down
+        {
+            cameraPosition += cameraLookAt * currentCameraSpeed * dt;
+        }
         if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) // pitch camera up
         {
             cameraVerticalAngle += currentCameraSpeed * dt;
