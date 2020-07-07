@@ -245,7 +245,7 @@ void drawGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.0f),
     //const float sideLength = 100; //# of cells on side.
     //const float cellLength = 1; //length of side of a cell.
 
-    const float height = 1;     //y-position of grid.
+    const float height = 0;     //y-position of grid.
 
     mat4 lineWorldMatrix;
     for (int i = 0; i <= sideLength; ++i)
@@ -286,6 +286,135 @@ void drawGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.0f),
     }
 }
 
+//note: assumes object is centered and normalized, from (-0.5,-0.5,-0.5)to(0.5,0.5,0.5).
+void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatrix = mat4(1.0f), float heightScale = 1, float widthScale = 1, float angle = 20, int corners = 4) {
+    mat4 inertialWorldMatrix;
+    //Draw "V".
+    //loops for left and right half
+    float angle_i;
+    float spacing;
+    float base;
+    for (int i = 0; i < 2; ++i)
+    {
+        angle_i = radians(angle*(-1+2*i));
+        base = widthScale * cosf(angle_i);
+        float height = (heightScale - fabs(widthScale * cosf(angle_i) * sinf(angle_i))) / cosf(angle_i);
+        spacing = height * sinf(angle_i) + base * cosf(angle_i);  //only works with i = 0,1.
+        
+        inertialWorldMatrix =
+            //tramsformation to model as a whole
+            relativeWorldMatrix *
+            ////rotate 90 degrees. flat on ground
+            //rotate(mat4(1.0f),
+            //    radians(90.0f),
+            //    vec3(1.0f, 0.0f, 0.0f))*
+            //space out halves.
+            translate(mat4(1.0f),
+                vec3(spacing * i,
+                    0,
+                    0))
+            //rotate by angle_i.
+            * rotate(mat4(1.0f),
+                angle_i,
+                vec3(0.0f, 0.0f, -1.0f))
+            //scale to match target.
+            * scale(mat4(1.0f),
+                vec3(base, height, 1.0f));
+        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &inertialWorldMatrix[0][0]);
+        //glDrawArrays(drawMode, 0, 36);
+    }
+    float bottomHeight = base * sinf(angle_i);
+    float bottomBase = base * cosf(angle_i)*2;
+    inertialWorldMatrix =
+        //tramsformation to model as a whole
+        relativeWorldMatrix *
+        ////rotate 90 degrees. flat on ground
+        //rotate(mat4(1.0f),
+        //    radians(90.0f),
+        //    vec3(1.0f, 0.0f, 0.0f))*
+        //position.
+        translate(mat4(1.0f),
+            vec3(spacing/2,
+                (-heightScale + bottomHeight)/2,
+                0))
+        //scale to fit bottom.
+        * scale(mat4(1.0f),
+            vec3(bottomBase, bottomHeight, 1.0f));
+    glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &inertialWorldMatrix[0][0]);
+    glDrawArrays(drawMode, 0, 36);
+
+
+    //Draw 9.
+    //draw head
+    for (int i = 0; i < corners; ++i)
+    {
+        angle_i = radians(360.0f/corners);
+        float width = widthScale;
+        float diameter = (heightScale + width) / 2;
+        float apothem = cos(angle_i / 2) * (diameter / 2);
+        //float area = corners * sin(angle_i/2) * cos(angle_i/2) * powf(diameter / 2, 2);
+        base = 2* sin(angle_i/2) * (diameter/2);
+        
+        //head
+        inertialWorldMatrix =
+            //tramsformation to model as a whole
+            relativeWorldMatrix *
+            //rotate 90 degrees. flat on ground
+            rotate(mat4(1.0f),
+                radians(90.0f),
+                vec3(1.0f, 0.0f, 0.0f))*
+            //top height, center of polygon.
+            translate(mat4(1.0f),
+                vec3(0,
+                    heightScale - apothem,
+                    0))
+            //rotate by angle_i. done before translating to simplify process.
+            * rotate(mat4(1.0f),
+                angle_i * i,
+                vec3(0.0f, 0.0f, -1.0f))
+            //apothem distance.
+            * translate(mat4(1.0f),
+                vec3(0,
+                    apothem - width/2,
+                    0))
+            //scale to match target.
+            * scale(mat4(1.0f),
+                vec3(base, width, 1.0f));
+        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &inertialWorldMatrix[0][0]);
+        glDrawArrays(drawMode, 0, 36);
+
+        //tail
+        if (angle_i * i < radians(235.0f)) {
+            inertialWorldMatrix =
+                //tramsformation to model as a whole
+                relativeWorldMatrix *
+                //rotate 90 degrees. flat on ground
+                rotate(mat4(1.0f),
+                    radians(90.0f),
+                    vec3(1.0f, 0.0f, 0.0f)) *
+                //bottom height, center of polygon.
+                translate(mat4(1.0f),
+                    vec3(0,
+                        apothem,
+                        0))
+                //rotate by angle_i. done before translating to simplify process.
+                * rotate(mat4(1.0f),
+                    angle_i * i,
+                    vec3(0.0f, 0.0f, -1.0f))
+                //apothem distance.
+                * translate(mat4(1.0f),
+                    vec3(0,
+                        apothem - width / 2,
+                        0))
+                //scale to match target.
+                * scale(mat4(1.0f),
+                    vec3(base, width, 1.0f));
+            glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &inertialWorldMatrix[0][0]);
+            glDrawArrays(drawMode, 0, 36);
+        }
+    }
+
+}
 GLchar drawControl(GLFWwindow* window, GLchar previousDrawMode) {
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) // capital letters only
     {
@@ -420,10 +549,14 @@ int main(int argc, char*argv[])
     float spinningCubeAngle = 0.0f;
     
     // Set projection matrix for shader, this won't change
-    mat4 projectionMatrix = glm::perspective(70.0f,            // field of view in degrees
-                                             800.0f / 600.0f,  // aspect ratio
-                                             0.01f, 100.0f);   // near and far (near > 0)
-    
+    //mat4 projectionMatrix = glm::perspective(70.0f,            // field of view in degrees
+    //                                         800.0f / 600.0f,  // aspect ratio
+    //                                         0.01f, 100.0f);   // near and far (near > 0)
+
+    glm::mat4 projectionMatrix = glm::ortho(-4.0f, 4.0f,    // left/right
+        -3.0f, 3.0f,    // bottom/top
+        -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
+
     GLuint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
     glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
 
@@ -485,11 +618,12 @@ int main(int argc, char*argv[])
         //glDrawArrays(GL_TRIANGLES, 0, 36); // 36 vertices, starting at index 0
         
         // Draw pillars
-        mat4 lineWorldMatrix = translate(mat4(1.0f), vec3(0.0f, 10.0f, 0.0f)) * scale(mat4(1.0f), vec3(2.0f, 20.0f, 2.0f));
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
-        glDrawArrays(drawMode, 0, 36);
+        mat4 lineWorldMatrix;
+        //lineWorldMatrix = translate(mat4(1.0f), vec3(0.0f, 10.0f, 0.0f)) * scale(mat4(1.0f), vec3(2.0f, 20.0f, 2.0f));
+        //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
+        //glDrawArrays(drawMode, 0, 36);
 
-        drawGrid(worldMatrixLocation,mat4(1.0f),40,2.5f);
+        drawGrid(worldMatrixLocation,mat4(1.0f),40,0.5f);
         lineWorldMatrix = translate(mat4(1.0f), vec3(10.0f, 10.0f, 10.0f));
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
         glDrawArrays(drawMode, 0, 36);
@@ -500,36 +634,38 @@ int main(int argc, char*argv[])
         glLineWidth(10);
         drawGrid(worldMatrixLocation, lineWorldMatrix, 10,1.2f);
         glLineWidth(1);
-        glBegin(GL_LINES);
-        glLineWidth(3);
-        glColor3f(0.0f, 1.0f, 0.0f);
-        glVertex2f(-0.7f, -1.0f);
-        glColor3f(0.0f, 0.4f, 1.0f);
-        glVertex2f(-0.7f, 1.0f);
-        glEnd();
-        glBegin(GL_LINES);
 
-        for (int i = 10; i != 0; i--) {
+        drawV9(worldMatrixLocation, drawMode, mat4(1.0f),5,1, 20.0f, 8);
+        //glBegin(GL_LINES);
+        //glLineWidth(3);
+        //glColor3f(0.0f, 1.0f, 0.0f);
+        //glVertex2f(-0.7f, -1.0f);
+        //glColor3f(0.0f, 0.4f, 1.0f);
+        //glVertex2f(-0.7f, 1.0f);
+        //glEnd();
+        //glBegin(GL_LINES);
 
-            // po x osi
-            glVertex2f(-i, -0.1);
-            glVertex2f(-i, 0.1);
-            glVertex2f(i, -0.1);
-            glVertex2f(i, 0.1);
-            //po y osi
-            glVertex2f(-0.1, -i);
-            glVertex2f(0.1, -i);
-            glVertex2f(-0.1, i);
-            glVertex2f(0.1, i);
+        //for (int i = 10; i != 0; i--) {
 
-            //po z osi
-            glColor3f(1.0f, 0.0f, 1.0f); //seems it doesnt register
-            glVertex3f(0, -0.3, -i);
-            glVertex3f(0, 0.3, -i);
-            glVertex3f(0, -0.3, i);
-            glVertex3f(0, 0.3, i);
-        }
-        glEnd();
+        //    // po x osi
+        //    glVertex2f(-i, -0.1);
+        //    glVertex2f(-i, 0.1);
+        //    glVertex2f(i, -0.1);
+        //    glVertex2f(i, 0.1);
+        //    //po y osi
+        //    glVertex2f(-0.1, -i);
+        //    glVertex2f(0.1, -i);
+        //    glVertex2f(-0.1, i);
+        //    glVertex2f(0.1, i);
+
+        //    //po z osi
+        //    glColor3f(1.0f, 0.0f, 1.0f); //seems it doesnt register
+        //    glVertex3f(0, -0.3, -i);
+        //    glVertex3f(0, 0.3, -i);
+        //    glVertex3f(0, -0.3, i);
+        //    glVertex3f(0, 0.3, i);
+        //}
+        //glEnd();
     
         // @TODO 3 - Update and draw projectiles
         // ...
