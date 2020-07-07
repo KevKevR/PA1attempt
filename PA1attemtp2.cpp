@@ -241,7 +241,7 @@ int createVertexBufferObject()
 //
 //Function will create a grid centered at (0,Y,0) in (X,Y,Z).
 //Note: location of line object inside vertex array is hard-coded.
-void drawGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat3(1.0f), float sideLength = 100, float cellLength = 1) {
+void drawGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.0f), float sideLength = 100, float cellLength = 1) {
     //const float sideLength = 100; //# of cells on side.
     //const float cellLength = 1; //length of side of a cell.
 
