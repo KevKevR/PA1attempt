@@ -350,7 +350,6 @@ void V9Model::drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeW
     
     mat4 inertialWorldMatrix;
     
-    //Draw "V".
     //total height = heightScale
     //total width = spacing
     //loops for left and right half
@@ -370,6 +369,7 @@ void V9Model::drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeW
                 0,
                 0));
 
+    //Draw "V".
     for (int i = 0; i < 2; ++i)
     {
         angle_i = r_angle *(-1+2*i);
@@ -434,11 +434,12 @@ void V9Model::drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeW
                 0));
     for (int i = 0; i < corners; ++i)
     {
-        angle_i = radians(360.0f/corners);
+        float centralAngle = radians(360.0f / corners);
+        float angle_i = centralAngle * i;
         float width = widthScale;
         float apothem = (heightScale + width) / 4;
         
-        base = 2 * apothem * tanf(angle_i/2);
+        base = 2 * apothem * tanf(centralAngle/2);
 
         //draw head
         inertialWorldMatrix =
@@ -457,7 +458,7 @@ void V9Model::drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeW
                     0))
             //rotate by angle_i. done before translating to simplify process.
             * rotate(mat4(1.0f),
-                angle_i * i,
+                angle_i,
                 vec3(0.0f, 0.0f, -1.0f))
             //apothem distance.
             * translate(mat4(1.0f),
@@ -470,8 +471,11 @@ void V9Model::drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeW
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &inertialWorldMatrix[0][0]);
         glDrawArrays(drawMode, 0, 36);
 
+        //Offset angle_i by half a turn to match flush with ground
+        angle_i += radians(180.0f);
+        angle_i -= (angle_i > radians(360.0f)) ? radians(360.0f) : 0;
         //draw tail
-        if (angle_i * i < radians(235.0f) && angle_i * i > 0.0f) {
+        if (angle_i < radians(240.0f) && angle_i > 0.0f) {
             inertialWorldMatrix =
                 //tramsformation to model as a whole
                 relativeWorldMatrix *
@@ -488,7 +492,7 @@ void V9Model::drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeW
                         0))
                 //rotate by angle_i. done before translating to simplify process.
                 * rotate(mat4(1.0f),
-                    angle_i * i,
+                    angle_i,
                     vec3(0.0f, 0.0f, -1.0f))
                 //apothem distance.
                 * translate(mat4(1.0f),
@@ -678,13 +682,13 @@ int main(int argc, char*argv[])
     float spinningCubeAngle = 0.0f;
     
     // Set projection matrix for shader, this won't change
-    //mat4 projectionMatrix = glm::perspective(70.0f,            // field of view in degrees
-    //                                         800.0f / 600.0f,  // aspect ratio
-    //                                         0.01f, 100.0f);   // near and far (near > 0)
+    mat4 projectionMatrix = glm::perspective(70.0f,            // field of view in degrees
+                                             800.0f / 600.0f,  // aspect ratio
+                                             0.01f, 100.0f);   // near and far (near > 0)
 
-    glm::mat4 projectionMatrix = glm::ortho(-4.0f, 4.0f,    // left/right
-        -3.0f, 3.0f,    // bottom/top
-        -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
+    //glm::mat4 projectionMatrix = glm::ortho(-4.0f, 4.0f,    // left/right
+    //    -3.0f, 3.0f,    // bottom/top
+    //    -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
 
     GLuint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
     glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
