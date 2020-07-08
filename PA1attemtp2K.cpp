@@ -72,11 +72,11 @@ public:
         colorLocation = glGetUniformLocation(shaderProgram, "objectColor");
         //relativeWorldMatrix = mat4(1.0f);
 
-        initial_relativeTranslateMatrix = mat4(1.0f);
+        initial_relativeTranslateMatrix = mat4(0.0f);
         initial_relativeRotateMatrix = mat4(1.0f);
         initial_relativeScaleMatrix = mat4(1.0f);
 
-        relativeTranslateMatrix = mat4(1.0f);
+        relativeTranslateMatrix = mat4(0.0f);
         relativeRotateMatrix = mat4(1.0f);
         relativeScaleMatrix = mat4(1.0f);
         animateWorldMatrix = mat4(1.0f);
@@ -230,6 +230,7 @@ private:
 //example usage of model subclass.
 //To convert to your model:
 //- replace the three instances of class name with your model name.
+//- initialize initial position (translateMatrix) in constructor. (Can skip if at origin.)
 //- replace the three instances of drawModel function signature with function that draws your model.
 //- if parameters are needed, use the options struct to pass them through the draw function.
 //  - optionally name variables to the appropriate option's use before passing them along to the draw model function.
@@ -238,7 +239,16 @@ class Model_template : public CharModel {
 public:
 
     Model_template(int shaderProgram) : CharModel(shaderProgram) {
-        //initialize anything in case.
+        //initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
+        //Can also initialize RS if needed.
+        //Default is identity matrix.
+        initial_relativeTranslateMatrix =
+            translate(mat4(1.0f),
+                vec3(0,
+                    0,
+                    -20));
+
+        setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
     }
 
     void draw(options opt, GLchar drawMode = GL_TRIANGLES) {
