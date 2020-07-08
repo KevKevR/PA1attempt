@@ -72,6 +72,10 @@ public:
         colorLocation = glGetUniformLocation(shaderProgram, "objectColor");
         //relativeWorldMatrix = mat4(1.0f);
 
+        initial_relativeTranslateMatrix = mat4(1.0f);
+        initial_relativeRotateMatrix = mat4(1.0f);
+        initial_relativeScaleMatrix = mat4(1.0f);
+
         relativeTranslateMatrix = mat4(1.0f);
         relativeRotateMatrix = mat4(1.0f);
         relativeScaleMatrix = mat4(1.0f);
@@ -147,6 +151,10 @@ public:
         //implement in derived class please.
     }
 
+    //reverts TRS matrices back to initial settings.
+    void resetInitialRelativeMatrices() {
+        setRelativeWorldMatrix(initial_relativeTranslateMatrix, initial_relativeRotateMatrix, initial_relativeScaleMatrix);
+    }
     //draws all passed models. for now hardcoded to 2.
     static void draw(CharModel* arr[5], options opt[5], GLchar drawMode) {
         for (int i = 0; i < 5; i++) {
@@ -182,6 +190,9 @@ public:
 protected:
     GLuint worldMatrixLocation;
     GLuint colorLocation;
+    mat4 initial_relativeTranslateMatrix;
+    mat4 initial_relativeRotateMatrix;
+    mat4 initial_relativeScaleMatrix;
 private:
     //mat4 relativeWorldMatrix;     //deprecated, replaced with TRS
     mat4 relativeTranslateMatrix;
@@ -194,11 +205,13 @@ class V9Model : public CharModel {
 public:
 
     V9Model(int shaderProgram):CharModel(shaderProgram) {
-        setRelativeTranslateMatrix(
+        initial_relativeTranslateMatrix =
             translate(mat4(1.0f),
                 vec3(0,
                     0,
-                    -20)));
+                    -20));
+
+        setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
     }
 
     void draw(options opt, GLchar drawMode = GL_TRIANGLES) {
@@ -209,6 +222,7 @@ public:
 
         drawV9(worldMatrixLocation, drawMode, getRelevantWorldMatrix(), heightScale, widthScale, angle, corners);
     }
+
 private:
     void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatrix = mat4(1.0f), float heightScale = 1, float widthScale = 1, float angle = 20, int corners = 4);
 };
@@ -758,10 +772,12 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
 //function will return a matrix for corresponding transformation of inputted keys.
 //note: undefined order priority in case multiple correct keys are pressed (but will select a matrix).
 mat4* modelControl(GLFWwindow* window) {
-    mat4* selectedTransformation = new mat4[3];
-    selectedTransformation[0] = mat4(1.0f);
-    selectedTransformation[1] = mat4(1.0f);
-    selectedTransformation[2] = mat4(1.0f);
+    mat4* selectedTransformation = new mat4[4];
+    selectedTransformation[0] = mat4(1.0f);     //translate
+    selectedTransformation[1] = mat4(1.0f);     //rotate
+    selectedTransformation[2] = mat4(1.0f);     //scale
+
+    selectedTransformation[3] = mat4(1.0f);     //signal to reset position and orientation if changed.
 
     struct transformation {
         mat4 matrix;
@@ -821,11 +837,19 @@ mat4* modelControl(GLFWwindow* window) {
                 radians(rotateSpeed),
                 vec3(0.0f, -1.0f, 0.0f)), 1 }));
     }
+    inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_HOME, {
+        mat4(2.0f), 3 }));
 
     for (itr = inputsToModelMatrix.begin(); itr != inputsToModelMatrix.end(); ++itr) {
         if (glfwGetKey(window, itr->first) == GLFW_PRESS) // select model
         {
-            selectedTransformation[itr->second.type] = itr->second.matrix * selectedTransformation[itr->second.type];
+            if (itr->second.type == 3) {
+                //signal to reset position and orientation.
+                selectedTransformation[3] = mat4(2.0f);
+            }
+            else {
+                selectedTransformation[itr->second.type] = itr->second.matrix * selectedTransformation[itr->second.type];
+            }
         }
     }
     return selectedTransformation;
@@ -1092,6 +1116,10 @@ int main(int argc, char*argv[])
         //selectedModel = models[modelIndex];
 
         mat4* relativeWorldMatrix = modelControl(window);
+        //Home key has been pressed, so reset world matrices.
+        if (relativeWorldMatrix[3] != mat4(1.0f)) {
+            selectedModel->resetInitialRelativeMatrices();
+        }
 
         selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
 
