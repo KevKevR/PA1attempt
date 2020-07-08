@@ -49,6 +49,63 @@ private:
     vec3 mPosition;
     vec3 mVelocity;
 };
+struct options {
+    float option1;
+    float option2;
+    float option3;
+    float option4;
+    float option5;
+};
+class CharModel {
+public:
+    CharModel(int shaderProgram) {
+        worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
+        colorLocation = glGetUniformLocation(shaderProgram, "objectColor");
+        relativeWorldMatrix = mat4(1.0f);
+
+
+    }
+
+    mat4 getRelativeWorldMatrix() {
+        return relativeWorldMatrix;
+    }
+    void setRelativeWorldMatrix(mat4 relWM) {
+        relativeWorldMatrix = relWM;
+    }
+
+    
+    virtual void draw(options opt, GLchar drawMode =GL_TRIANGLES) {
+        //implement in derived class please.
+    }
+
+    static void draw(CharModel arr[5], options opt[5], GLchar drawMode) {
+        for (int i = 0; i < 5; i++) {
+            arr[i].draw(opt[i], drawMode);
+        }
+    }
+
+protected:
+    GLuint worldMatrixLocation;
+    GLuint colorLocation;
+    mat4 relativeWorldMatrix;
+};
+class V9Model : public CharModel {
+public:
+
+    V9Model(int shaderProgram):CharModel(shaderProgram) {
+    }
+
+    void draw(options opt, GLchar drawMode = GL_TRIANGLES) {
+        float heightScale = opt.option1;
+        float widthScale = opt.option2;
+        float angle = opt.option3;
+        int corners = opt.option4;
+
+        drawV9(worldMatrixLocation, drawMode, getRelativeWorldMatrix(), heightScale, widthScale, angle, corners);
+    }
+
+    void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatrix = mat4(1.0f), float heightScale = 1, float widthScale = 1, float angle = 20, int corners = 4);
+};
 
 
 const char* getVertexShaderSource()
@@ -287,7 +344,8 @@ void drawGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.0f),
 }
 
 //note: assumes object is centered and normalized, from (-0.5,-0.5,-0.5)to(0.5,0.5,0.5).
-void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatrix = mat4(1.0f), float heightScale = 1, float widthScale = 1, float angle = 20, int corners = 4) {
+//void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatrix = mat4(1.0f), float heightScale = 1, float widthScale = 1, float angle = 20, int corners = 4) {
+void V9Model::drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatrix, float heightScale, float widthScale, float angle, int corners) {
     corners = (corners < 3) ? 3 : corners;  //minimum 3 corners.
     
     mat4 inertialWorldMatrix;
@@ -301,8 +359,10 @@ void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatri
     float letterWidth;
     float base; 
 
-    //future calculations done early to determine modelPositioningMatrix for letter.
+    //future calculations done early to determine modelPositioningMatrix for letter, and box measurements.
     float future_apothem = (heightScale + widthScale) / 4;
+    float future_centraAngle = radians(360.0f / corners);
+    float future_radius = future_apothem/cos(future_centraAngle/2);
     letterWidth = (heightScale - fabs(widthScale * cosf(r_angle) * sinf(r_angle))) / cosf(r_angle) * sinf(r_angle) + widthScale * cosf(r_angle) * cosf(r_angle);
     mat4 modelPositioningMatrix =
         translate(mat4(1.0f),
@@ -372,7 +432,6 @@ void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatri
             vec3(letterWidth,
                 -heightScale / 2,
                 0));
-    //draw head
     for (int i = 0; i < corners; ++i)
     {
         angle_i = radians(360.0f/corners);
@@ -381,7 +440,7 @@ void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatri
         
         base = 2 * apothem * tanf(angle_i/2);
 
-        //head
+        //draw head
         inertialWorldMatrix =
             //tramsformation to model as a whole
             relativeWorldMatrix *
@@ -411,7 +470,7 @@ void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatri
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &inertialWorldMatrix[0][0]);
         glDrawArrays(drawMode, 0, 36);
 
-        //tail
+        //draw tail
         if (angle_i * i < radians(235.0f) && angle_i * i > 0.0f) {
             inertialWorldMatrix =
                 //tramsformation to model as a whole
@@ -444,6 +503,43 @@ void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatri
         }
     }
 
+    //draw box around (extra)
+    float boxVerticalWidth = heightScale/100;
+    float boxHorizontalWidth = widthScale/20;
+    for (int i = 0; i < 4; i++) {
+        bool isHorizontal = i < 2;
+        int parity = pow(-1, i + 1);
+        mat4 translateMatrix = (isHorizontal)
+            ? translate(mat4(1.0f),
+                vec3(0,
+                    (heightScale + boxVerticalWidth) / 2 * parity,
+                    0))
+            : translate(mat4(1.0f),
+                vec3((letterWidth + future_radius + boxHorizontalWidth/2) * parity,
+                    0,
+                    0));
+        mat4 scaleMatrix = (isHorizontal)
+            ? scale(mat4(1.0f),
+                vec3(2 * (letterWidth + future_radius + boxHorizontalWidth), boxVerticalWidth, 1.0f))
+            : scale(mat4(1.0f),
+                vec3(boxHorizontalWidth, heightScale, 1.0f));
+
+        //horizontal bars
+        inertialWorldMatrix =
+            //tramsformation to model as a whole
+            relativeWorldMatrix *
+            ////rotate 90 degrees. flat on ground
+            //rotate(mat4(1.0f),
+            //    radians(90.0f),
+            //    vec3(1.0f, 0.0f, 0.0f))*
+            //position around rest of model.
+            translateMatrix
+            //scale to whole width.
+            * scaleMatrix;
+        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &inertialWorldMatrix[0][0]);
+        glDrawArrays(drawMode, 0, 36);
+    
+    }
 }
 GLchar drawControl(GLFWwindow* window, GLchar previousDrawMode) {
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) // capital letters only
@@ -631,6 +727,11 @@ int main(int argc, char*argv[])
     float spinningSpeed = 20.0f;
     int cycle = 0;
     bool spin = false;
+
+
+    CharModel* selectedModel;
+    CharModel* models[5];
+    V9Model v9(shaderProgram);
     // Entering Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -700,8 +801,32 @@ int main(int argc, char*argv[])
                 v_angle = angle / 300 * (v_maxAngle - v_minAngle) + v_minAngle;
             }
             v_angle += 2 * sin(radians(angle * 3) + 1);
-            drawV9(worldMatrixLocation, drawMode, spinningMatrix, 5, 1, v_angle, cycle);
+            //drawV9(worldMatrixLocation, drawMode, spinningMatrix, 5, 1, v_angle, cycle);
         }
+        
+
+        mat4 relativeWorldMatrix =
+            translate(mat4(1.0f),
+                vec3(0,
+                    0,
+                    -20))
+            * rotate(mat4(1.0f),
+                radians(angle),
+                vec3(0.0f, 1.0f, 0.0f))
+            * scale(mat4(1.0f),
+                vec3(0.5f, 2.0f, 5.0f));
+        v9.setRelativeWorldMatrix(relativeWorldMatrix);
+
+        options opt;
+        opt.option1 = 5;
+        opt.option2 = 1;
+        opt.option3 = v_angle;
+        opt.option4 = cycle;
+        selectedModel = &v9;
+        
+
+        selectedModel->draw(opt, drawMode);
+
         //glBegin(GL_LINES);
         //glLineWidth(3);
         //glColor3f(0.0f, 1.0f, 0.0f);
