@@ -559,20 +559,23 @@ int main(int argc, char*argv[])
     glUseProgram(shaderProgram);
 
     // Camera parameters for view transform
-    const vec3 initial_cameraPosition(0.0f, 20.0f, 20.0f);
+    const vec3 initial_cameraPosition(0.0f, 5.0f, 20.0f);
     const vec3 initial_cameraLookAt(0.0f, 0.0f, -1.0f);
     const vec3 initial_cameraUp(0.0f, 1.0f, 0.0f);
-
     // Camera parameters for view transform
     vec3 cameraPosition = initial_cameraPosition;
-    vec3 cameraLookAt = initial_cameraLookAt;
+    //vec3 cameraLookAt = initial_cameraLookAt;
     vec3 cameraUp = initial_cameraUp;
-    
+    //vec3 cameraPosition;
+    vec3 cameraLookAt;
+    //vec3 cameraUp;
+
+
     // Other camera parameters
     float cameraSpeed = 10.0f;
     float cameraFastSpeed = 2 * cameraSpeed;
     float cameraHorizontalAngle = 90.0f;
-    float cameraVerticalAngle = 0.0f;
+    float cameraVerticalAngle = -14.0f;
     bool  cameraFirstPerson = true; // press 1 or 2 to toggle this variable
 
     // Spinning cube at camera position
@@ -596,7 +599,7 @@ int main(int argc, char*argv[])
     //                         cameraUp ); // up
     GLuint viewMatrixLocation = glGetUniformLocation(shaderProgram, "viewMatrix");
     //glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
-    mat4 viewMatrix;
+    //mat4 viewMatrix;
     
     
     // Define and upload geometry to the GPU here ...
@@ -621,8 +624,15 @@ int main(int argc, char*argv[])
     list<Projectile> projectileList;
     
     GLchar drawMode = GL_TRIANGLES;
+    float angle = 0.0f;
+    float v_angle = 10.0f;
+    const float v_minAngle = 10.0f;
+    const float v_maxAngle = 28.0f;
+    float spinningSpeed = 20.0f;
+    int cycle = 0;
+    bool spin = false;
     // Entering Main Loop
-    while(!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window))
     {
         // Frame time calculation
         float dt = glfwGetTime() - lastFrameTime;
@@ -647,25 +657,51 @@ int main(int argc, char*argv[])
         //
         //glDrawArrays(GL_TRIANGLES, 0, 36); // 36 vertices, starting at index 0
         
-        // Draw pillars
-        mat4 lineWorldMatrix;
-        //lineWorldMatrix = translate(mat4(1.0f), vec3(0.0f, 10.0f, 0.0f)) * scale(mat4(1.0f), vec3(2.0f, 20.0f, 2.0f));
-        lineWorldMatrix = translate(mat4(1.0f), vec3(0.0f, 2.0f, 0.0f)) * scale(mat4(1.0f), vec3(2.0f, 4.0f, 2.0f));
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
-        glDrawArrays(drawMode, 0, 36);
+        {
+            // Draw pillars
+            mat4 lineWorldMatrix;
+            //lineWorldMatrix = translate(mat4(1.0f), vec3(0.0f, 10.0f, 0.0f)) * scale(mat4(1.0f), vec3(2.0f, 20.0f, 2.0f));
+            lineWorldMatrix = translate(mat4(1.0f), vec3(0.0f, 2.0f, 0.0f)) * scale(mat4(1.0f), vec3(2.0f, 4.0f, 2.0f));
+            glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
+            //glDrawArrays(drawMode, 0, 36);
 
-        drawGrid(worldMatrixLocation, mat4(1.0f), 40, 0.5f);
-        lineWorldMatrix = translate(mat4(1.0f), vec3(10.0f, 10.0f, 10.0f));
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
-        glDrawArrays(drawMode, 0, 36);
+            drawGrid(worldMatrixLocation, mat4(1.0f), 40, 0.5f);
+            lineWorldMatrix = translate(mat4(1.0f), vec3(10.0f, 10.0f, 10.0f));
+            glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
+            glDrawArrays(drawMode, 0, 36);
 
-        lineWorldMatrix = translate(mat4(1.0f), vec3(10.0f, 8.0f, 10.0f)) * scale(mat4(1.0f), vec3(0.5f, 1.0f, 2.0f));
-        //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
-        //glDrawArrays(GL_LINES, 36, 2);
-        glLineWidth(10);
-        drawGrid(worldMatrixLocation, lineWorldMatrix, 10,1.2f);
-        glLineWidth(1);
-        drawV9(worldMatrixLocation, drawMode, mat4(1.0f),5,1, 20.0f, 8);
+            lineWorldMatrix = translate(mat4(1.0f), vec3(10.0f, 8.0f, 10.0f)) * scale(mat4(1.0f), vec3(0.5f, 1.0f, 2.0f));
+            //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
+            //glDrawArrays(GL_LINES, 36, 2);
+            glLineWidth(10);
+            drawGrid(worldMatrixLocation, lineWorldMatrix, 10, 1.2f);
+            glLineWidth(1);
+
+
+            angle += dt * spinningSpeed;
+            angle -= (angle > 360) ? 360 : 0;
+            mat4 spinningMatrix =
+                (spin) ? rotate(mat4(1.0f),
+                    radians(angle),
+                    vec3(0.0f, 1.0f, 0.0f))
+                : mat4(1.0f);
+            if (angle > 180) {
+                cycle = -angle / 20 + 22;
+                glClearColor(2.0f - angle / 180, 0.3f, 0.4f, 1.0f);
+            }
+            else {
+                cycle = angle / 20 + 5;
+                glClearColor(angle / 180, 0.3f, 0.4f, 1.0f);
+            }
+            if (angle > 300) {
+                v_angle = v_maxAngle - (angle - 300) / 60 * (v_maxAngle - v_minAngle);
+            }
+            else {
+                v_angle = angle / 300 * (v_maxAngle - v_minAngle) + v_minAngle;
+            }
+            v_angle += 2 * sin(radians(angle * 3) + 1);
+            drawV9(worldMatrixLocation, drawMode, spinningMatrix, 5, 1, v_angle, cycle);
+        }
         //glBegin(GL_LINES);
         //glLineWidth(3);
         //glColor3f(0.0f, 1.0f, 0.0f);
@@ -717,7 +753,7 @@ int main(int argc, char*argv[])
 
             glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &spinningCubeWorldMatrix[0][0]);
             glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &spinningCubeViewMatrix[0][0]);
-            glClearColor(0.0f, 0.3f, 0.4f, 1.0f);
+            //glClearColor(0.0f, 0.3f, 0.4f, 1.0f);
         }
         else {
             // In third person view, let's draw the spinning cube in world space, like any other models
@@ -726,7 +762,7 @@ int main(int argc, char*argv[])
                                            scale(mat4(1.0f), vec3(0.1f, 0.1f, 0.1f));
 
             glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &spinningCubeWorldMatrix[0][0]);
-            glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
+            //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
         }
         //{
         //    // In third person view, let's draw the spinning cube in world space, like any other models
@@ -783,6 +819,7 @@ int main(int argc, char*argv[])
         // Convert to spherical coordinates
         const float cameraAngularSpeed = 60.0f;
 
+        //doesn't work?
         if (glfwGetKey(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) // control camera with mouse
         {
             //cameraPosition -= cameraSideVector * currentCameraSpeed * dt * dx;
@@ -813,6 +850,7 @@ int main(int argc, char*argv[])
         
         glm::normalize(cameraSideVector);
 
+        //doesn't work?
         if (glfwGetKey(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) // control camera with mouse
         {
             glClearColor(0.4f, 0.3f, 1.0f, 1.0f);
