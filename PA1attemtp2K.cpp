@@ -70,42 +70,135 @@ public:
     CharModel(int shaderProgram) {
         worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
         colorLocation = glGetUniformLocation(shaderProgram, "objectColor");
-        relativeWorldMatrix = mat4(1.0f);
+        //relativeWorldMatrix = mat4(1.0f);
 
+        relativeTranslateMatrix = mat4(1.0f);
+        relativeRotateMatrix = mat4(1.0f);
+        relativeScaleMatrix = mat4(1.0f);
+        animateWorldMatrix = mat4(1.0f);
 
     }
 
-    mat4 getRelativeWorldMatrix() {
-        return relativeWorldMatrix;
+    mat4 getRelativeTranslateMatrix() {
+        return relativeTranslateMatrix;
     }
-    void setRelativeWorldMatrix(mat4 relWM) {
-        relativeWorldMatrix = relWM;
+    void setRelativeTranslateMatrix(mat4 relTWM) {
+        relativeTranslateMatrix = relTWM;
+    }
+    void addRelativeTranslateMatrix(mat4 relTWM) {
+        relativeTranslateMatrix = relTWM * relativeTranslateMatrix;
+    }
+
+    mat4 getRelativeRotateMatrix() {
+        return relativeRotateMatrix;
+    }
+    void setRelativeRotateMatrix(mat4 relRWM) {
+        relativeRotateMatrix = relRWM;
+    }
+    void addRelativeRotateMatrix(mat4 relRWM) {
+        relativeRotateMatrix = relRWM * relativeRotateMatrix;
+    }
+
+    mat4 getRelativeScaleMatrix() {
+        return relativeScaleMatrix;
+    }
+    void setRelativeScaleMatrix(mat4 relSWM) {
+        relativeScaleMatrix = relSWM;
+    }
+    void addRelativeScaleMatrix(mat4 relSWM) {
+        relativeScaleMatrix = relSWM * relativeScaleMatrix;
+    }
+
+
+    mat4 getaAnimateWorldMatrix() {
+        return animateWorldMatrix;
+    }
+    void setAnimateWorldMatrix(mat4 aniWM) {
+        animateWorldMatrix = aniWM;
+    }
+
+    //deprecated, replaced with getRelevantWorldMatrix()
+    //mat4 getRelativeWorldMatrix() {
+    //    return relativeWorldMatrix;
+    //}
+    //deprecated, replaced with TRS
+    //void setRelativeWorldMatrix(mat4 relWM) {
+    //    relativeWorldMatrix = relWM;
+    //}
+    // deprecated, replaced with TRS
+    //void addRelativeWorldMatrix(mat4 relWM) {
+    //    relativeWorldMatrix = relWM * relativeWorldMatrix;
+    //}
+    void setRelativeWorldMatrix(mat4 relTWM, mat4 relRWM, mat4 relSWM) {
+        setRelativeTranslateMatrix(relTWM);
+        setRelativeRotateMatrix(relRWM);
+        setRelativeScaleMatrix(relSWM);
+    }
+    void addRelativeWorldMatrix(mat4 relTWM, mat4 relRWM, mat4 relSWM) {
+        addRelativeTranslateMatrix(relTWM);
+        addRelativeRotateMatrix(relRWM);
+        addRelativeScaleMatrix(relSWM);
+    }
+    mat4 getRelevantWorldMatrix() {
+        return relativeTranslateMatrix * relativeRotateMatrix * relativeScaleMatrix * animateWorldMatrix;
     }
 
     virtual void draw(options opt, GLchar drawMode = GL_TRIANGLES) {
         //implement in derived class please.
     }
 
-    //draws all passed models.
+    //draws all passed models. for now hardcoded to 2.
     static void draw(CharModel* arr[5], options opt[5], GLchar drawMode) {
         for (int i = 0; i < 5; i++) {
-            if (!arr[i]) {
-                continue;
+
+            if (i == 2) { break; }      //<- remove later
+
+            if (arr[i]) {
+                arr[i]->draw(opt[i], drawMode);
             }
-            arr[i]->draw(opt[i], drawMode);
         }
     }
-
+    //sets relativeWorldMatrix for passed model/matrix pair. deprecated, replaced with TRS
+    //static void setRelativeWorldMatrix(map<CharModel*, mat4> mRelWM) {
+    //    map<CharModel*, mat4>::iterator itr;
+    //    for (itr = mRelWM.begin(); itr != mRelWM.end(); ++itr) {
+    //        itr->first->setRelativeWorldMatrix(itr->second);
+    //    }
+    //}
+    //adds relativeWorldMatrix for passed model/matrix pair. deprecated, replaced with TRS
+    //static void addRelativeWorldMatrix(map<CharModel*, mat4> mRelWM) {
+    //    map<CharModel*, mat4>::iterator itr;
+    //    for (itr = mRelWM.begin(); itr != mRelWM.end(); ++itr) {
+    //        itr->first->addRelativeWorldMatrix(itr->second);
+    //    }
+    //}
+    //sets animateWorldMatrix for passed model/matrix pair.
+    static void setAnimateWorldMatrix(map<CharModel*, mat4> mAniWM) {
+        map<CharModel*, mat4>::iterator itr;
+        for (itr = mAniWM.begin(); itr != mAniWM.end(); ++itr) {
+            itr->first->setAnimateWorldMatrix(itr->second);
+        }
+    }
 protected:
     GLuint worldMatrixLocation;
     GLuint colorLocation;
-    mat4 relativeWorldMatrix;
+private:
+    //mat4 relativeWorldMatrix;     //deprecated, replaced with TRS
+    mat4 relativeTranslateMatrix;
+    mat4 relativeRotateMatrix;
+    mat4 relativeScaleMatrix;
+    mat4 animateWorldMatrix;
 };
 
 class V9Model : public CharModel {
 public:
 
     V9Model(int shaderProgram):CharModel(shaderProgram) {
+        setRelativeTranslateMatrix(
+            translate(mat4(1.0f),
+                vec3(0,
+                    0,
+                    -20)));
     }
 
     void draw(options opt, GLchar drawMode = GL_TRIANGLES) {
@@ -114,7 +207,7 @@ public:
         float angle = opt.option3f;
         int corners = opt.option4f;
 
-        drawV9(worldMatrixLocation, drawMode, getRelativeWorldMatrix(), heightScale, widthScale, angle, corners);
+        drawV9(worldMatrixLocation, drawMode, getRelevantWorldMatrix(), heightScale, widthScale, angle, corners);
     }
 private:
     void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatrix = mat4(1.0f), float heightScale = 1, float widthScale = 1, float angle = 20, int corners = 4);
@@ -138,8 +231,8 @@ public:
         // options
         float argument_1 = opt.option1f;
 
-        //calls function to draw model with drawMode and getRelativeWorldMatrix(), plus any option arguments.
-        drawModel(worldMatrixLocation, drawMode, getRelativeWorldMatrix(), argument_1);
+        //calls function to draw model with drawMode and getRelevantWorldMatrix(), plus any option arguments.
+        drawModel(worldMatrixLocation, drawMode, getRelevantWorldMatrix(), argument_1);
     }
     
 private:
@@ -662,6 +755,82 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
     return selectedModelIndex;
 }
 
+//function will return a matrix for corresponding transformation of inputted keys.
+//note: undefined order priority in case multiple correct keys are pressed (but will select a matrix).
+mat4* modelControl(GLFWwindow* window) {
+    mat4* selectedTransformation = new mat4[3];
+    selectedTransformation[0] = mat4(1.0f);
+    selectedTransformation[1] = mat4(1.0f);
+    selectedTransformation[2] = mat4(1.0f);
+
+    struct transformation {
+        mat4 matrix;
+        int type;
+    };
+    map<int, transformation> inputsToModelMatrix;
+    map<int, transformation>::iterator itr;
+    float transformSpeed = 0.2f;
+    float translateSpeed = transformSpeed;
+    float rotateSpeed = transformSpeed*20;
+    float scaleSpeed = transformSpeed/4;
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) // capital case letters
+    {
+        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_W, { 
+            translate(mat4(1.0f),
+                vec3(0,
+                    transformSpeed,
+                    0)), 0 }));
+        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_A, { 
+            translate(mat4(1.0f),
+                vec3(transformSpeed,
+                    0,
+                    0)), 0 }));
+        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_S, { 
+            translate(mat4(1.0f),
+                vec3(0,
+                    -transformSpeed,
+                    0)), 0 }));
+        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_D, { 
+            translate(mat4(1.0f),
+                vec3(-transformSpeed,
+                    0,
+                    0)), 0 }));
+
+        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_U, { 
+            scale(mat4(1.0f),
+                vec3((1 + scaleSpeed), (1 + scaleSpeed), (1 + scaleSpeed))), 2 }));
+        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_J, { 
+            scale(mat4(1.0f),
+                vec3(1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed))), 2 }));
+    }
+    else { // lower case letters
+        //inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_W, {
+        //    rotate(mat4(1.0f),
+        //        radians(90.0f),
+        //        vec3(1.0f, 0.0f, 0.0f)), 1 }));
+        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_A, {
+            rotate(mat4(1.0f),
+                radians(rotateSpeed),
+                vec3(0.0f, 1.0f, 0.0f)), 1 }));
+        //inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_S, {
+        //    rotate(mat4(1.0f),
+        //        radians(90.0f),
+        //        vec3(1.0f, 0.0f, 0.0f)), 1 }));
+        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_D, {
+            rotate(mat4(1.0f),
+                radians(rotateSpeed),
+                vec3(0.0f, -1.0f, 0.0f)), 1 }));
+    }
+
+    for (itr = inputsToModelMatrix.begin(); itr != inputsToModelMatrix.end(); ++itr) {
+        if (glfwGetKey(window, itr->first) == GLFW_PRESS) // select model
+        {
+            selectedTransformation[itr->second.type] = itr->second.matrix * selectedTransformation[itr->second.type];
+        }
+    }
+    return selectedTransformation;
+}
+
 int main(int argc, char*argv[])
 {
     // Initialize GLFW and OpenGL version
@@ -850,8 +1019,9 @@ int main(int argc, char*argv[])
             glLineWidth(10);
             drawGrid(worldMatrixLocation, lineWorldMatrix, 10, 1.2f);
             glLineWidth(1);
-
-
+        }
+        //animation calculation for V9 model.
+        {
             angle += dt * spinningSpeed;
             angle -= (angle > 360) ? 360 : 0;
             mat4 spinningMatrix =
@@ -877,45 +1047,56 @@ int main(int argc, char*argv[])
             //drawV9(worldMatrixLocation, drawMode, spinningMatrix, 5, 1, v_angle, cycle);
         }
         
-
-        mat4 relativeWorldMatrix1 =
-            translate(mat4(1.0f),
-                vec3(0,
-                    0,
-                    -20))
-            * rotate(mat4(1.0f),
+        //compute relativeWorldMatrices (passive) for each model.
+        mat4 animateWorldMatrix1 = //<- will replace these later/placeholder/demonstration.
+            rotate(mat4(1.0f),
                 radians(angle),
                 vec3(0.0f, 1.0f, 0.0f))
             * scale(mat4(1.0f),
                 vec3(0.5f, 2.0f, 5.0f));
-        mat4 relativeWorldMatrix2 =
-            translate(mat4(1.0f),
-                vec3(10,
-                    5,
-                    -20))
-            * rotate(mat4(1.0f),
+        mat4 animateWorldMatrix2 =
+            rotate(mat4(1.0f),
                 radians(angle) * cos(radians(angle*4)),
                 vec3(0.0f, 0.0f, 1.0f))
             * scale(mat4(1.0f),
                 vec3(0.4f, 0.6f, 1.0f));
 
+        //assign options to models (if applicable)
         opt[0].option1f = 5;
         opt[0].option2f = 1;
         opt[0].option3f = v_angle;
         opt[0].option4f = cycle;
-        selectedModel = &v9;
-        selectedModel->setRelativeWorldMatrix(relativeWorldMatrix1);
 
-        selectedModel->draw(opt[0], drawMode);
+        opt[1] = opt[0];
+        opt[1].option3f = 20;
 
+        //etc.
+        
+        //assign animateWorldMatrices to each model.
+        map<CharModel*, mat4> modelsAnimateMatrices;
+        modelsAnimateMatrices.insert(pair<CharModel*, mat4>(&v9, animateWorldMatrix1));
+        //modelsAnimateMatrices.insert(pair<CharModel*, mat4>(&v9_2, animateWorldMatrix2));
+        //modelsAnimateMatrices.insert(pair<CharModel, mat4>(, animateWorldMatrix3));
+        //modelsAnimateMatrices.insert(pair<CharModel, mat4>(, animateWorldMatrix4));
+        //modelsAnimateMatrices.insert(pair<CharModel, mat4>(, animateWorldMatrix5));
 
-        selectedModel = &v9_2;
-        selectedModel->setRelativeWorldMatrix(relativeWorldMatrix2);
-        opt[0].option3f = 20;
-        selectedModel->draw(opt[0], drawMode);
+        CharModel::setAnimateWorldMatrix(modelsAnimateMatrices);
+
+        //selectedModel = &v9;
+        //selectedModel->setRelativeWorldMatrix(relativeWorldMatrix1);
+        //selectedModel = &v9_2;
         //selectedModel->setRelativeWorldMatrix(relativeWorldMatrix2);
-        //selectedModel->draw(opt[2], drawMode);
-        //CharModel::draw(models, opt, drawMode);
+
+        //done previously, but could move the code here instead.
+        //modelIndex = selectModelControl(window, modelIndex);
+        //selectedModel = models[modelIndex];
+
+        mat4* relativeWorldMatrix = modelControl(window);
+
+        selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
+
+        //draw all models
+        CharModel::draw(models, opt, drawMode);
 
         //glBegin(GL_LINES);
         //glLineWidth(3);
