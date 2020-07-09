@@ -28,25 +28,27 @@ public:
     Projectile(vec3 position, vec3 velocity, int shaderProgram) : mPosition(position), mVelocity(velocity)
     {
         mWorldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
-
+        mColorLocation = glGetUniformLocation(shaderProgram, "objectColor");
     }
-    
+
     void Update(float dt)
     {
         mPosition += mVelocity * dt;
     }
-    
+
     void Draw() {
         // this is a bit of a shortcut, since we have a single vbo, it is already bound
         // let's just set the world matrix in the vertex shader
-        
+
         mat4 worldMatrix = translate(mat4(1.0f), mPosition) * rotate(mat4(1.0f), radians(180.0f), vec3(0.0f, 1.0f, 0.0f)) * scale(mat4(1.0f), vec3(0.2f, 0.2f, 0.2f));
         glUniformMatrix4fv(mWorldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+        glUniform3f(mColorLocation, 0.0f, 0.0f, 1.0f);
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
-    
+
 private:
     GLuint mWorldMatrixLocation;
+    GLuint mColorLocation;
     vec3 mPosition;
     vec3 mVelocity;
 };
@@ -128,7 +130,7 @@ public:
         return relativeTranslateMatrix * relativeRotateMatrix * relativeScaleMatrix;
     }
 
-    virtual void draw(GLchar drawMode = GL_TRIANGLES) {
+    virtual void draw() {
         //implement in derived class please.
     }
 
@@ -138,13 +140,13 @@ public:
     }
 
     //Class method to draws all passed models. for now hardcoded to 2 (issues when unloaded models).
-    static void draw(CharModel* arr[5], GLchar drawMode) {
+    static void draw(CharModel* arr[5]) {
         for (int i = 0; i < 5; i++) {
 
             if (i == 2) { break; }      //<- remove later
 
             if (arr[i]) {
-                arr[i]->draw(drawMode);
+                arr[i]->draw();
             }
         }
     }
@@ -181,19 +183,20 @@ public:
     }
 
     //no need to change anything here, except drawModel's name if you feel like it.
-    void draw(GLchar drawMode = GL_TRIANGLES) {
-        //calls function to draw model with drawMode and getRelevantWorldMatrix(), plus any option arguments.
-        drawModel(worldMatrixLocation, drawMode, getRelativeWorldMatrix());
+    void draw() {
+        //pass arguments stored in parent class.
+        drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
     }
 
 private:
-    void drawModel(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatrix) {
+    void drawModel(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
         //code goes here
 
         //pattern to draw models to make use of relativeWorldMatrix:
         //worldMatrix = relativeWorldMatrix * (model's original matrices);
         //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        //glDrawArrays(drawMode, 0, 36);
+        //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 };
 
@@ -206,7 +209,7 @@ public:
         initial_relativeTranslateMatrix =
             translate(mat4(1.0f),
                 vec3(0,
-                    model_heightScale/2,
+                    model_heightScale / 2,
                     -20));
 
         setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
@@ -221,13 +224,13 @@ public:
     }
 
     //override draw method.
-    void draw(GLchar drawMode = GL_TRIANGLES) {
+    void draw() {
         //pass arguments stored in parent class.
-        drawV9(worldMatrixLocation, drawMode, getRelativeWorldMatrix());
+        drawV9(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
     }
 
 private:
-    void drawV9(GLuint worldMatrixLocation, GLchar drawMode, mat4 relativeWorldMatrix) {
+    void drawV9(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
 
         //total height is heightScale
         //total width is 2*(letterHalfWidth+apothem)
@@ -242,26 +245,25 @@ private:
         mat4 worldMatrix;           //complete matrix after all transformations.
 
         //convert angles to radians
-        float r_angle = radians((float)angle);
-        r_angle = (r_angle < 0) ? -r_angle : r_angle;
+        const float r_angle = abs(radians((float)angle));
 
         //future calculations done early to determine modelPositioningMatrix for letter, and box measurements.
-        float m9_apothem = (heightScale + widthScale) / 4;
-        float m9_centralAngle = radians(360.0f / corners);
-        float m9_radius = m9_apothem / cos(m9_centralAngle / 2);
-        float m9_base = 2 * m9_apothem * tanf(m9_centralAngle / 2);
+        const float m9_apothem = (heightScale + widthScale) / 4;
+        const float m9_centralAngle = radians(360.0f / corners);
+        const float m9_radius = m9_apothem / cos(m9_centralAngle / 2);
+        const float m9_base = 2 * m9_apothem * tanf(m9_centralAngle / 2);
 
         //base of cube to scale by
-        float mV_base = widthScale * cosf(r_angle);
+        const float mV_base = widthScale * cosf(r_angle);
         //heigtht of cube to scale by
-        float mV_height = (heightScale - widthScale * cosf(r_angle) * sinf(r_angle)) / cosf(r_angle);
+        const float mV_height = (heightScale - widthScale * cosf(r_angle) * sinf(r_angle)) / cosf(r_angle);
         //absolute width of half of V
-        float letterHalfWidth = mV_height * sinf(r_angle) + mV_base * cosf(r_angle);
+        const float letterHalfWidth = mV_height * sinf(r_angle) + mV_base * cosf(r_angle);
 
         //full model measurement
-        float m_height = heightScale;
-        float m_width = 2 * (letterHalfWidth + m9_apothem);
-        float m_maxWidth = 2 * (letterHalfWidth + m9_radius);
+        const float m_height = heightScale;
+        const float m_width = 2 * (letterHalfWidth + m9_apothem);
+        const float m_maxWidth = 2 * (letterHalfWidth + m9_radius);
 
         //Offset for V to center the model. Origin will touch bottom center.
         mat4 modelPositioningMatrix =
@@ -276,10 +278,9 @@ private:
         //loops for left and right half
         for (int i = 0; i < 2; ++i)
         {
-            int parity = pow(-1, i + 1);
-            float angle_i = r_angle * parity;  //vertical angle of leg 
-            float letterHalfWidth = mV_height * sinf(angle_i) + mV_base * cosf(angle_i);  //only works with i = 0, 1.     //absolute width of half a V, \/.
-            
+            const int parity = pow(-1, i + 1);
+            const float angle_i = r_angle * parity;  //vertical angle of leg 
+
             inertialWorldMatrix =
                 //move into position relative to center of model.
                 modelPositioningMatrix
@@ -299,12 +300,13 @@ private:
             //tramsformation to model as a whole
             worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
             glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-            glDrawArrays(drawMode, 0, 36);
+            //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
         }
         //connect the bottom part of the V legs together
-        float base = widthScale * cosf(r_angle);
-        float bottomHeight = base * sinf(r_angle);
-        float bottomBase = base * cosf(r_angle) * 2;
+        const float base = widthScale * cosf(r_angle);
+        const float bottomHeight = base * sinf(r_angle);
+        const float bottomBase = base * cosf(r_angle) * 2;
         inertialWorldMatrix =
             //move into position relative to center of model.
             modelPositioningMatrix
@@ -318,7 +320,8 @@ private:
                 vec3(bottomBase, bottomHeight, 1.0f));
         worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        glDrawArrays(drawMode, 0, 36);
+        //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
         //Draw 9.
@@ -329,13 +332,14 @@ private:
         modelPositioningMatrix =
             translate(mat4(1.0f),
                 vec3(letterHalfWidth,
-                    -m_height/2,
+                    -m_height / 2,
                     0));
         //Draw in shape of regular polygons.
         for (int i = 0; i < corners; ++i)
         {
-            float angle_i = m9_centralAngle * i;
-            float thickness = widthScale;
+            const float angle_i = m9_centralAngle * i;
+            const float tailAngle_i = fmod(angle_i + radians(180.0f), radians(360.0f));
+            const float thickness = widthScale;
 
             //draw head
             inertialWorldMatrix =
@@ -360,13 +364,12 @@ private:
                     vec3(m9_base, thickness, 1.0f));
             worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
             glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-            glDrawArrays(drawMode, 0, 36);
+            //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
 
             //draw tail
             //Offset angle_i by half a turn to match flush with ground
-            angle_i += radians(180.0f);
-            angle_i -= (angle_i > radians(360.0f)) ? radians(360.0f) : 0;
-            if (angle_i < radians(240.0f) && angle_i > 0.0f) {
+            if (tailAngle_i < radians(240.0f) && tailAngle_i > 0.0f) {
                 inertialWorldMatrix =
                     ////rotate 90 degrees. flat on ground
                     //rotate(mat4(1.0f),
@@ -381,7 +384,7 @@ private:
                             0))
                     //rotate by angle_i. done after translating to simplify process.
                     * rotate(mat4(1.0f),
-                        angle_i,
+                        tailAngle_i,
                         vec3(0.0f, 0.0f, -1.0f))
                     //apothem distance.
                     * translate(mat4(1.0f),
@@ -393,18 +396,19 @@ private:
                         vec3(m9_base, thickness, 1.0f));
                 worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
                 glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-                glDrawArrays(drawMode, 0, 36);
+                //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+                glDrawArrays(GL_TRIANGLES, 0, 36);
             }
         }
         {
             //draw box around model(extra)
-            float boxVerticalWidth = heightScale / 100;   //thickness of horizontal bars
-            float boxHorizontalWidth = widthScale / 20;   //thickness of vertical bars
-            float modelMaxHeight = m_height;
-            float modelMaxWidth = m_maxWidth;
+            const float boxVerticalWidth = heightScale / 100;   //thickness of horizontal bars
+            const float boxHorizontalWidth = widthScale / 20;   //thickness of vertical bars
+            const float modelMaxHeight = m_height;
+            const float modelMaxWidth = m_maxWidth;
             for (int i = 0; i < 4; i++) {
-                bool isHorizontal = i < 2;
-                int parity = pow(-1, i + 1);
+                const bool isHorizontal = i < 2;
+                const int parity = pow(-1, i + 1);
 
                 //horizontal and vertical bar distinction. 
                 mat4 translateMatrix = (isHorizontal)
@@ -433,11 +437,12 @@ private:
                     * scaleMatrix;
                 worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
                 glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-                glDrawArrays(drawMode, 0, 36);
+                //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+                glDrawArrays(GL_TRIANGLES, 0, 36);
 
             }
         }
-        
+
     }
 };
 
@@ -490,7 +495,7 @@ int compileAndLinkShaders()
     const char* vertexShaderSource = getVertexShaderSource();
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
-    
+
     // check for shader compile errors
     int success;
     char infoLog[512];
@@ -500,13 +505,13 @@ int compileAndLinkShaders()
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
         std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
-    
+
     // fragment shader
     int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     const char* fragmentShaderSource = getFragmentShaderSource();
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
-    
+
     // check for shader compile errors
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success)
@@ -514,23 +519,23 @@ int compileAndLinkShaders()
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
         std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
-    
+
     // link shaders
     int shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
-    
+
     // check for linking errors
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
         std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
     }
-    
+
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
-    
+
     return shaderProgram;
 }
 
@@ -542,48 +547,48 @@ int createVertexBufferObject()
         vec3(-0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f), //left - red
         vec3(-0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
         vec3(-0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-        
+
         vec3(-0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
         vec3(-0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
         vec3(-0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
-        
-        vec3( 0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f), // far - blue
+
+        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f), // far - blue
         vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f),
         vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f),
-        
-        vec3( 0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3( 0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f),
+
+        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f),
+        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f),
         vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f),
-        
-        vec3( 0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 1.0f), // bottom - turquoise
+
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 1.0f), // bottom - turquoise
         vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 1.0f, 1.0f),
-        vec3( 0.5f,-0.5f,-0.5f), vec3(0.0f, 1.0f, 1.0f),
-        
-        vec3( 0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 1.0f),
+        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 1.0f, 1.0f),
+
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 1.0f),
         vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 1.0f),
         vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 1.0f, 1.0f),
-        
+
         vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f), // near - green
         vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3( 0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        
-        vec3( 0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
         vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3( 0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        
-        vec3( 0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 1.0f), // right - purple
-        vec3( 0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 1.0f),
-        vec3( 0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 1.0f),
-        
-        vec3( 0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 1.0f),
-        vec3( 0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 1.0f),
-        vec3( 0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 1.0f),
-        
-        vec3( 0.5f, 0.5f, 0.5f), vec3(1.0f, 1.0f, 0.0f), // top - yellow
-        vec3( 0.5f, 0.5f,-0.5f), vec3(1.0f, 1.0f, 0.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+
+        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 1.0f), // right - purple
+        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 1.0f),
+        vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 1.0f),
+
+        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 1.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 1.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 1.0f),
+
+        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 1.0f, 0.0f), // top - yellow
+        vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 1.0f, 0.0f),
         vec3(-0.5f, 0.5f,-0.5f), vec3(1.0f, 1.0f, 0.0f),
-        
-        vec3( 0.5f, 0.5f, 0.5f), vec3(1.0f, 1.0f, 0.0f),
+
+        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 1.0f, 0.0f),
         vec3(-0.5f, 0.5f,-0.5f), vec3(1.0f, 1.0f, 0.0f),
         vec3(-0.5f, 0.5f, 0.5f), vec3(1.0f, 1.0f, 0.0f),
 
@@ -592,13 +597,13 @@ int createVertexBufferObject()
         vec3(0.0f, 0.0f, 0.5f), vec3(1.0f, 1.0f, 1.0f),
     };
 
-    
+
     // Create a vertex array
     GLuint vertexArrayObject;
     glGenVertexArrays(1, &vertexArrayObject);
     glBindVertexArray(vertexArrayObject);
-    
-    
+
+
     // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
     GLuint vertexBufferObject;
     glGenBuffers(1, &vertexBufferObject);
@@ -606,25 +611,25 @@ int createVertexBufferObject()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0,                   // attribute 0 matches aPos in Vertex Shader
-                          3,                   // size
-                          GL_FLOAT,            // type
-                          GL_FALSE,            // normalized?
-                          2*sizeof(vec3), // stride - each vertex contain 2 vec3 (position, color)
-                          (void*)0             // array buffer offset
-                          );
+        3,                   // size
+        GL_FLOAT,            // type
+        GL_FALSE,            // normalized?
+        2 * sizeof(vec3), // stride - each vertex contain 2 vec3 (position, color)
+        (void*)0             // array buffer offset
+    );
     glEnableVertexAttribArray(0);
 
 
     glVertexAttribPointer(1,                            // attribute 1 matches aColor in Vertex Shader
-                          3,
-                          GL_FLOAT,
-                          GL_FALSE,
-                          2*sizeof(vec3),
-                          (void*)sizeof(vec3)      // color is offseted a vec3 (comes after position)
-                          );
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        2 * sizeof(vec3),
+        (void*)sizeof(vec3)      // color is offseted a vec3 (comes after position)
+    );
     glEnableVertexAttribArray(1);
 
-    
+
     return vertexBufferObject;
 }
 
@@ -657,7 +662,7 @@ void drawGrid(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWor
         //tramsformation to grid as a whole
         worldMatrix = relativeWorldMatrix * lineWorldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
+        //glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
         glDrawArrays(GL_LINES, 36, 2);
 
         //Draw perpendicular set.
@@ -676,7 +681,7 @@ void drawGrid(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWor
                 vec3(1.0f, 1.0f, cellLength * sideLength));
         worldMatrix = relativeWorldMatrix * lineWorldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
+        //glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
         glDrawArrays(GL_LINES, 36, 2);
     }
 }
@@ -704,27 +709,27 @@ void drawAxis(GLuint worldMatrixLocation, GLuint colorLocation) {
 
 }
 
-//function will return the selected draw mode on correct key presses.
+//function will switch the selected draw mode on correct key presses.
 //note: undefined priority in case multiple correct keys are pressed (but will select a draw mode).
-GLchar drawControl(GLFWwindow* window, GLchar previousDrawMode) {
-    map<int, GLchar> inputsToDrawModes;
-    map<int, GLchar>::iterator itr;
-    inputsToDrawModes.insert(pair<int, GLchar>(GLFW_KEY_P, GL_POINTS));
-    inputsToDrawModes.insert(pair<int, GLchar>(GLFW_KEY_L, GL_LINES));
-    inputsToDrawModes.insert(pair<int, GLchar>(GLFW_KEY_T, GL_TRIANGLES));
+void drawControl(GLFWwindow* window) {
+    map<int, GLenum> inputsToDrawModes;
+    map<int, GLenum>::iterator itr;
+    inputsToDrawModes.insert(pair<int, GLenum>(GLFW_KEY_P, GL_POINT));
+    inputsToDrawModes.insert(pair<int, GLenum>(GLFW_KEY_L, GL_LINE));
+    inputsToDrawModes.insert(pair<int, GLenum>(GLFW_KEY_T, GL_FILL));
 
     //default return value;
-    GLchar selectedMode = previousDrawMode;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) // capital letters only
     {
         for (itr = inputsToDrawModes.begin(); itr != inputsToDrawModes.end(); ++itr) {
             if (glfwGetKey(window, itr->first) == GLFW_PRESS) // draw mode
             {
-                selectedMode = itr->second;
+                //JASON BECCHERINI
+                // Keybinds for selecting rendering mode (affects axis and models)
+                glPolygonMode(GL_FRONT_AND_BACK, itr->second);
             }
         }
     }
-    return selectedMode;
 }
 
 //function will return a model index on correct key presses.
@@ -773,12 +778,12 @@ mat4* modelControl(GLFWwindow* window) {
     float transformSpeed = 0.2f;
     float translateSpeed = transformSpeed;
     float rotateSpeed = 5.0f;   //specifications
-    float scaleSpeed = transformSpeed/4;
+    float scaleSpeed = transformSpeed / 4;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) // capital case letters
     {
         //translate model if pressed
         //vertical movement
-        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_W, { 
+        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_W, {
             translate(mat4(1.0f),
                 vec3(0,
                     translateSpeed,
@@ -794,21 +799,21 @@ mat4* modelControl(GLFWwindow* window) {
                 vec3(translateSpeed,
                     0,
                     0)), 0 }));
-        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_A, { 
+        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_A, {
             translate(mat4(1.0f),
                 vec3(-translateSpeed,
                     0,
                     0)), 0 }));
 
         //scale model if pressed
-        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_U, { 
+        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_U, {
             scale(mat4(1.0f),
                 vec3((1 + scaleSpeed), (1 + scaleSpeed), (1 + scaleSpeed))), 2 }));
-        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_J, { 
+        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_J, {
             scale(mat4(1.0f),
                 vec3(1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed))), 2 }));
     }
-    else { 
+    else {
         //rotate model if pressed
         inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_A, {
             rotate(mat4(1.0f),
@@ -839,11 +844,11 @@ mat4* modelControl(GLFWwindow* window) {
     return selectedTransformation;
 }
 
-int main(int argc, char*argv[])
+int main(int argc, char* argv[])
 {
     // Initialize GLFW and OpenGL version
     glfwInit();
-    
+
 #if defined(PLATFORM_OSX)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
@@ -868,7 +873,7 @@ int main(int argc, char*argv[])
     // @TODO 3 - Disable mouse cursor
     // ...
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    
+
     // Initialize GLEW
     glewExperimental = true; // Needed for core profile
     if (glewInit() != GLEW_OK) {
@@ -882,7 +887,7 @@ int main(int argc, char*argv[])
 
     // Compile and link shaders here ...
     int shaderProgram = compileAndLinkShaders();
-    
+
     // We can set the shader once, since we have only one
     glUseProgram(shaderProgram);
 
@@ -911,15 +916,15 @@ int main(int argc, char*argv[])
 
     // Spinning cube at camera position
     float spinningCubeAngle = 0.0f;
-    
+
     // Set projection matrix for shader, this won't change
     mat4 projectionMatrix = glm::perspective(70.0f,            // field of view in degrees
-                                             800.0f / 600.0f,  // aspect ratio
-                                             0.01f, 100.0f);   // near and far (near > 0)
+        800.0f / 600.0f,  // aspect ratio
+        0.01f, 100.0f);   // near and far (near > 0)
 
-    //glm::mat4 projectionMatrix = glm::ortho(-4.0f, 4.0f,    // left/right
-    //    -3.0f, 3.0f,    // bottom/top
-    //    -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
+//glm::mat4 projectionMatrix = glm::ortho(-4.0f, 4.0f,    // left/right
+//    -3.0f, 3.0f,    // bottom/top
+//    -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
 
     GLuint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
     glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
@@ -930,31 +935,28 @@ int main(int argc, char*argv[])
     //                         cameraUp ); // up
     GLuint viewMatrixLocation = glGetUniformLocation(shaderProgram, "viewMatrix");
     //glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
-    
-    
+
+
     // Define and upload geometry to the GPU here ...
     int vbo = createVertexBufferObject();
-    
+
     // For frame time
     float lastFrameTime = glfwGetTime();
 
     int lastMouseLeftState = GLFW_RELEASE;
     double lastMousePosX, lastMousePosY;
     glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
-    
+
     // Other OpenGL states to set once
     // Enable Backface culling
     glEnable(GL_CULL_FACE);
-    
+
     // @TODO 1 - Enable Depth Test
     // ...
     glEnable(GL_DEPTH_TEST);
-    
+
     // Container for projectiles to be implemented in tutorial
     list<Projectile> projectileList;
-    
-    //default draw mode.
-    GLchar drawMode = GL_TRIANGLES;
 
     //Models
     CharModel* selectedModel;
@@ -972,7 +974,7 @@ int main(int argc, char*argv[])
     //models[2] = &;
     //models[3] = &;
     //models[4] = &;
-    
+
     // Entering Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -993,28 +995,18 @@ int main(int argc, char*argv[])
 
 
         //draw grid
+        glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
         drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
 
         //draw models
         {
             //selection with keys.
-            drawMode = drawControl(window, drawMode);
+            drawControl(window);
             modelIndex = selectModelControl(window, modelIndex);
             selectedModel = models[modelIndex];
             //Control model key presses.
             mat4* relativeWorldMatrix = modelControl(window);
 
-
-            //JASON BECCHERINI
-            {
-                // Keybinds for selecting rendering mode (affects axis and models)
-                if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
-                    glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-                if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-                    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
-                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            }
             //Home key has been pressed, so reset world matrices.
             if (relativeWorldMatrix[3] != mat4(1.0f)) {
                 selectedModel->resetInitialRelativeMatrices();
@@ -1029,9 +1021,10 @@ int main(int argc, char*argv[])
             selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
 
             //draw all models
-            CharModel::draw(models, drawMode);
+            glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+            CharModel::draw(models);
         }
-    
+
         // @TODO 3 - Update and draw projectiles
         // ...
 
@@ -1039,10 +1032,10 @@ int main(int argc, char*argv[])
             it->Update(dt);
             it->Draw();
         }
-        
+
         // Spinning cube at camera position
         spinningCubeAngle += 180.0f * dt;
-        
+
         // @TODO 7 - Draw in view space for first person camera
         if (cameraFirstPerson) {
             mat4 spinningCubeWorldMatrix = mat4(1.0);
@@ -1057,23 +1050,24 @@ int main(int argc, char*argv[])
         else {
             // In third person view, let's draw the spinning cube in world space, like any other models
             mat4 spinningCubeWorldMatrix = translate(mat4(1.0f), cameraPosition) *
-                                           rotate(mat4(1.0f), radians(spinningCubeAngle), vec3(0.0f, 1.0f, 0.0f)) *
-                                           scale(mat4(1.0f), vec3(0.1f, 0.1f, 0.1f));
+                rotate(mat4(1.0f), radians(spinningCubeAngle), vec3(0.0f, 1.0f, 0.0f)) *
+                scale(mat4(1.0f), vec3(0.1f, 0.1f, 0.1f));
 
             glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &spinningCubeWorldMatrix[0][0]);
             //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
         }
+        glUniform3f(colorLocation, 0.0f, 0.5f, 0.5f);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        
+
         // End Frame
         glfwSwapBuffers(window);
         glfwPollEvents();
-        
+
         // Handle inputs
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(window, true);
-        
+
         /*
         if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) // move camera down
         {
@@ -1086,32 +1080,32 @@ int main(int argc, char*argv[])
         }
         */
 
-        
+
         // This was solution for Lab02 - Moving camera exercise
         // We'll change this to be a first or third person camera
         bool fastCam = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
         float currentCameraSpeed = (fastCam) ? cameraFastSpeed : cameraSpeed;
-        
-        
+
+
         // @TODO 4 - Calculate mouse motion dx and dy
         //         - Update camera horizontal and vertical angle
         // Please understand the code when you un-comment it!
-        
+
         double mousePosX, mousePosY;
         glfwGetCursorPos(window, &mousePosX, &mousePosY);
-        
+
         double dx = mousePosX - lastMousePosX;
         double dy = mousePosY - lastMousePosY;
-        
+
         lastMousePosX = mousePosX;
         lastMousePosY = mousePosY;
-        
+
         // Convert to spherical coordinates
         const float cameraAngularSpeed = 60.0f;
 
         cameraHorizontalAngle -= dx * cameraAngularSpeed * dt;
-        cameraVerticalAngle   -= dy * cameraAngularSpeed * dt;
-        
+        cameraVerticalAngle -= dy * cameraAngularSpeed * dt;
+
         // Clamp vertical angle to [-85, 85] degrees
         cameraVerticalAngle = std::fmax(-85.0f, std::fmin(85.0f, cameraVerticalAngle));
         if (cameraHorizontalAngle > 360)
@@ -1122,15 +1116,15 @@ int main(int argc, char*argv[])
         {
             cameraHorizontalAngle += 360;
         }
-        
+
         float theta = radians(cameraHorizontalAngle);
         float phi = radians(cameraVerticalAngle);
-        
-        cameraLookAt = vec3(cosf(phi)*cosf(theta), sinf(phi), -cosf(phi)*sinf(theta));
+
+        cameraLookAt = vec3(cosf(phi) * cosf(theta), sinf(phi), -cosf(phi) * sinf(theta));
         vec3 cameraSideVector = glm::cross(cameraLookAt, vec3(0.0f, 1.0f, 0.0f));
-        
+
         glm::normalize(cameraSideVector);
-        
+
         // @TODO 5 = use camera lookat and side vectors to update positions with ASDW
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) // move camera to the left
         {
@@ -1199,9 +1193,9 @@ int main(int argc, char*argv[])
         lastMouseLeftState = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
     }
 
-    
+
     // Shutdown GLFW
     glfwTerminate();
-    
-	return 0;
+
+    return 0;
 }
