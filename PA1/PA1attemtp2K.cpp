@@ -24,7 +24,7 @@ using namespace glm;
 using namespace std;
 
 
-const int numMainModels = 1;        //Number of main models to display. Should be 5 by the end.
+const int numMainModels = 2;        //Number of main models to display. Should be 5 by the end.
 
 struct TRSMatrix {
     mat4 relativeTranslateMatrix;   //Stored translate matrix
@@ -193,8 +193,18 @@ public:
     mat4 getRelativeWorldMatrix() {
         return relativeTranslateMatrix * relativeRotateMatrix * relativeScaleMatrix;
     }
+    //get trsMatriceHolder
     TRSMatricesHolder getTRSMatricesHolder() {
         return trsMatricesHolder;
+    }
+    //get TRS matrices from trsMatriceHolder
+    mat4* getTRSMatrices_TRSMatricesHolder() {
+        mat4 trsMatrices[3] = {
+            trsMatricesHolder.TranslateMatrix.getMatrix(),
+            trsMatricesHolder.RotateMatrix.getMatrix(),
+            trsMatricesHolder.ScaleMatrix.getMatrix()
+        };
+        return trsMatrices;
     }
 
     virtual void draw(TRSMatricesHolder cumulativeTRSMatrices = TRSMatricesHolder()) {
@@ -312,6 +322,17 @@ public:
     void draw(TRSMatricesHolder trsMatricesHolder = TRSMatricesHolder()) {
         //draw the attached models too.
         drawAttached();
+
+        //mat4* cumulativeTRSMatrices = getTRSMatrices_TRSMatricesHolder();
+        //mat4 accumulatedTranslateWorldMatrix = cumulativeTRSMatrices[0] * getRelativeTranslateMatrix();
+        //mat4 accumulatedRotateWorldMatrix = cumulativeTRSMatrices[1] * getRelativeRotateMatrix();
+        //mat4 accumulatedScaleWorldMatrix = cumulativeTRSMatrices[2] * getRelativeScaleMatrix();
+
+        //mat4 accumulatedTranslateWorldMatrix = getTRSMatricesHolder().TranslateMatrix.getMatrix() * getRelativeTranslateMatrix();
+        //mat4 accumulatedRotateWorldMatrix = getTRSMatricesHolder().RotateMatrix.getMatrix() * getRelativeRotateMatrix();
+        //mat4 accumulatedScaleWorldMatrix = getTRSMatricesHolder().ScaleMatrix.getMatrix() * getRelativeScaleMatrix();
+
+        //mat4 accumulatedWorldMatrix = accumulatedTranslateWorldMatrix * accumulatedRotateWorldMatrix * accumulatedScaleWorldMatrix;
 
         mat4 accumulatedWorldMatrix = getWorldMatrixFromHolder(trsMatricesHolder) * getRelativeWorldMatrix();
 
@@ -846,8 +867,6 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
     inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_5, 4));
 
     //default return value
-    GLchar selectedMode = previousModelIndex;
-
     int selectedModelIndex = previousModelIndex;
     for (itr = inputsToModelIndex.begin(); itr != inputsToModelIndex.end(); ++itr) {
         if (glfwGetKey(window, itr->first) == GLFW_PRESS) // select model
@@ -857,7 +876,24 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
     }
     return selectedModelIndex;
 }
+//function will return a index increment on correct key presses.
+int indexIncrementModelPartControl(GLFWwindow* window, map<int, int> previousKeyStates) {
 
+    map<int, int> inputsToModelIndex;
+    map<int, int>::iterator itr;
+    inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_Q, 1));
+    inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_E, -1));
+
+    int indexIncrement = 0;
+    for (itr = inputsToModelIndex.begin(); itr != inputsToModelIndex.end(); ++itr) {
+        int key = glfwGetKey(window, itr->first);
+        if (key == GLFW_PRESS && previousKeyStates.at(itr->first) == GLFW_RELEASE) // increment/decrement index
+        {
+            indexIncrement += itr->second;
+        }
+    }
+    return indexIncrement;
+}
 //function will return a matrix for corresponding transformation of inputted keys.
 //note: undefined order priority in case multiple correct keys are pressed (but will select a matrix).
 mat4* modelControl(GLFWwindow* window) {
@@ -944,6 +980,7 @@ mat4* modelControl(GLFWwindow* window) {
     }
     return selectedTransformation;
 }
+
 
 int main(int argc, char* argv[])
 {
@@ -1045,6 +1082,8 @@ int main(int argc, char* argv[])
     float lastFrameTime = glfwGetTime();
 
     int lastMouseLeftState = GLFW_RELEASE;
+    int prevQstate = GLFW_RELEASE;
+    int prevEstate = GLFW_RELEASE;
     double lastMousePosX, lastMousePosY;
     glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
 
@@ -1066,6 +1105,10 @@ int main(int argc, char* argv[])
     int modelIndex = 0;
     const float model_heightScale = 5.0f;
 
+    //independent parts
+    int index = modelAttachedLimit - 1;
+    CharModel* listModels[numMainModels][modelAttachedLimit];
+
     //Setting initial TRS matrices of models.
     TRSMatrix initialTRSMatrices[numMainModels];
     {
@@ -1073,25 +1116,47 @@ int main(int argc, char* argv[])
             vec3(0,
                 model_heightScale / 2,
                 -20));
+        initialTRSMatrices[1].relativeRotateMatrix = rotate(mat4(1.0f),
+            radians(45.0f),
+            vec3(0.0f, 1.0f, 0.0f));
     }
+    //1
     //list of parts to attach to a main model.
-    V9Model v9_2(shaderProgram);    //placeholder
+    V9Model v9_2(shaderProgram, initialTRSMatrices[1]);    //placeholder. also this shouldn't be taking from initialTRSMatrices (reserved for head parts), but reusing for now.
 
     CharModel* attachedToV9[modelAttachedLimit] = { &v9_2 };
     V9Model v9(shaderProgram, attachedToV9, 1, initialTRSMatrices[0]);
-    int index = modelAttachedLimit-1;
-    CharModel* listModels[numMainModels][modelAttachedLimit];
+    
     //2
+    //list of parts to attach to a main model.
+    V9Model v92_2(shaderProgram, initialTRSMatrices[0]);    //placeholder. also this shouldn't be taking from initialTRSMatrices (reserved for head parts), but reusing for now.
+    V9Model v92_3(shaderProgram, initialTRSMatrices[1]);    //placeholder. also this shouldn't be taking from initialTRSMatrices (reserved for head parts), but reusing for now.
+
+    CharModel* attachedToV92[modelAttachedLimit];
+    attachedToV92[0] = &v92_2;
+    attachedToV92[1] = &v92_3;
+    V9Model v92(shaderProgram, attachedToV92, 2, initialTRSMatrices[1]);
+    
+    
     //3
     //4
     //5
+
     mainModels[0] = &v9;
-    //models[1] = &;              //placeholder
-    //models[2] = &;
-    //models[3] = &;
-    //models[4] = &;
+    mainModels[1] = &v92;              //placeholder
+    //mainModels[2] = &;
+    //mainModels[3] = &;
+    //mainModels[4] = &;
+
+    //assign main parts head.
     *listModels[0] = *attachedToV9;
-    listModels[0][modelAttachedLimit-1] = &v9;
+    listModels[0][modelAttachedLimit - 1] = &v9;
+
+
+    //*listModels[1] = *attachedToV92;
+    listModels[1][0] = attachedToV92[0];
+    listModels[1][1] = attachedToV92[1];
+    listModels[1][modelAttachedLimit - 1] = &v92;
 
     // Entering Main Loop
     while (!glfwWindowShouldClose(window))
@@ -1116,23 +1181,17 @@ int main(int argc, char* argv[])
         glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
         drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
 
-
-        int increment = 0;
-        //to implement single press
-        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) // increase model part index
-        {
-            increment += 1;
-        }
-        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) // decrease model part index
-        {
-            increment += -1;
-        }
-        //increment/decrement till next part is reached
+        map<int, int> previousKeyStates;
+        previousKeyStates.insert(pair<int, int>(GLFW_KEY_Q, prevQstate));
+        previousKeyStates.insert(pair<int, int>(GLFW_KEY_E, prevEstate));
+        int increment = indexIncrementModelPartControl(window, previousKeyStates);
         do {
             index = (index + increment) % (modelAttachedLimit);
             index += (index < 0) ? modelAttachedLimit : 0;
         } while (listModels[modelIndex][index]== (CharModel*)(0xcccccccc));
 
+        prevQstate = glfwGetKey(window, GLFW_KEY_Q);
+        prevEstate = glfwGetKey(window, GLFW_KEY_E);
         //draw models
         {
             //selection with keys.
@@ -1140,7 +1199,7 @@ int main(int argc, char* argv[])
             int previousModelIndex = modelIndex;    //
             modelIndex = selectModelControl(window, modelIndex);
             if (previousModelIndex != modelIndex){  //
-                index = 0;                          // lazy checking to see if another model is selected.
+                index = 9;                          // lazy checking to see if another model is selected.
             }                                       //
             selectedModel = listModels[modelIndex][index];
             //Control model key presses.
