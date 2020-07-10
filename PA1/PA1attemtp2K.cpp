@@ -924,8 +924,8 @@ int main(int argc, char* argv[])
     // Spinning cube at camera position
     float spinningCubeAngle = 0.0f;
 
-    // Set projection matrix for shader, this won't change
-    mat4 projectionMatrix = glm::perspective(initialFoV,            // field of view in degrees
+    // Set projection matrix for shader
+    mat4 projectionMatrix = glm::perspective(radians(initialFoV),            // field of view in degrees
         800.0f / 600.0f,  // aspect ratio
         0.01f, 100.0f);   // near and far (near > 0)
 
@@ -1144,7 +1144,7 @@ int main(int argc, char* argv[])
             foV = 120.0f;
         
         // Recompute projection matrix depending on FoV
-        projectionMatrix = glm::perspective(foV,            // field of view in degrees
+        projectionMatrix = glm::perspective(radians(foV),            // field of view in degrees
         800.0f / 600.0f,  // aspect ratio
         0.01f, 100.0f);   // near and far (near > 0)
         glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
