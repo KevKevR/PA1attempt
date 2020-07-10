@@ -22,6 +22,15 @@
 using namespace glm;
 using namespace std;
 
+
+const int numMainModels = 5;
+
+//struct TRSMatrix {
+//    mat4 relativeTranslateMatrix;   //Stored translate matrix
+//    mat4 relativeRotateMatrix;      //Stored rotate matrix
+//    mat4 relativeScaleMatrix;       //Stored scale matrix
+//};
+
 class Projectile
 {
 public:
@@ -53,22 +62,41 @@ private:
     vec3 mVelocity;
 };
 
-//class MatrixHolder {
-//    ~MatrixHolder() {
-//        mat4 matrix = mat4(1.0f);
-//    }
-//    mat4 getMatrix() {
-//        return matrix;
-//    }
-//    void setMatrix(mat4 m) {
-//        matrix = m;
-//    }
-//    void addMatrix(mat4 m) {
-//        matrix = m * matrix;
-//    }
-//private:
-//    mat4 matrix;
-//};
+/*plan
+- struct of TRS MatrixHolders
+- apply own stored matrices to MatrixHolder
+- pass MatrixHolder to attached models
+- apply MatrixHolder to draw.
+*/
+class MatrixHolder {
+public :
+    MatrixHolder() {
+        matrix = mat4(1.0f);
+    }
+    mat4 getMatrix() {
+        return matrix;
+    }
+    void setMatrix(mat4 m) {
+        matrix = m;
+    }
+    void addMatrix(mat4 m) {
+        matrix = m * matrix;
+    }
+private:
+    mat4 matrix;
+};
+struct TRSMatricesHolder {
+    MatrixHolder TranslateMatrix;
+    MatrixHolder RotateMatrix;
+    MatrixHolder ScaleMatrix;
+
+    //default constructor
+    TRSMatricesHolder() {
+        TranslateMatrix.setMatrix(mat4(1.0f));
+        RotateMatrix.setMatrix(mat4(1.0f));
+        ScaleMatrix.setMatrix(mat4(1.0f));
+    }
+};
 
 class CharModel {
 public:
@@ -80,10 +108,27 @@ public:
         initial_relativeRotateMatrix = mat4(1.0f);
         initial_relativeScaleMatrix = mat4(1.0f);
 
-        relativeTranslateMatrix = mat4(1.0f);
-        relativeRotateMatrix = mat4(1.0f);
-        relativeScaleMatrix = mat4(1.0f);
+        relativeTranslateMatrix = initial_relativeTranslateMatrix;
+        relativeRotateMatrix = initial_relativeRotateMatrix;
+        relativeScaleMatrix = initial_relativeScaleMatrix;
 
+        //no attached models passed
+        numAttachedModel = 0;
+        *attachedModels = nullptr;
+
+        //Prepare TRS matrices to send to attached models.
+        //trsMatricesHolder.TranslateMatrix.setMatrix(mat4(1.0f));
+        //trsMatricesHolder.RotateMatrix.setMatrix(mat4(1.0f));
+        //trsMatricesHolder.ScaleMatrix.setMatrix(mat4(1.0f));
+        trsMatricesHolder = TRSMatricesHolder();
+    }
+    CharModel(int shaderProgram, CharModel* attModels[numMainModels], int numAttModels) : CharModel(shaderProgram) {
+        numAttModels = (numAttModels > numMainModels) ? numMainModels : numAttModels;   //cap number of attached models arbitrarily.
+
+        numAttachedModel = numAttModels;
+        for (int i = 0; i < numAttachedModel; i++) {
+            attachedModels[i] = attModels[i];
+        }
     }
 
     mat4 getRelativeTranslateMatrix() {
@@ -100,7 +145,15 @@ public:
         return relativeRotateMatrix;
     }
     void setRelativeRotateMatrix(mat4 relRWM) {
+        mat4 temp = relativeRotateMatrix;
         relativeRotateMatrix = relRWM;
+
+        // v v  v faulty idea, no guarantee previous transform is from head.
+        ////undo and set another matrix for the attached models
+        //for (int i = 0; i < numAttachedModel; i++) {
+        //    attachedModels[i]->addRelativeRotateMatrix(inverse(temp));
+        //    attachedModels[i]->addRelativeRotateMatrix(relativeRotateMatrix);
+        //}
     }
     void addRelativeRotateMatrix(mat4 relRWM) {
         relativeRotateMatrix = relRWM * relativeRotateMatrix;
@@ -129,21 +182,43 @@ public:
     mat4 getRelativeWorldMatrix() {
         return relativeTranslateMatrix * relativeRotateMatrix * relativeScaleMatrix;
     }
+    TRSMatricesHolder getTRSMatricesHolder() {
+        return trsMatricesHolder;
+    }
 
-    virtual void draw() {
+    virtual void draw(TRSMatricesHolder cumulativeTRSMatrices = TRSMatricesHolder()) {
         //implement in derived class please.
+    }
+
+    void drawAttached() {
+        TRSMatricesHolder cumulatingTRSMatrices = trsMatricesHolder;
+        cumulatingTRSMatrices.TranslateMatrix.addMatrix(relativeTranslateMatrix);
+        cumulatingTRSMatrices.RotateMatrix.addMatrix(relativeRotateMatrix);
+        cumulatingTRSMatrices.ScaleMatrix.addMatrix(relativeScaleMatrix);
+        //draw attached models.
+        for (int i = 0; i < numAttachedModel; i++) {
+            attachedModels[i]->draw(cumulatingTRSMatrices);
+        }
     }
 
     //reverts TRS matrices back to initial settings.
     void resetInitialRelativeMatrices() {
         setRelativeWorldMatrix(initial_relativeTranslateMatrix, initial_relativeRotateMatrix, initial_relativeScaleMatrix);
-    }
 
+        //reset attached models too.
+        for(int i = 0; i < numAttachedModel; i++){
+            attachedModels[i]->resetInitialRelativeMatrices();
+        }
+    }
+    //Converts TRSMatricesHolder into a mat4 type.
+    static mat4 getWorldMatrixFromHolder(TRSMatricesHolder trsMatricesHolder) {
+        return trsMatricesHolder.TranslateMatrix.getMatrix() * trsMatricesHolder.RotateMatrix.getMatrix() * trsMatricesHolder.ScaleMatrix.getMatrix();
+    }
     //Class method to draws all passed models. for now hardcoded to 2 (issues when unloaded models).
-    static void draw(CharModel* arr[5]) {
+    static void draw(CharModel* arr[numMainModels]) {
         for (int i = 0; i < 5; i++) {
 
-            if (i == 2) { break; }      //<- remove later
+            if (i == 1) { break; }      //<- remove later
 
             if (arr[i]) {
                 arr[i]->draw();
@@ -160,7 +235,14 @@ private:
     mat4 relativeTranslateMatrix;   //Stored translate matrix
     mat4 relativeRotateMatrix;      //Stored rotate matrix
     mat4 relativeScaleMatrix;       //Stored scale matrix
+
+    TRSMatricesHolder trsMatricesHolder; //Stores cumulative matrices of models this one is attached to.
+
+    CharModel* attachedModels[numMainModels];
+    int numAttachedModel;
 };
+
+//to update with TRSMatricesHolder-related stuff.
 //example usage of model subclass.
 //To convert to your model:
 //- replace Model_template with your model name.
@@ -184,6 +266,8 @@ public:
 
     //no need to change anything here, except drawModel's name if you feel like it.
     void draw() {
+        //draw the attached models too.
+        drawAttached();
         //pass arguments stored in parent class.
         drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
     }
@@ -204,6 +288,28 @@ class V9Model : public CharModel {
 public:
     //Constructor
     V9Model(int shaderProgram) : CharModel(shaderProgram) {
+        init();
+    }
+    V9Model(int shaderProgram, CharModel* attModels[numMainModels], int numAttModels) : CharModel(shaderProgram, attModels, numAttModels) {
+        init();
+    }
+
+    //override draw method.
+    void draw(TRSMatricesHolder trsMatricesHolder = TRSMatricesHolder()) {
+        //draw the attached models too.
+        drawAttached();
+
+        mat4 accumulatedWorldMatrix = getWorldMatrixFromHolder(trsMatricesHolder) * getRelativeWorldMatrix();
+
+        //pass arguments stored in parent class.
+        drawV9(worldMatrixLocation, colorLocation, accumulatedWorldMatrix);
+    }
+
+private:
+    void init() {
+        //
+        //maybe pass initial TRS matrices as parameters? If so, do with a struct.
+
         const float model_heightScale = 5.0f; //<-make sure is same as constant in drawV9().
         //initialize position with translate matrix
         initial_relativeTranslateMatrix =
@@ -222,14 +328,6 @@ public:
         initial_relativeScaleMatrix = mat4(1.0f);
         setRelativeScaleMatrix(initial_relativeScaleMatrix);
     }
-
-    //override draw method.
-    void draw() {
-        //pass arguments stored in parent class.
-        drawV9(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
-    }
-
-private:
     void drawV9(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
 
         //total height is heightScale
@@ -960,14 +1058,15 @@ int main(int argc, char* argv[])
 
     //Models
     CharModel* selectedModel;
-    CharModel* models[5];
+    CharModel* models[numMainModels];
     int modelIndex = 0;
 
-    V9Model v9(shaderProgram);
     V9Model v9_2(shaderProgram);    //placeholder
     //3
     //4
     //5
+    CharModel* attachedToV9[1] = { &v9_2 };
+    V9Model v9(shaderProgram, attachedToV9, 1);
 
     models[0] = &v9;
     models[1] = &v9_2;              //placeholder
@@ -1126,19 +1225,19 @@ int main(int argc, char* argv[])
         glm::normalize(cameraSideVector);
 
         // @TODO 5 = use camera lookat and side vectors to update positions with ASDW
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) // move camera to the left
+        if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS) // move camera to the left
         {
             cameraPosition -= cameraSideVector * currentCameraSpeed * dt;
         }
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) // move camera to the right
+        if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) // move camera to the right
         {
             cameraPosition += cameraSideVector * currentCameraSpeed * dt;
         }
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) // move camera up
+        if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS) // move camera up
         {
             cameraPosition -= cameraLookAt * currentCameraSpeed * dt;
         }
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) // move camera down
+        if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS) // move camera down
         {
             cameraPosition += cameraLookAt * currentCameraSpeed * dt;
         }
