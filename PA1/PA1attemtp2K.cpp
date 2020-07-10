@@ -1026,6 +1026,7 @@ int main(int argc, char* argv[])
                 cameraHorizontalAngle = initial_cameraHorizontalAngle;
                 cameraVerticalAngle = initial_cameraVerticalAngle;
                 cameraUp = initial_cameraUp;
+                foV = initialFoV;
             }
             //Adjust selected model accordingly.
             selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
