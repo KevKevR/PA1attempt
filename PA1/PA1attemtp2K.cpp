@@ -688,7 +688,7 @@ void drawGrid(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWor
 // Draws x, y, z axis at the center of the grid
 // Input is location of worldMatrix and location of colorLocation
 void drawAxis(GLuint worldMatrixLocation, GLuint colorLocation) {
-    const float height = 1, cellLength = 1; // values from drawGrid
+    const float height = 0, cellLength = 1; // values from drawGrid
     mat4 lineWorldMatrix;
 
     // Draw x-axis (tranformed red cube)
@@ -906,19 +906,26 @@ int main(int argc, char* argv[])
 
     // Other camera parameters
     const float initial_cameraHorizontalAngle = 90.0f;
-    const float initial_cameraVerticalAngle = 0.0f;;
+    const float initial_cameraVerticalAngle = 0.0f;
+    const float initialFoV = 70.0f;
 
     float cameraSpeed = 10.0f;
     float cameraFastSpeed = 2 * cameraSpeed;
     float cameraHorizontalAngle = initial_cameraHorizontalAngle;
     float cameraVerticalAngle = -initial_cameraVerticalAngle;
     bool  cameraFirstPerson = true; // press 1 or 2 to toggle this variable
-
+    float foV = initialFoV;
+    
+    // Mouse input parameters (true if pressed, false if released)
+    bool leftMouseButton = false;
+    bool rightMouseButton = false;
+    bool middleMouseButton = false;
+    
     // Spinning cube at camera position
     float spinningCubeAngle = 0.0f;
 
-    // Set projection matrix for shader, this won't change
-    mat4 projectionMatrix = glm::perspective(70.0f,            // field of view in degrees
+    // Set projection matrix for shader
+    mat4 projectionMatrix = glm::perspective(radians(initialFoV),            // field of view in degrees
         800.0f / 600.0f,  // aspect ratio
         0.01f, 100.0f);   // near and far (near > 0)
 
@@ -943,7 +950,7 @@ int main(int argc, char* argv[])
     // For frame time
     float lastFrameTime = glfwGetTime();
 
-    int lastMouseLeftState = GLFW_RELEASE;
+    //int lastMouseLeftState = GLFW_RELEASE;
     double lastMousePosX, lastMousePosY;
     glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
 
@@ -997,6 +1004,9 @@ int main(int argc, char* argv[])
         //draw grid
         glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
         drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
+        
+        // draw axis
+        drawAxis(worldMatrixLocation, colorLocation);
 
         //draw models
         {
@@ -1016,6 +1026,7 @@ int main(int argc, char* argv[])
                 cameraHorizontalAngle = initial_cameraHorizontalAngle;
                 cameraVerticalAngle = initial_cameraVerticalAngle;
                 cameraUp = initial_cameraUp;
+                foV = initialFoV;
             }
             //Adjust selected model accordingly.
             selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
@@ -1103,8 +1114,9 @@ int main(int argc, char* argv[])
         // Convert to spherical coordinates
         const float cameraAngularSpeed = 60.0f;
 
-        cameraHorizontalAngle -= dx * cameraAngularSpeed * dt;
-        cameraVerticalAngle -= dy * cameraAngularSpeed * dt;
+        // Moved to mouse controls
+        //cameraHorizontalAngle -= dx * cameraAngularSpeed * dt;
+        //cameraVerticalAngle -= dy * cameraAngularSpeed * dt;
 
         // Clamp vertical angle to [-85, 85] degrees
         cameraVerticalAngle = std::fmax(-85.0f, std::fmin(85.0f, cameraVerticalAngle));
@@ -1124,6 +1136,18 @@ int main(int argc, char* argv[])
         vec3 cameraSideVector = glm::cross(cameraLookAt, vec3(0.0f, 1.0f, 0.0f));
 
         glm::normalize(cameraSideVector);
+        
+        // Limit FoV between 1.0 deg and 120.0 deg
+        if (foV < 1.0f)
+            foV = 1.0f;
+        else if (foV > 120.0f)
+            foV = 120.0f;
+        
+        // Recompute projection matrix depending on FoV
+        projectionMatrix = glm::perspective(radians(foV),            // field of view in degrees
+        800.0f / 600.0f,  // aspect ratio
+        0.01f, 100.0f);   // near and far (near > 0)
+        glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
 
         // @TODO 5 = use camera lookat and side vectors to update positions with ASDW
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) // move camera to the left
@@ -1184,6 +1208,7 @@ int main(int argc, char* argv[])
         // To detect onPress events, we need to check the last state and the current state to detect the state change
         // Otherwise, you would shoot many projectiles on each mouse press
         // ...
+        /*
         if (lastMouseLeftState == GLFW_RELEASE && glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
             const float projectileSpeed = 25.0f;
             projectileList.push_back(Projectile(cameraPosition, projectileSpeed * cameraLookAt, shaderProgram));
@@ -1191,6 +1216,33 @@ int main(int argc, char* argv[])
             //glClearColor(0.5f, 0.5f, 0.0f, 1.0f);
         }
         lastMouseLeftState = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+        */
+        
+        // Process mouse button inputs (press assigns button to true, release to false)
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+            leftMouseButton = true;
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+            leftMouseButton = false;
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+            rightMouseButton = true;
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE)
+            rightMouseButton = false;
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS)
+            middleMouseButton = true;
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_RELEASE)
+            middleMouseButton = false;
+        
+        // Define mouse controls from specific mouse button input
+        // Note: All mouse actions can be used simultaneously
+        // Press left mouse button -> Zoom in and out (by modifiying FoV)
+        if (leftMouseButton)
+            foV += dy * cameraAngularSpeed * dt;
+        // Press right mouse button -> pan left and right (yaw)
+        if (rightMouseButton)
+            cameraHorizontalAngle -= dx * cameraAngularSpeed * dt; // taken from Lab 3
+        // Press middle mouse button -> tilt up and down (pitch)
+        if (middleMouseButton)
+            cameraVerticalAngle -= dy * cameraAngularSpeed * dt; // taken from Lab 3
     }
 
 
