@@ -17,19 +17,27 @@
 #include <glm/gtc/matrix_transform.hpp> // include this to create transformation matrices
 #include <glm/common.hpp>
 #include <map> 
+#include <vector>
 
 
 using namespace glm;
 using namespace std;
 
 
-const int numMainModels = 5;
+const int numMainModels = 1;        //Number of main models to display. Should be 5 by the end.
 
-//struct TRSMatrix {
-//    mat4 relativeTranslateMatrix;   //Stored translate matrix
-//    mat4 relativeRotateMatrix;      //Stored rotate matrix
-//    mat4 relativeScaleMatrix;       //Stored scale matrix
-//};
+struct TRSMatrix {
+    mat4 relativeTranslateMatrix;   //Stored translate matrix
+    mat4 relativeRotateMatrix;      //Stored rotate matrix
+    mat4 relativeScaleMatrix;       //Stored scale matrix
+
+    //Default Constructor
+    TRSMatrix() {
+        relativeTranslateMatrix = mat4(1.0f);
+        relativeRotateMatrix = mat4(1.0f);
+        relativeScaleMatrix = mat4(1.0f);
+    }
+};
 
 class Projectile
 {
@@ -67,6 +75,9 @@ private:
 - apply own stored matrices to MatrixHolder
 - pass MatrixHolder to attached models
 - apply MatrixHolder to draw.
+
+
+Figure out how to associate model initial_position from inside draw function.
 */
 class MatrixHolder {
 public :
@@ -216,21 +227,24 @@ public:
     }
     //Class method to draws all passed models. for now hardcoded to 2 (issues when unloaded models).
     static void draw(CharModel* arr[numMainModels]) {
-        for (int i = 0; i < 5; i++) {
-
-            if (i == 1) { break; }      //<- remove later
-
-            if (arr[i]) {
+        for (int i = 0; i < numMainModels; i++) {
+            if (arr[i]) {       //<-- I'm not sure this is a proper null check. Can someone verify?
                 arr[i]->draw();
             }
         }
     }
+
 protected:
     GLuint worldMatrixLocation;
     GLuint colorLocation;
     mat4 initial_relativeTranslateMatrix;   //Initial translate matrix, value to take when reset.
     mat4 initial_relativeRotateMatrix;      //Initial rotate matrix, value to take when reset.
     mat4 initial_relativeScaleMatrix;       //Initial scale matrix, value to take when reset.
+
+    //tracks index of objects grouped together.
+    //int thisIndex;
+    //int nextIndex;
+    //int previousIndex;
 private:
     mat4 relativeTranslateMatrix;   //Stored translate matrix
     mat4 relativeRotateMatrix;      //Stored rotate matrix
@@ -238,7 +252,7 @@ private:
 
     TRSMatricesHolder trsMatricesHolder; //Stores cumulative matrices of models this one is attached to.
 
-    CharModel* attachedModels[numMainModels];
+    CharModel* attachedModels[5];   //for now, hard-coded limit of 5.
     int numAttachedModel;
 };
 
@@ -287,11 +301,11 @@ private:
 class V9Model : public CharModel {
 public:
     //Constructor
-    V9Model(int shaderProgram) : CharModel(shaderProgram) {
-        init();
+    V9Model(int shaderProgram, TRSMatrix initialTRSMatrix = TRSMatrix()) : CharModel(shaderProgram) {
+        init(initialTRSMatrix);
     }
-    V9Model(int shaderProgram, CharModel* attModels[numMainModels], int numAttModels) : CharModel(shaderProgram, attModels, numAttModels) {
-        init();
+    V9Model(int shaderProgram, CharModel* attModels[numMainModels], int numAttModels, TRSMatrix initialTRSMatrix = TRSMatrix()) : CharModel(shaderProgram, attModels, numAttModels) {
+        init(initialTRSMatrix);
     }
 
     //override draw method.
@@ -306,26 +320,15 @@ public:
     }
 
 private:
-    void init() {
-        //
-        //maybe pass initial TRS matrices as parameters? If so, do with a struct.
-
-        const float model_heightScale = 5.0f; //<-make sure is same as constant in drawV9().
+    void init(TRSMatrix initialTRSMatrix) {
         //initialize position with translate matrix
-        initial_relativeTranslateMatrix =
-            translate(mat4(1.0f),
-                vec3(0,
-                    model_heightScale / 2,
-                    -20));
-
+        initial_relativeTranslateMatrix = initialTRSMatrix.relativeTranslateMatrix;
         setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
-
-        ////
         //initialize orientation with rotate matrix
-        initial_relativeRotateMatrix = mat4(1.0f);
+        initial_relativeRotateMatrix = initialTRSMatrix.relativeRotateMatrix;
         setRelativeRotateMatrix(initial_relativeRotateMatrix);
         //initialize size with scale matrix
-        initial_relativeScaleMatrix = mat4(1.0f);
+        initial_relativeScaleMatrix = initialTRSMatrix.relativeScaleMatrix;
         setRelativeScaleMatrix(initial_relativeScaleMatrix);
     }
     void drawV9(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
@@ -1057,22 +1060,38 @@ int main(int argc, char* argv[])
     list<Projectile> projectileList;
 
     //Models
+    const int modelAttachedLimit = 10;
     CharModel* selectedModel;
-    CharModel* models[numMainModels];
+    CharModel* mainModels[numMainModels];
     int modelIndex = 0;
+    const float model_heightScale = 5.0f;
 
+    //Setting initial TRS matrices of models.
+    TRSMatrix initialTRSMatrices[numMainModels];
+    {
+        initialTRSMatrices[0].relativeTranslateMatrix = translate(mat4(1.0f),
+            vec3(0,
+                model_heightScale / 2,
+                -20));
+    }
+    //list of parts to attach to a main model.
     V9Model v9_2(shaderProgram);    //placeholder
+
+    CharModel* attachedToV9[modelAttachedLimit] = { &v9_2 };
+    V9Model v9(shaderProgram, attachedToV9, 1, initialTRSMatrices[0]);
+    int index = modelAttachedLimit-1;
+    CharModel* listModels[numMainModels][modelAttachedLimit];
+    //2
     //3
     //4
     //5
-    CharModel* attachedToV9[1] = { &v9_2 };
-    V9Model v9(shaderProgram, attachedToV9, 1);
-
-    models[0] = &v9;
-    models[1] = &v9_2;              //placeholder
+    mainModels[0] = &v9;
+    //models[1] = &;              //placeholder
     //models[2] = &;
     //models[3] = &;
     //models[4] = &;
+    *listModels[0] = *attachedToV9;
+    listModels[0][modelAttachedLimit-1] = &v9;
 
     // Entering Main Loop
     while (!glfwWindowShouldClose(window))
@@ -1097,12 +1116,33 @@ int main(int argc, char* argv[])
         glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
         drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
 
+
+        int increment = 0;
+        //to implement single press
+        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) // increase model part index
+        {
+            increment += 1;
+        }
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) // decrease model part index
+        {
+            increment += -1;
+        }
+        //increment/decrement till next part is reached
+        do {
+            index = (index + increment) % (modelAttachedLimit);
+            index += (index < 0) ? modelAttachedLimit : 0;
+        } while (listModels[modelIndex][index]== (CharModel*)(0xcccccccc));
+
         //draw models
         {
             //selection with keys.
             drawControl(window);
+            int previousModelIndex = modelIndex;    //
             modelIndex = selectModelControl(window, modelIndex);
-            selectedModel = models[modelIndex];
+            if (previousModelIndex != modelIndex){  //
+                index = 0;                          // lazy checking to see if another model is selected.
+            }                                       //
+            selectedModel = listModels[modelIndex][index];
             //Control model key presses.
             mat4* relativeWorldMatrix = modelControl(window);
 
@@ -1121,7 +1161,7 @@ int main(int argc, char* argv[])
 
             //draw all models
             glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
-            CharModel::draw(models);
+            CharModel::draw(mainModels);
         }
 
         // @TODO 3 - Update and draw projectiles
