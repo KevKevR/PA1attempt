@@ -24,37 +24,41 @@ using namespace std;
 
 const int numMainModels = 5;
 
-class Projectile
-{
-public:
-    Projectile(vec3 position, vec3 velocity, int shaderProgram) : mPosition(position), mVelocity(velocity)
-    {
-        mWorldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
-        mColorLocation = glGetUniformLocation(shaderProgram, "objectColor");
-    }
+//class Projectile
+//{
+//public:
+//    Projectile(vec3 position, vec3 velocity, int shaderProgram) : mPosition(position), mVelocity(velocity)
+//    {
+//        mWorldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
+//        mColorLocation = glGetUniformLocation(shaderProgram, "objectColor");
+//    }
+//
+//    void Update(float dt)
+//    {
+//        mPosition += mVelocity * dt;
+//    }
+//
+//    void Draw() {
+//        // this is a bit of a shortcut, since we have a single vbo, it is already bound
+//        // let's just set the world matrix in the vertex shader
+//
+//        mat4 worldMatrix = translate(mat4(1.0f), mPosition) * rotate(mat4(1.0f), radians(180.0f), vec3(0.0f, 1.0f, 0.0f)) * scale(mat4(1.0f), vec3(0.2f, 0.2f, 0.2f));
+//        glUniformMatrix4fv(mWorldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+//        glUniform3f(mColorLocation, 0.0f, 0.0f, 1.0f);
+//        glDrawArrays(GL_TRIANGLES, 0, 36);
+//    }
+//
+//private:
+//    GLuint mWorldMatrixLocation;
+//    GLuint mColorLocation;
+//    vec3 mPosition;
+//    vec3 mVelocity;
+//};
 
-    void Update(float dt)
-    {
-        mPosition += mVelocity * dt;
-    }
-
-    void Draw() {
-        // this is a bit of a shortcut, since we have a single vbo, it is already bound
-        // let's just set the world matrix in the vertex shader
-
-        mat4 worldMatrix = translate(mat4(1.0f), mPosition) * rotate(mat4(1.0f), radians(180.0f), vec3(0.0f, 1.0f, 0.0f)) * scale(mat4(1.0f), vec3(0.2f, 0.2f, 0.2f));
-        glUniformMatrix4fv(mWorldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        glUniform3f(mColorLocation, 0.0f, 0.0f, 1.0f);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
-
-private:
-    GLuint mWorldMatrixLocation;
-    GLuint mColorLocation;
-    vec3 mPosition;
-    vec3 mVelocity;
+struct KeyState {
+    int keyState;
+    bool shiftPressed;
 };
-
 //class MatrixHolder {
 //    ~MatrixHolder() {
 //        mat4 matrix = mat4(1.0f);
@@ -1088,6 +1092,10 @@ void drawAxis(GLuint worldMatrixLocation, GLuint colorLocation) {
 
 }
 
+bool isShiftPressed(GLFWwindow* window) {
+    return glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
+}
+
 //function will switch the selected draw mode on correct key presses.
 //note: undefined priority in case multiple correct keys are pressed (but will select a draw mode).
 void drawControl(GLFWwindow* window) {
@@ -1098,7 +1106,7 @@ void drawControl(GLFWwindow* window) {
     inputsToDrawModes.insert(pair<int, GLenum>(GLFW_KEY_T, GL_FILL));
 
     //default return value;
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) // capital letters only
+    if (isShiftPressed(window)) // capital letters only
     {
         for (itr = inputsToDrawModes.begin(); itr != inputsToDrawModes.end(); ++itr) {
             if (glfwGetKey(window, itr->first) == GLFW_PRESS) // draw mode
@@ -1138,7 +1146,7 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
 
 //function will return a matrix for corresponding transformation of inputted keys.
 //note: undefined order priority in case multiple correct keys are pressed (but will select a matrix).
-mat4* modelControl(GLFWwindow* window, map<int, int> previousKeyStates) {
+mat4* modelControl(GLFWwindow* window, map<int, KeyState> previousKeyStates) {
     mat4* selectedTransformation = new mat4[4];
     //default return values
     selectedTransformation[0] = mat4(1.0f);     //translate
@@ -1158,7 +1166,7 @@ mat4* modelControl(GLFWwindow* window, map<int, int> previousKeyStates) {
     float translateSpeed = transformSpeed;
     float rotateSpeed = 5.0f;   //specifications
     float scaleSpeed = transformSpeed / 4;
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) // capital case letters
+    if (isShiftPressed(window)) // capital case letters
     {
         //translate model if pressed
         //vertical movement
@@ -1211,10 +1219,11 @@ mat4* modelControl(GLFWwindow* window, map<int, int> previousKeyStates) {
     for (itr = inputsToModelMatrix.begin(); itr != inputsToModelMatrix.end(); ++itr) {
         //get previous key state if tracked, otherwise default release (true).
         //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
+        //default if not tracked
         int previousState = GLFW_RELEASE;
-        map<int, int>::iterator it = previousKeyStates.find(itr->first);
-        if (it != previousKeyStates.end()) {
-            previousState = it->second;
+        map<int, KeyState>::iterator it = previousKeyStates.find(itr->first);
+        if (it != previousKeyStates.end()) {        //key is tracked
+            previousState = it->second.keyState;    //so update to actual
         }
 
         if (glfwGetKey(window, itr->first) == GLFW_PRESS && previousState == GLFW_RELEASE) // select model. Apply once for keys that are tracked.
@@ -1342,12 +1351,13 @@ int main(int argc, char* argv[])
     float lastFrameTime = glfwGetTime();
 
     //Previous key states to track
+    bool considerShiftHeld = GLFW_RELEASE;
     //int lastMouseLeftState = GLFW_RELEASE;
-    map<int, int> previousKeyStates;
-    previousKeyStates.insert(pair<int, int>(GLFW_KEY_A, GLFW_RELEASE));
-    previousKeyStates.insert(pair<int, int>(GLFW_KEY_D, GLFW_RELEASE));
-    previousKeyStates.insert(pair<int, int>(GLFW_KEY_U, GLFW_RELEASE));
-    previousKeyStates.insert(pair<int, int>(GLFW_KEY_J, GLFW_RELEASE));
+    map<int, KeyState> previousKeyStates;
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_A, { GLFW_RELEASE , false }));
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_D, { GLFW_RELEASE , false }));
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_U, { GLFW_RELEASE , true }));
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_J, { GLFW_RELEASE , true }));
 
     double lastMousePosX, lastMousePosY;
     glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
@@ -1361,7 +1371,7 @@ int main(int argc, char* argv[])
     glEnable(GL_DEPTH_TEST);
 
     // Container for projectiles to be implemented in tutorial
-    list<Projectile> projectileList;
+    //list<Projectile> projectileList;
 
     //Models
     CharModel* selectedModel;
@@ -1437,10 +1447,10 @@ int main(int argc, char* argv[])
         // @TODO 3 - Update and draw projectiles
         // ...
 
-        for (list<Projectile>::iterator it = projectileList.begin(); it != projectileList.end(); it++) {
-            it->Update(dt);
-            it->Draw();
-        }
+        //for (list<Projectile>::iterator it = projectileList.begin(); it != projectileList.end(); it++) {
+        //    it->Update(dt);
+        //    it->Draw();
+        //}
 
         // Spinning cube at camera position
         spinningCubeAngle += 180.0f * dt;
@@ -1469,6 +1479,31 @@ int main(int argc, char* argv[])
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
+        //update previous key states.
+        bool shouldConsiderShiftHeld = false;
+        map<int, KeyState>::iterator itr;
+        for (itr = previousKeyStates.begin(); itr != previousKeyStates.end(); ++itr) {
+            //only update to pressed if in the right shift mode.
+            if (itr->second.shiftPressed == considerShiftHeld) {
+                int currentState = glfwGetKey(window, itr->first);
+                itr->second.keyState = currentState;
+            }
+            //Do not update to release if not in the right shift mode, if it shouldn't be able to update to pressed.
+            else if (itr->second.shiftPressed == isShiftPressed(window)){
+                itr->second.keyState = GLFW_PRESS;
+            }
+            //Consider not pressed before
+            else {
+                itr->second.keyState = GLFW_RELEASE;
+            }
+
+            //If shift was held, then any key press extends it.
+            if (considerShiftHeld && glfwGetKey(window, itr->first) == GLFW_PRESS) {
+                shouldConsiderShiftHeld = true;
+            }
+        }
+        considerShiftHeld = isShiftPressed(window) || shouldConsiderShiftHeld;
+
         // End Frame
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -1492,7 +1527,7 @@ int main(int argc, char* argv[])
 
         // This was solution for Lab02 - Moving camera exercise
         // We'll change this to be a first or third person camera
-        bool fastCam = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
+        bool fastCam = isShiftPressed(window);
         float currentCameraSpeed = (fastCam) ? cameraFastSpeed : cameraSpeed;
 
 
@@ -1642,12 +1677,6 @@ int main(int argc, char* argv[])
         if (middleMouseButton)
             cameraVerticalAngle -= dy * cameraAngularSpeed * dt; // taken from Lab 3
 
-        //update previous key states
-        map<int, int>::iterator itr;
-        for (itr = previousKeyStates.begin(); itr != previousKeyStates.end(); ++itr) {
-            int currentState = glfwGetKey(window, itr->first);
-            itr->second = currentState;
-        }
     }
 
 
