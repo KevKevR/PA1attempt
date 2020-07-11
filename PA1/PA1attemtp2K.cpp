@@ -484,85 +484,82 @@ private:
         mat4 mWorldMatrix;
         mat4 scalingMatrix, translationMatrix;
 
-        float moveByX = 0.0f;
-        float moveByZ = 0.0f;
-        float scaler = 1.0f;
         // Draw 3
         // Top
-        scalingMatrix = scale(mat4(1.0f), vec3(scaler * 2.0f, scaler * 1.0f, scaler * 1.0f));
-        translationMatrix = translate(mat4(1.0f), vec3(moveByX + scaler * 2.0f, scaler * 7.5f, moveByZ + scaler * 0.0f));
+        scalingMatrix = scale(mat4(1.0f), vec3(2.0f, 1.0f, 1.0f));
+        translationMatrix = translate(mat4(1.0f), vec3(2.0f, 7.5f, 0.0f));
         glm::mat4 worldMatrix = translationMatrix * scalingMatrix;
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         //middle row
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(moveByX + scaler * 2.0f, scaler * 5.0f, moveByZ + scaler * 0.0f));
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 5.0f, 0.0f));
         worldMatrix = translationMatrix * scalingMatrix;
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         //bottom row
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(moveByX + scaler * 2.0f, scaler * 2.5f, moveByZ + scaler * 0.0f));
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 2.5f, 0.0f));
         worldMatrix = translationMatrix * scalingMatrix;
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         //right side
-        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scaler * 1.0f, scaler * 6.0f, scaler * 1.0f));
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(moveByX + scaler * 3.5f, scaler * 5.0f, moveByZ + scaler * 0.0f));
+        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 6.0f, 1.0f));
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(3.5f, 5.0f, 0.0f));
         worldMatrix = translationMatrix * scalingMatrix;
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         //Draw S
-        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scaler * 1.0f, scaler * 1.5f, scaler * 1.0f));
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(moveByX + scaler * -1.5f, scaler * 7.25f, moveByZ + scaler * 0.0f));
+        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.5f, 1.0f));
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 7.25f, 0.0f));
         worldMatrix = translationMatrix * scalingMatrix;
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scaler * 1.0f, scaler * 1.0f, scaler * 1.0f));
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(moveByX + scaler * -2.5f, scaler * 7.5f, moveByZ + scaler * 0.0f));
+        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-2.5f, 7.5f, 0.0f));
         worldMatrix = translationMatrix * scalingMatrix;
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scaler * 1.0f, scaler * 3.5f, scaler * 1.0f));
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(moveByX + scaler * -3.5f, scaler * 6.25f, moveByZ + scaler * 0.0f));
+        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 3.5f, 1.0f));
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-3.5f, 6.25f, 0.0f));
         worldMatrix = translationMatrix * scalingMatrix;
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scaler * 1.0f, scaler * 1.0f, scaler * 1.0f));
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(moveByX + scaler * -2.5f, scaler * 5.0f, moveByZ + scaler * 0.0f));
+        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-2.5f, 5.0f, 0.0f));
         worldMatrix = translationMatrix * scalingMatrix;
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scaler * 1.0f, scaler * 3.5f, scaler * 1.0f));
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(moveByX + scaler * -1.5f, scaler * 3.75f, moveByZ + scaler * 0.0f));
+        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 3.5f, 1.0f));
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 3.75f, 0.0f));
         worldMatrix = translationMatrix * scalingMatrix;
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scaler * 1.0f, scaler * 1.0f, scaler * 1.0f));
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(moveByX + scaler * -2.5f, scaler * 2.5f, moveByZ + scaler * 0.0f));
+        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-2.5f, 2.5f, 0.0f));
         worldMatrix = translationMatrix * scalingMatrix;
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scaler * 1.0f, scaler * 1.5f, scaler * 1.0f));
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(moveByX + scaler * -3.5f, scaler * 2.75f, moveByZ + scaler * 0.0f));
+        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.5f, 1.0f));
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-3.5f, 2.75f, 0.0f));
         worldMatrix = translationMatrix * scalingMatrix;
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
@@ -600,61 +597,55 @@ private:
         //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
         //glDrawArrays(GL_TRIANGLES, 0, 36);
 
-
-        const float offsetX = 0, offsetZ = 0;
-        const float height = 1.0f;
-        float moveByX = 0.0f;
-        float moveByZ = 0.0f;
-        float scaler = 1.0f;
         mat4 worldMatrix = mat4(1.0f);
         mat4 mWorldMatrix;
         // Draw A
         // Right Vertical Bar
-        worldMatrix = translate(mat4(1.0f), vec3(-1.0f * scaler + offsetX + moveByX * scaler, height + 2.0f * scaler, offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 4.0f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(-1.0f, 2.0f, 0.0f)) * scale(mat4(1.0f), vec3(1.0f, 1.0f * 4.0f, 1.0f));
 
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Left Vertical Bar
-        worldMatrix = translate(mat4(1.0f), vec3(-5.0f * scaler + offsetX + moveByX * scaler, height + 2.0f * scaler, offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 4.0f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(-5.0f, 2.0f, 0.0f)) * scale(mat4(1.0f), vec3(1.0f, 4.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Top Horizontal Bar
-        worldMatrix = translate(mat4(1.0f), vec3(-3.0f * scaler + offsetX + moveByX * scaler, height + 4.5f * scaler, offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler * 3.5f, scaler, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(-3.0f, 4.5f, 0.0f)) * scale(mat4(1.0f), vec3(3.5f, 1.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Bottom Horizontal Bar
-        worldMatrix = translate(mat4(1.0f), vec3(-3.0f * scaler + offsetX + moveByX * scaler, height + 2.5f * scaler, offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler * 3.5f, scaler, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(-3.0f, 2.5f, 0.0f)) * scale(mat4(1.0f), vec3(3.5f, 1.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Draw 9
         // Long Vertical Bar
-        worldMatrix = translate(mat4(1.0f), vec3(5.0f * scaler + offsetX + moveByX * scaler, height + 2.5f * scaler, offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 5.0f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(5.0f, 2.5f, 0.0f)) * scale(mat4(1.0f), vec3(1.0f, 5.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Short Vertical Bar
-        worldMatrix = translate(mat4(1.0f), vec3(1.0f * scaler + offsetX + moveByX * scaler, height + 3.5f * scaler, offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 3.0f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(1.0f, 3.5f, 0.0f)) * scale(mat4(1.0f), vec3(1.0f, 3.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Top Horizontal Bar
-        worldMatrix = translate(mat4(1.0f), vec3(3.0f * scaler + offsetX + moveByX * scaler, height + 4.5f * scaler, offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler * 3.0f, scaler, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(3.0f, 4.5f, 0.0f)) * scale(mat4(1.0f), vec3(3.0f, 1.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Bottom Horizontal Bar
-        worldMatrix = translate(mat4(1.0f), vec3(3.0f * scaler + offsetX + moveByX * scaler, height + 2.5f * scaler, offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler * 3.0f, scaler, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(3.0f, 2.5f, 0.0f)) * scale(mat4(1.0f), vec3(3.0f, 1.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -691,72 +682,67 @@ private:
         //worldMatrix = relativeWorldMatrix * (model's original matrices);
         //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
         //glDrawArrays(GL_TRIANGLES, 0, 36);
-        const float offsetX = 0, offsetZ = 0;
-        const float height = 1.0f;
-        float moveByX = 0.0f;
-        float moveByZ = 0.0f;
-        float scaler = 1.0f;
         mat4 worldMatrix = mat4(1.0f);
         mat4 mWorldMatrix;
 
         // Draw N
         // Right Vertical Bar
-        worldMatrix = translate(mat4(1.0f), vec3(-0.5f * scaler + offsetX + moveByX * scaler, height + 2.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 5.0f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(-0.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 5.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Left Vertical Bar
-        worldMatrix = translate(mat4(1.0f), vec3(-4.5f * scaler + offsetX + moveByX * scaler, height + 2.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 5.0f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(-4.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 5.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Small bar 1
-        worldMatrix = translate(mat4(1.0f), vec3(-3.5f * scaler + offsetX + moveByX * scaler, height + 3.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 1.5f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(-3.5f, 3.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 1.5f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Small bar 2
-        worldMatrix = translate(mat4(1.0f), vec3(-2.5f * scaler + offsetX + moveByX * scaler, height + 2.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 2.0f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(-2.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 2.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Small bar 3
-        worldMatrix = translate(mat4(1.0f), vec3(-1.5f * scaler + offsetX + moveByX * scaler, height + 1.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 1.5f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(-1.5f, 1.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 1.5f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Draw 2
         // Right Vertical Bar
-        worldMatrix = translate(mat4(1.0f), vec3(5.5f * scaler + offsetX + moveByX * scaler, height + 3.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 2.5f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(5.5f, 3.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 2.5f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Left Vertical Bar 1
-        worldMatrix = translate(mat4(1.0f), vec3(1.5f * scaler + offsetX + moveByX * scaler, height + 1.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 1.5f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(1.5f, 1.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 1.5f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Top Horizontal Bar
-        worldMatrix = translate(mat4(1.0f), vec3(3.5f * scaler + offsetX + moveByX * scaler, height + 4.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler * 4.5f, scaler, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(3.5f, 4.5f, 0.5f)) * scale(mat4(1.0f), vec3(4.5f, 1.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Middle Horizontal Bar
-        worldMatrix = translate(mat4(1.0f), vec3(3.5f * scaler + offsetX + moveByX * scaler, height + 2.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler * 4.0f, scaler, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(3.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(4.0f, 1.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Bottom Horizontal Bar
-        worldMatrix = translate(mat4(1.0f), vec3(3.5f * scaler + offsetX + moveByX * scaler, height + 0.5 * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler * 5.0f, scaler, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(3.5f, 0.5f, 0.5f)) * scale(mat4(1.0f), vec3(5.0f, 1.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -793,31 +779,26 @@ private:
         //worldMatrix = relativeWorldMatrix * (model's original matrices);
         //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
         //glDrawArrays(GL_TRIANGLES, 0, 36);
-        const float offsetX = 0, offsetZ = 0;
-        const float height = 1.0f;
-        float moveByX = 0.0f;
-        float moveByZ = 0.0f;
-        float scaler = 1.0f;
         mat4 worldMatrix = mat4(1.0f);
         mat4 mWorldMatrix;
 
         // Draw N
         // Right Vertical Bar
-        worldMatrix = translate(mat4(1.0f), vec3(-0.5f * scaler + offsetX + moveByX * scaler, height + 2.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 5.0f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(-0.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 5.0f, 1.0f));
         //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Left Vertical Bar
-        worldMatrix = translate(mat4(1.0f), vec3(-4.5f * scaler + offsetX + moveByX * scaler, height + 2.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 5.0f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(-4.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 5.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
         // Diagonal bar
-        worldMatrix = rotate(translate(mat4(1.0f), vec3(-2.5f * scaler + offsetX + moveByX * scaler, height + 2.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)), radians(41.0f), vec3(0, 0, 1)) * scale(mat4(1.0f), vec3(scaler, scaler * 5.75f, scaler));
+        worldMatrix = rotate(translate(mat4(1.0f), vec3(-2.5f, 2.5f, 0.5f)), radians(41.0f), vec3(0, 0, 1)) * scale(mat4(1.0f), vec3(1.0f, 5.75f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -825,19 +806,19 @@ private:
 
         // Draw 4
         // Right Vertical Bar
-        worldMatrix = translate(mat4(1.0f), vec3(4.5f * scaler + offsetX + moveByX * scaler, height + 2.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 5.0f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(4.5f, 2.5f, 0.5f )) * scale(mat4(1.0f), vec3(1.0f, 5.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Left Small Vertical Bar
-        worldMatrix = translate(mat4(1.0f), vec3(1.5f * scaler + offsetX + moveByX * scaler, height + 4.0f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler, scaler * 2.0f, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(1.5f, 4.0f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 2.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // Middle Horizontal Bar
-        worldMatrix = translate(mat4(1.0f), vec3(3.0f * scaler + offsetX + moveByX * scaler, height + 2.5f * scaler, 0.5 + offsetZ + moveByZ * scaler)) * scale(mat4(1.0f), vec3(scaler * 4.0f, scaler, scaler));
+        worldMatrix = translate(mat4(1.0f), vec3(3.0f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(4.0f, 1.0f, 1.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -1183,13 +1164,13 @@ mat4* modelControl(GLFWwindow* window) {
         inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_W, {
             translate(mat4(1.0f),
                 vec3(0,
-                    translateSpeed,
-                    0)), 0 }));
+                    0,
+                    -translateSpeed)), 0 }));
         inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_S, {
             translate(mat4(1.0f),
                 vec3(0,
-                    -translateSpeed,
-                    0)), 0 }));
+                    0,
+                    translateSpeed)), 0 }));
         //horizontal movement
         inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_D, {
             translate(mat4(1.0f),
