@@ -7,7 +7,7 @@ due by the end of July 12th, 2020.
 Team List
 ======
 - Kevin Rao (40095427)
-- 
+- Manuel Romero (40023706)
 - 
 - 
 - 
