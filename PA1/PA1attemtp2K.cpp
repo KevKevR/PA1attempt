@@ -1138,7 +1138,7 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
 
 //function will return a matrix for corresponding transformation of inputted keys.
 //note: undefined order priority in case multiple correct keys are pressed (but will select a matrix).
-mat4* modelControl(GLFWwindow* window) {
+mat4* modelControl(GLFWwindow* window, map<int, int> previousKeyStates) {
     mat4* selectedTransformation = new mat4[4];
     //default return values
     selectedTransformation[0] = mat4(1.0f);     //translate
@@ -1209,7 +1209,15 @@ mat4* modelControl(GLFWwindow* window) {
 
     //iterate through all pressed keys.
     for (itr = inputsToModelMatrix.begin(); itr != inputsToModelMatrix.end(); ++itr) {
-        if (glfwGetKey(window, itr->first) == GLFW_PRESS) // select model
+        //get previous key state if tracked, otherwise default release (true).
+        //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
+        int previousState = GLFW_RELEASE;
+        map<int, int>::iterator it = previousKeyStates.find(itr->first);
+        if (it != previousKeyStates.end()) {
+            previousState = it->second;
+        }
+
+        if (glfwGetKey(window, itr->first) == GLFW_PRESS && previousState == GLFW_RELEASE) // select model. Apply once for keys that are tracked.
         {
             if (itr->second.type == 3) {
                 //signal to reset position and orientation.
@@ -1333,7 +1341,14 @@ int main(int argc, char* argv[])
     // For frame time
     float lastFrameTime = glfwGetTime();
 
+    //Previous key states to track
     //int lastMouseLeftState = GLFW_RELEASE;
+    map<int, int> previousKeyStates;
+    previousKeyStates.insert(pair<int, int>(GLFW_KEY_A, GLFW_RELEASE));
+    previousKeyStates.insert(pair<int, int>(GLFW_KEY_D, GLFW_RELEASE));
+    previousKeyStates.insert(pair<int, int>(GLFW_KEY_U, GLFW_RELEASE));
+    previousKeyStates.insert(pair<int, int>(GLFW_KEY_J, GLFW_RELEASE));
+
     double lastMousePosX, lastMousePosY;
     glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
 
@@ -1398,7 +1413,7 @@ int main(int argc, char* argv[])
             modelIndex = selectModelControl(window, modelIndex);
             selectedModel = models[modelIndex];
             //Control model key presses.
-            mat4* relativeWorldMatrix = modelControl(window);
+            mat4* relativeWorldMatrix = modelControl(window, previousKeyStates);
 
             //Home key has been pressed, so reset world matrices.
             if (relativeWorldMatrix[3] != mat4(1.0f)) {
@@ -1626,6 +1641,13 @@ int main(int argc, char* argv[])
         // Press middle mouse button -> tilt up and down (pitch)
         if (middleMouseButton)
             cameraVerticalAngle -= dy * cameraAngularSpeed * dt; // taken from Lab 3
+
+        //update previous key states
+        map<int, int>::iterator itr;
+        for (itr = previousKeyStates.begin(); itr != previousKeyStates.end(); ++itr) {
+            int currentState = glfwGetKey(window, itr->first);
+            itr->second = currentState;
+        }
     }
 
 
