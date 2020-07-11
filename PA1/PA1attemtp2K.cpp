@@ -22,6 +22,8 @@
 using namespace glm;
 using namespace std;
 
+const int numMainModels = 5;
+
 class Projectile
 {
 public:
@@ -139,18 +141,64 @@ public:
         setRelativeWorldMatrix(initial_relativeTranslateMatrix, initial_relativeRotateMatrix, initial_relativeScaleMatrix);
     }
 
-    //Class method to draws all passed models. for now hardcoded to 2 (issues when unloaded models).
-    static void draw(CharModel* arr[5]) {
-        for (int i = 0; i < 5; i++) {
-
-            if (i == 2) { break; }      //<- remove later
-
+    //Class method to draws all passed models. (issues when unloaded models).
+    static void draw(CharModel* arr[numMainModels]) {
+        for (int i = 0; i < numMainModels; i++) {
             if (arr[i]) {
                 arr[i]->draw();
             }
         }
     }
 protected:
+    void drawBorder(float modelMaxHeight, float modelMaxWidth, float boxVerticalWidth, float boxHorizontalWidth, mat4 relativeWorldMatrix = mat4(1.0f), mat4 modelPositioningMatrix = mat4(1.0f)) {
+        //draw box around model(extra)
+        //const float boxVerticalWidth = heightScale / 100;   //thickness of horizontal bars
+        //const float boxHorizontalWidth = widthScale / 20;   //thickness of vertical bars
+        //const float modelMaxHeight = m_height;              //total height of model to surround
+        //const float modelMaxWidth = m_maxWidth;             //total width of model to surround
+        
+        
+        //modelPositioningMatrix is to set center of model for the box to surround. This is also sets its orientation (default flush against xy-plane).
+
+
+        for (int i = 0; i < 4; i++) {
+            const bool isHorizontal = i < 2;
+            const int parity = pow(-1, i + 1);
+
+            //horizontal and vertical bar distinction. 
+            mat4 translateMatrix = (isHorizontal)
+                //Move bar to top/bottom
+                ? translate(mat4(1.0f),
+                    vec3(0,
+                        (modelMaxHeight + boxVerticalWidth) / 2 * parity,
+                        0))
+                //Move bar to sides
+                : translate(mat4(1.0f),
+                    vec3((modelMaxWidth + boxHorizontalWidth) / 2 * parity,
+                        0,
+                        0));
+            mat4 scaleMatrix = (isHorizontal)
+                //Size bar to span width
+                ? scale(mat4(1.0f),
+                    vec3(modelMaxWidth + 2 * boxHorizontalWidth, boxVerticalWidth, 1.0f))
+                //Size bar to span height
+                : scale(mat4(1.0f),
+                    vec3(boxHorizontalWidth, modelMaxHeight, 1.0f));
+
+            mat4 inertialWorldMatrix =
+                modelPositioningMatrix
+                //position around shape of model.
+                * translateMatrix
+                //scale to whole width.
+                * scaleMatrix;
+            mat4 worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
+            glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+            //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        }
+    }
+
     GLuint worldMatrixLocation;
     GLuint colorLocation;
     mat4 initial_relativeTranslateMatrix;   //Initial translate matrix, value to take when reset.
@@ -167,285 +215,618 @@ private:
 //- set initial position/orientation/size in the world where you want the model to be with initial_relative[...]Matrix.
 //- replace the drawModel function your draw function.
 //- done!
-class Model_template : public CharModel {
+//class Model_template : public CharModel {
+//public:
+//
+//    Model_template(int shaderProgram) : CharModel(shaderProgram) {
+//        //initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
+//        //example here has position set to (0, 0, -20).
+//        initial_relativeTranslateMatrix =
+//            translate(mat4(1.0f),
+//                vec3(0,
+//                    0,
+//                    -20));
+//
+//        setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
+//    }
+//
+//    //no need to change anything here, except drawModel's name if you feel like it.
+//    void draw() {
+//        //pass arguments stored in parent class.
+//        drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+//    }
+//
+//private:
+//    void drawModel(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+//        //code goes here
+//
+//        //pattern to draw models to make use of relativeWorldMatrix:
+//        //worldMatrix = relativeWorldMatrix * (model's original matrices);
+//        //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+//        //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+//        //glDrawArrays(GL_TRIANGLES, 0, 36);
+//    }
+//};
+
+class ModelV9 : public CharModel {
 public:
+	//Constructor
+	ModelV9(int shaderProgram) : CharModel(shaderProgram) {
+		const float model_heightScale = 5.0f; //<-make sure is same as constant in drawV9().
+		//initialize position with translate matrix
+		initial_relativeTranslateMatrix =
+			translate(mat4(1.0f),
+				vec3(45.5,
+					model_heightScale / 2,
+					45.5));
 
-    Model_template(int shaderProgram) : CharModel(shaderProgram) {
-        //initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
-        //example here has position set to (0, 0, -20).
-        initial_relativeTranslateMatrix =
-            translate(mat4(1.0f),
-                vec3(0,
-                    0,
-                    -20));
+		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
 
-        setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
-    }
+		////
+		//initialize orientation with rotate matrix
+		initial_relativeRotateMatrix = mat4(1.0f);
+		setRelativeRotateMatrix(initial_relativeRotateMatrix);
+		//initialize size with scale matrix
+		initial_relativeScaleMatrix = mat4(1.0f);
+		setRelativeScaleMatrix(initial_relativeScaleMatrix);
+	}
 
-    //no need to change anything here, except drawModel's name if you feel like it.
-    void draw() {
-        //pass arguments stored in parent class.
-        drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
-    }
+	//override draw method.
+	void draw() {
+		//pass arguments stored in parent class.
+		drawV9(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+	}
 
 private:
-    void drawModel(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
-        //code goes here
+	void drawV9(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
 
-        //pattern to draw models to make use of relativeWorldMatrix:
-        //worldMatrix = relativeWorldMatrix * (model's original matrices);
-        //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
-        //glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
+		//total height is heightScale
+		//total width is 2*(letterHalfWidth+apothem)
+		//parameters.
+		const float heightScale = 5;
+		const float widthScale = 1;
+		const float angle = 20.0f;
+		const int corners = 6;
+		//corners = (corners < 3) ? 3 : corners;  //minimum 3 corners.
+
+		mat4 inertialWorldMatrix;   //model from an inertial view of reference, ie centered at origin.
+		mat4 worldMatrix;           //complete matrix after all transformations.
+
+		//convert angles to radians
+		const float r_angle = abs(radians((float)angle));
+
+		//future calculations done early to determine modelPositioningMatrix for letter, and box measurements.
+		const float m9_apothem = ((heightScale + widthScale) / 4);
+		const float m9_centralAngle = radians(360.0f / corners);
+		const float m9_radius = m9_apothem / cos(m9_centralAngle / 2);
+		const float m9_base = 2 * m9_apothem * tanf(m9_centralAngle / 2);
+
+		//base of cube to scale by
+		const float mV_base = widthScale * cosf(r_angle);
+		//heigtht of cube to scale by
+		const float mV_height = (heightScale - widthScale * cosf(r_angle) * sinf(r_angle)) / cosf(r_angle);
+		//absolute width of half of V
+		const float letterHalfWidth = mV_height * sinf(r_angle) + mV_base * cosf(r_angle);
+
+		//full model measurement
+		const float m_height = heightScale;
+		const float m_width = (2 * (letterHalfWidth + m9_apothem));
+		const float m_maxWidth = 2 * (letterHalfWidth + m9_radius);
+
+		//Offset for V to center the model. Origin will touch bottom center.
+		mat4 modelPositioningMatrix =
+			translate(mat4(1.0f),
+				vec3((-(letterHalfWidth / 2 + m9_apothem)),
+					0,
+					0));
+
+		//Draw "V".
+		//total height is heightScale
+		//total width is 2 * letterHalfWidth
+		//loops for left and right half
+		for (int i = 0; i < 2; ++i)
+		{
+			const int parity = pow(-1, i + 1);
+			const float angle_i = r_angle * parity;  //vertical angle of leg 
+
+			inertialWorldMatrix =
+				//move into position relative to center of model.
+				modelPositioningMatrix
+				//space out halves.
+				* translate(mat4(1.0f),
+					vec3(letterHalfWidth * i,
+						0,
+						0))
+				//rotate by angle_i to angle the legs.
+				* rotate(mat4(1.0f),
+					angle_i,
+					vec3(0.0f, 0.0f, -1.0f))
+				//scale legs to match target.
+				* scale(mat4(1.0f),
+					vec3(mV_base, mV_height, 1.0f));
+
+			//tramsformation to model as a whole
+			worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
+			glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+			//glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
+		//connect the bottom part of the V legs together
+		const float base = widthScale * cosf(r_angle);
+		const float bottomHeight = base * sinf(r_angle);
+		const float bottomBase = base * cosf(r_angle) * 2;
+		inertialWorldMatrix =
+			//move into position relative to center of model.
+			modelPositioningMatrix
+			//position it bottom center.
+			* translate(mat4(1.0f),
+				vec3(letterHalfWidth / 2,
+				(-heightScale + bottomHeight) / 2,
+					0))
+			//scale to fit bottom gap.
+			* scale(mat4(1.0f),
+				vec3(bottomBase, bottomHeight, 1.0f));
+		worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+		//glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+
+		//Draw 9.
+		//total height is heightScale
+		//total width is 2 * apothem
+
+		//Offset for 9 to center the model.
+		modelPositioningMatrix =
+			translate(mat4(1.0f),
+				vec3(letterHalfWidth,
+					-(m_height / 2),
+					0));
+		//Draw in shape of regular polygons.
+		for (int i = 0; i < corners; ++i)
+		{
+			const float angle_i = m9_centralAngle * i;
+			const float tailAngle_i = fmod(angle_i + radians(180.0f), radians(360.0f));
+			const float thickness = widthScale;
+
+			//draw head
+			inertialWorldMatrix =
+				//move into position relative to center of model.
+				modelPositioningMatrix
+				//top height, place center point of polygon.
+				* translate(mat4(1.0f),
+					vec3(0,
+						heightScale - m9_apothem,
+						0))
+				//rotate by angle_i. done after translating to simplify process of creating a ring.
+				* rotate(mat4(1.0f),
+					angle_i,
+					vec3(0.0f, 0.0f, -1.0f))
+				//apothem distance.
+				* translate(mat4(1.0f),
+					vec3(0,
+						m9_apothem - thickness / 2,  //cube object is centered at origin, not its corner.
+						0))
+				//scale to match target.
+				* scale(mat4(1.0f),
+					vec3(m9_base, thickness, 1.0f));
+			worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
+			glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+			//glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+
+			//draw tail
+			//Offset angle_i by half a turn to match flush with ground
+			if (tailAngle_i < radians(240.0f) && tailAngle_i > 0.0f) {
+				inertialWorldMatrix =
+					////rotate 90 degrees. flat on ground
+					//rotate(mat4(1.0f),
+					//    radians(90.0f),
+					//    vec3(1.0f, 0.0f, 0.0f)) *
+					//move into position relative to center of model.
+					modelPositioningMatrix
+					//bottom height, center of polygon.
+					* translate(mat4(1.0f),
+						vec3(0,
+							m9_apothem,
+							0))
+					//rotate by angle_i. done after translating to simplify process.
+					* rotate(mat4(1.0f),
+						tailAngle_i,
+						vec3(0.0f, 0.0f, -1.0f))
+					//apothem distance.
+					* translate(mat4(1.0f),
+						vec3(0,
+							m9_apothem - thickness / 2,
+							0))
+					//scale to sides of polygon match target.
+					* scale(mat4(1.0f),
+						vec3(m9_base, thickness, 1.0f));
+				worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
+				glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+				//glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+				glDrawArrays(GL_TRIANGLES, 0, 36);
+			}
+		}
+		{
+			//draw box around model(extra)
+			const float boxVerticalWidth = heightScale / 100;   //thickness of horizontal bars
+			const float boxHorizontalWidth = widthScale / 20;   //thickness of vertical bars
+			const float modelMaxHeight = m_height + boxVerticalWidth / 2;
+			const float modelMaxWidth = m_maxWidth + boxHorizontalWidth / 2;
+			drawBorder(modelMaxHeight, modelMaxWidth, boxVerticalWidth, boxHorizontalWidth, relativeWorldMatrix);
+		}
+
+	}
 };
-
-class V9Model : public CharModel {
+class ModelS3 : public CharModel {
 public:
-    //Constructor
-    V9Model(int shaderProgram) : CharModel(shaderProgram) {
-        const float model_heightScale = 5.0f; //<-make sure is same as constant in drawV9().
-        //initialize position with translate matrix
-        initial_relativeTranslateMatrix =
-            translate(mat4(1.0f),
-                vec3(0,
-                    model_heightScale / 2,
-                    -20));
 
-        setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
+	ModelS3(int shaderProgram) : CharModel(shaderProgram) {
+		//initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
+		initial_relativeTranslateMatrix =
+			translate(mat4(1.0f),
+				vec3(0,
+					-2,
+					0));
 
-        ////
-        //initialize orientation with rotate matrix
-        initial_relativeRotateMatrix = mat4(1.0f);
-        setRelativeRotateMatrix(initial_relativeRotateMatrix);
-        //initialize size with scale matrix
-        initial_relativeScaleMatrix = mat4(1.0f);
-        setRelativeScaleMatrix(initial_relativeScaleMatrix);
-    }
+		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
+	}
 
-    //override draw method.
-    void draw() {
-        //pass arguments stored in parent class.
-        drawV9(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
-    }
+	//no need to change anything here, except drawModel's name if you feel like it.
+	void draw() {
+		//pass arguments stored in parent class.
+		drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+	}
 
 private:
-    void drawV9(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+	void drawModel(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+		//code goes here
+		mat4 mWorldMatrix;
+		mat4 scalingMatrix, translationMatrix;
 
-        //total height is heightScale
-        //total width is 2*(letterHalfWidth+apothem)
-        //parameters.
-        const float heightScale = 5;
-        const float widthScale = 1;
-        const float angle = 20.0f;
-        const int corners = 8;
-        //corners = (corners < 3) ? 3 : corners;  //minimum 3 corners.
+		// Draw 3
+		// Top
+		scalingMatrix = scale(mat4(1.0f), vec3(2.0f, 1.0f, 1.0f));
+		translationMatrix = translate(mat4(1.0f), vec3(2.0f, 7.5f, 0.0f));
+		glm::mat4 worldMatrix = translationMatrix * scalingMatrix;
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        mat4 inertialWorldMatrix;   //model from an inertial view of reference, ie centered at origin.
-        mat4 worldMatrix;           //complete matrix after all transformations.
+		//middle row
+		translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 5.0f, 0.0f));
+		worldMatrix = translationMatrix * scalingMatrix;
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        //convert angles to radians
-        const float r_angle = abs(radians((float)angle));
+		//bottom row
+		translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 2.5f, 0.0f));
+		worldMatrix = translationMatrix * scalingMatrix;
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        //future calculations done early to determine modelPositioningMatrix for letter, and box measurements.
-        const float m9_apothem = (heightScale + widthScale) / 4;
-        const float m9_centralAngle = radians(360.0f / corners);
-        const float m9_radius = m9_apothem / cos(m9_centralAngle / 2);
-        const float m9_base = 2 * m9_apothem * tanf(m9_centralAngle / 2);
+		//right side
+		scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 6.0f, 1.0f));
+		translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(3.5f, 5.0f, 0.0f));
+		worldMatrix = translationMatrix * scalingMatrix;
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        //base of cube to scale by
-        const float mV_base = widthScale * cosf(r_angle);
-        //heigtht of cube to scale by
-        const float mV_height = (heightScale - widthScale * cosf(r_angle) * sinf(r_angle)) / cosf(r_angle);
-        //absolute width of half of V
-        const float letterHalfWidth = mV_height * sinf(r_angle) + mV_base * cosf(r_angle);
+		//Draw S
+		scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.5f, 1.0f));
+		translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 7.25f, 0.0f));
+		worldMatrix = translationMatrix * scalingMatrix;
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        //full model measurement
-        const float m_height = heightScale;
-        const float m_width = 2 * (letterHalfWidth + m9_apothem);
-        const float m_maxWidth = 2 * (letterHalfWidth + m9_radius);
+		scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+		translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-2.5f, 7.5f, 0.0f));
+		worldMatrix = translationMatrix * scalingMatrix;
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        //Offset for V to center the model. Origin will touch bottom center.
-        mat4 modelPositioningMatrix =
-            translate(mat4(1.0f),
-                vec3(-(letterHalfWidth / 2 + m9_apothem),
-                    0,
-                    0));
+		scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 3.5f, 1.0f));
+		translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-3.5f, 6.25f, 0.0f));
+		worldMatrix = translationMatrix * scalingMatrix;
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        //Draw "V".
-        //total height is heightScale
-        //total width is 2 * letterHalfWidth
-        //loops for left and right half
-        for (int i = 0; i < 2; ++i)
-        {
-            const int parity = pow(-1, i + 1);
-            const float angle_i = r_angle * parity;  //vertical angle of leg 
+		scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+		translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-2.5f, 5.0f, 0.0f));
+		worldMatrix = translationMatrix * scalingMatrix;
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-            inertialWorldMatrix =
-                //move into position relative to center of model.
-                modelPositioningMatrix
-                //space out halves.
-                * translate(mat4(1.0f),
-                    vec3(letterHalfWidth * i,
-                        0,
-                        0))
-                //rotate by angle_i to angle the legs.
-                * rotate(mat4(1.0f),
-                    angle_i,
-                    vec3(0.0f, 0.0f, -1.0f))
-                //scale legs to match target.
-                * scale(mat4(1.0f),
-                    vec3(mV_base, mV_height, 1.0f));
+		scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 3.5f, 1.0f));
+		translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 3.75f, 0.0f));
+		worldMatrix = translationMatrix * scalingMatrix;
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-            //tramsformation to model as a whole
-            worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
-            glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-            //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
-        //connect the bottom part of the V legs together
-        const float base = widthScale * cosf(r_angle);
-        const float bottomHeight = base * sinf(r_angle);
-        const float bottomBase = base * cosf(r_angle) * 2;
-        inertialWorldMatrix =
-            //move into position relative to center of model.
-            modelPositioningMatrix
-            //position it bottom center.
-            * translate(mat4(1.0f),
-                vec3(letterHalfWidth / 2,
-                    (-heightScale + bottomHeight) / 2,
-                    0))
-            //scale to fit bottom gap.
-            * scale(mat4(1.0f),
-                vec3(bottomBase, bottomHeight, 1.0f));
-        worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-        //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+		scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+		translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-2.5f, 2.5f, 0.0f));
+		worldMatrix = translationMatrix * scalingMatrix;
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
+		scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.5f, 1.0f));
+		translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-3.5f, 2.75f, 0.0f));
+		worldMatrix = translationMatrix * scalingMatrix;
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        //Draw 9.
-        //total height is heightScale
-        //total width is 2 * apothem
-
-        //Offset for 9 to center the model.
-        modelPositioningMatrix =
-            translate(mat4(1.0f),
-                vec3(letterHalfWidth,
-                    -m_height / 2,
-                    0));
-        //Draw in shape of regular polygons.
-        for (int i = 0; i < corners; ++i)
-        {
-            const float angle_i = m9_centralAngle * i;
-            const float tailAngle_i = fmod(angle_i + radians(180.0f), radians(360.0f));
-            const float thickness = widthScale;
-
-            //draw head
-            inertialWorldMatrix =
-                //move into position relative to center of model.
-                modelPositioningMatrix
-                //top height, place center point of polygon.
-                * translate(mat4(1.0f),
-                    vec3(0,
-                        heightScale - m9_apothem,
-                        0))
-                //rotate by angle_i. done after translating to simplify process of creating a ring.
-                * rotate(mat4(1.0f),
-                    angle_i,
-                    vec3(0.0f, 0.0f, -1.0f))
-                //apothem distance.
-                * translate(mat4(1.0f),
-                    vec3(0,
-                        m9_apothem - thickness / 2,  //cube object is centered at origin, not its corner.
-                        0))
-                //scale to match target.
-                * scale(mat4(1.0f),
-                    vec3(m9_base, thickness, 1.0f));
-            worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
-            glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-            //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-
-            //draw tail
-            //Offset angle_i by half a turn to match flush with ground
-            if (tailAngle_i < radians(240.0f) && tailAngle_i > 0.0f) {
-                inertialWorldMatrix =
-                    ////rotate 90 degrees. flat on ground
-                    //rotate(mat4(1.0f),
-                    //    radians(90.0f),
-                    //    vec3(1.0f, 0.0f, 0.0f)) *
-                    //move into position relative to center of model.
-                    modelPositioningMatrix
-                    //bottom height, center of polygon.
-                    * translate(mat4(1.0f),
-                        vec3(0,
-                            m9_apothem,
-                            0))
-                    //rotate by angle_i. done after translating to simplify process.
-                    * rotate(mat4(1.0f),
-                        tailAngle_i,
-                        vec3(0.0f, 0.0f, -1.0f))
-                    //apothem distance.
-                    * translate(mat4(1.0f),
-                        vec3(0,
-                            m9_apothem - thickness / 2,
-                            0))
-                    //scale to sides of polygon match target.
-                    * scale(mat4(1.0f),
-                        vec3(m9_base, thickness, 1.0f));
-                worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
-                glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-                //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
-                glDrawArrays(GL_TRIANGLES, 0, 36);
-            }
-        }
-        {
-            //draw box around model(extra)
-            const float boxVerticalWidth = heightScale / 100;   //thickness of horizontal bars
-            const float boxHorizontalWidth = widthScale / 20;   //thickness of vertical bars
-            const float modelMaxHeight = m_height;
-            const float modelMaxWidth = m_maxWidth;
-            for (int i = 0; i < 4; i++) {
-                const bool isHorizontal = i < 2;
-                const int parity = pow(-1, i + 1);
-
-                //horizontal and vertical bar distinction. 
-                mat4 translateMatrix = (isHorizontal)
-                    //Move bar to top/bottom
-                    ? translate(mat4(1.0f),
-                        vec3(0,
-                            (modelMaxHeight + boxVerticalWidth) / 2 * parity,
-                            0))
-                    //Move bar to sides
-                    : translate(mat4(1.0f),
-                        vec3((modelMaxWidth + boxHorizontalWidth) / 2 * parity,
-                            0,
-                            0));
-                mat4 scaleMatrix = (isHorizontal)
-                    //Size bar to span width
-                    ? scale(mat4(1.0f),
-                        vec3(modelMaxWidth + 2 * boxHorizontalWidth, boxVerticalWidth, 1.0f))
-                    //Size bar to span height
-                    : scale(mat4(1.0f),
-                        vec3(boxHorizontalWidth, modelMaxHeight, 1.0f));
-
-                inertialWorldMatrix =
-                    //position around shape of model.
-                    translateMatrix
-                    //scale to whole width.
-                    * scaleMatrix;
-                worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
-                glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-                //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
-                glDrawArrays(GL_TRIANGLES, 0, 36);
-
-            }
-        }
-
-    }
+		//drawBorder(7, 9, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0, 5.0f, 0)));
+	}
 };
+class ModelA9 : public CharModel {
+public:
 
+	ModelA9(int shaderProgram) : CharModel(shaderProgram) {
+		//initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
+		initial_relativeTranslateMatrix =
+			translate(mat4(1.0f),
+				vec3(-44.5,
+					0,
+					-44.5));
+
+		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
+	}
+
+	//no need to change anything here, except drawModel's name if you feel like it.
+	void draw() {
+		//pass arguments stored in parent class.
+		drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+	}
+
+private:
+	void drawModel(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+		//code goes here
+
+		//pattern to draw models to make use of relativeWorldMatrix:
+		//worldMatrix = relativeWorldMatrix * (model's original matrices);
+		//glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+		//glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		mat4 worldMatrix = mat4(1.0f);
+		mat4 mWorldMatrix;
+		// Draw A
+		// Right Vertical Bar
+		worldMatrix = translate(mat4(1.0f), vec3(-1.0f, 2.0f, 0.0f)) * scale(mat4(1.0f), vec3(1.0f, 1.0f * 4.0f, 1.0f));
+
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Left Vertical Bar
+		worldMatrix = translate(mat4(1.0f), vec3(-5.0f, 2.0f, 0.0f)) * scale(mat4(1.0f), vec3(1.0f, 4.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Top Horizontal Bar
+		worldMatrix = translate(mat4(1.0f), vec3(-3.0f, 4.5f, 0.0f)) * scale(mat4(1.0f), vec3(3.5f, 1.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Bottom Horizontal Bar
+		worldMatrix = translate(mat4(1.0f), vec3(-3.0f, 2.5f, 0.0f)) * scale(mat4(1.0f), vec3(3.5f, 1.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Draw 9
+		// Long Vertical Bar
+		worldMatrix = translate(mat4(1.0f), vec3(5.0f, 2.5f, 0.0f)) * scale(mat4(1.0f), vec3(1.0f, 5.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Short Vertical Bar
+		worldMatrix = translate(mat4(1.0f), vec3(1.0f, 3.5f, 0.0f)) * scale(mat4(1.0f), vec3(1.0f, 3.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Top Horizontal Bar
+		worldMatrix = translate(mat4(1.0f), vec3(3.0f, 4.5f, 0.0f)) * scale(mat4(1.0f), vec3(3.0f, 1.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Bottom Horizontal Bar
+		worldMatrix = translate(mat4(1.0f), vec3(3.0f, 2.5f, 0.0f)) * scale(mat4(1.0f), vec3(3.0f, 1.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		//drawBorder(7, 12, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0, 3.5f, 0)));
+	}
+};
+class ModelN2 : public CharModel {
+public:
+
+	ModelN2(int shaderProgram) : CharModel(shaderProgram) {
+		//initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
+		//example here has position set to (0, 0, -20).
+		initial_relativeTranslateMatrix =
+			translate(mat4(1.0f),
+				vec3(44,
+					0,
+					-45));
+
+		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
+	}
+
+	//no need to change anything here, except drawModel's name if you feel like it.
+	void draw() {
+		//pass arguments stored in parent class.
+		drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+	}
+
+private:
+	void drawModel(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+		//code goes here
+
+		//pattern to draw models to make use of relativeWorldMatrix:
+		//worldMatrix = relativeWorldMatrix * (model's original matrices);
+		//glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+		//glDrawArrays(GL_TRIANGLES, 0, 36);
+		mat4 worldMatrix = mat4(1.0f);
+		mat4 mWorldMatrix;
+
+		// Draw N
+		// Right Vertical Bar
+		worldMatrix = translate(mat4(1.0f), vec3(-0.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 5.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Left Vertical Bar
+		worldMatrix = translate(mat4(1.0f), vec3(-4.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 5.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Small bar 1
+		worldMatrix = translate(mat4(1.0f), vec3(-3.5f, 3.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 1.5f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Small bar 2
+		worldMatrix = translate(mat4(1.0f), vec3(-2.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 2.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Small bar 3
+		worldMatrix = translate(mat4(1.0f), vec3(-1.5f, 1.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 1.5f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Draw 2
+		// Right Vertical Bar
+		worldMatrix = translate(mat4(1.0f), vec3(5.5f, 3.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 2.5f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Left Vertical Bar 1
+		worldMatrix = translate(mat4(1.0f), vec3(1.5f, 1.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 1.5f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Top Horizontal Bar
+		worldMatrix = translate(mat4(1.0f), vec3(3.5f, 4.5f, 0.5f)) * scale(mat4(1.0f), vec3(4.5f, 1.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Middle Horizontal Bar
+		worldMatrix = translate(mat4(1.0f), vec3(3.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(4.0f, 1.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Bottom Horizontal Bar
+		worldMatrix = translate(mat4(1.0f), vec3(3.5f, 0.5f, 0.5f)) * scale(mat4(1.0f), vec3(5.0f, 1.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		//drawBorder(7, 13.5f, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0.5, 3.5f, 0)));
+	}
+};
+class ModelN4 : public CharModel {
+public:
+
+	ModelN4(int shaderProgram) : CharModel(shaderProgram) {
+		//initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
+		//example here has position set to (0, 0, -20).
+		initial_relativeTranslateMatrix =
+			translate(mat4(1.0f),
+				vec3(-45,
+					0,
+					45));
+
+		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
+	}
+
+	//no need to change anything here, except drawModel's name if you feel like it.
+	void draw() {
+		//pass arguments stored in parent class.
+		drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+	}
+
+private:
+	void drawModel(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+		//code goes here
+
+		//pattern to draw models to make use of relativeWorldMatrix:
+		//worldMatrix = relativeWorldMatrix * (model's original matrices);
+		//glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+		//glDrawArrays(GL_TRIANGLES, 0, 36);
+		mat4 worldMatrix = mat4(1.0f);
+		mat4 mWorldMatrix;
+
+		// Draw N
+		// Right Vertical Bar
+		worldMatrix = translate(mat4(1.0f), vec3(-0.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 5.0f, 1.0f));
+		//glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Left Vertical Bar
+		worldMatrix = translate(mat4(1.0f), vec3(-4.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 5.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+
+		// Diagonal bar
+		worldMatrix = rotate(translate(mat4(1.0f), vec3(-2.5f, 2.5f, 0.5f)), radians(41.0f), vec3(0, 0, 1)) * scale(mat4(1.0f), vec3(1.0f, 5.75f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+
+		// Draw 4
+		// Right Vertical Bar
+		worldMatrix = translate(mat4(1.0f), vec3(4.5f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 5.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Left Small Vertical Bar
+		worldMatrix = translate(mat4(1.0f), vec3(1.5f, 4.0f, 0.5f)) * scale(mat4(1.0f), vec3(1.0f, 2.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// Middle Horizontal Bar
+		worldMatrix = translate(mat4(1.0f), vec3(3.0f, 2.5f, 0.5f)) * scale(mat4(1.0f), vec3(4.0f, 1.0f, 1.0f));
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
+		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		//drawBorder(7, 12, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0, 3.5f, 0)));
+	}
+};
 
 const char* getVertexShaderSource()
 {
@@ -467,8 +848,6 @@ const char* getVertexShaderSource()
         "   gl_Position = modelViewProjection * vec4(aPos.x, aPos.y, aPos.z, 1.0);"
         "}";
 }
-
-
 const char* getFragmentShaderSource()
 {
     return
@@ -786,13 +1165,13 @@ mat4* modelControl(GLFWwindow* window) {
         inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_W, {
             translate(mat4(1.0f),
                 vec3(0,
-                    translateSpeed,
-                    0)), 0 }));
+                    0,
+                    -translateSpeed)), 0 }));
         inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_S, {
             translate(mat4(1.0f),
                 vec3(0,
-                    -translateSpeed,
-                    0)), 0 }));
+                    0,
+                    translateSpeed)), 0 }));
         //horizontal movement
         inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_D, {
             translate(mat4(1.0f),
@@ -895,7 +1274,11 @@ int main(int argc, char* argv[])
     GLuint colorLocation = glGetUniformLocation(shaderProgram, "objectColor");
 
     // Camera parameters for view transform
-    const vec3 initial_cameraPosition(0.0f, 5.0f, 20.0f);
+    const float initial_xpos = 0;
+    const float initial_ypos = 5;
+    const float initial_zpos = 20;
+    const float initial_rpos = sqrt(powf(initial_xpos, 2) + powf(initial_zpos, 2));
+    const vec3 initial_cameraPosition(initial_xpos, initial_ypos, initial_zpos);
     //const vec3 initial_cameraLookAt(0.0f, 0.0f, -1.0f);   //<-overridden by camera Horizontal/Vertical Angle anyways.
     const vec3 initial_cameraUp(0.0f, 1.0f, 0.0f);
     // Camera parameters for view transform
@@ -905,8 +1288,8 @@ int main(int argc, char* argv[])
 
 
     // Other camera parameters
-    const float initial_cameraHorizontalAngle = 90.0f;
-    const float initial_cameraVerticalAngle = 0.0f;
+    const float initial_cameraHorizontalAngle = degrees(atan2f(initial_zpos, -initial_xpos));
+    const float initial_cameraVerticalAngle = degrees(atan2f(initial_ypos, initial_rpos));
     const float initialFoV = 70.0f;
 
     float cameraSpeed = 10.0f;
@@ -967,20 +1350,20 @@ int main(int argc, char* argv[])
 
     //Models
     CharModel* selectedModel;
-    CharModel* models[5];
+    CharModel* models[numMainModels];
     int modelIndex = 0;
 
-    V9Model v9(shaderProgram);
-    V9Model v9_2(shaderProgram);    //placeholder
-    //3
-    //4
-    //5
+    ModelV9 v9(shaderProgram);
+    ModelS3 s3(shaderProgram);
+    ModelA9 a9(shaderProgram);
+    ModelN2 n2(shaderProgram);
+    ModelN4 n4(shaderProgram);
 
-    models[0] = &v9;
-    models[1] = &v9_2;              //placeholder
-    //models[2] = &;
-    //models[3] = &;
-    //models[4] = &;
+    models[0] = &s3;
+    models[1] = &n2;
+    models[2] = &a9;
+    models[3] = &n4;
+    models[4] = &v9;
 
     // Entering Main Loop
     while (!glfwWindowShouldClose(window))
@@ -1024,7 +1407,7 @@ int main(int argc, char* argv[])
                 cameraPosition = initial_cameraPosition;
                 //cameraLookAt = initial_cameraLookAt;
                 cameraHorizontalAngle = initial_cameraHorizontalAngle;
-                cameraVerticalAngle = initial_cameraVerticalAngle;
+                cameraVerticalAngle = -initial_cameraVerticalAngle;
                 cameraUp = initial_cameraUp;
                 foV = initialFoV;
             }
@@ -1149,22 +1532,22 @@ int main(int argc, char* argv[])
         0.01f, 100.0f);   // near and far (near > 0)
         glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
 
-        // @TODO 5 = use camera lookat and side vectors to update positions with ASDW
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) // move camera to the left
+        // @TODO 5 = use camera lookat and side vectors to update positions with HNBM
+        if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS) // move camera down
         {
-            cameraPosition -= cameraSideVector * currentCameraSpeed * dt;
+            cameraPosition += cameraLookAt * currentCameraSpeed * dt;
         }
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) // move camera to the right
-        {
-            cameraPosition += cameraSideVector * currentCameraSpeed * dt;
-        }
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) // move camera up
+        if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) // move camera up
         {
             cameraPosition -= cameraLookAt * currentCameraSpeed * dt;
         }
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) // move camera down
+        if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) // move camera to the left
         {
-            cameraPosition += cameraLookAt * currentCameraSpeed * dt;
+            cameraPosition -= cameraSideVector * currentCameraSpeed * dt;
+        }
+        if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS) // move camera to the right
+        {
+            cameraPosition += cameraSideVector * currentCameraSpeed * dt;
         }
         if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) // pitch camera up
         {
