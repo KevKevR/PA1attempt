@@ -186,8 +186,9 @@ protected:
                     vec3(boxHorizontalWidth, modelMaxHeight, 1.0f));
 
             mat4 inertialWorldMatrix =
+                modelPositioningMatrix
                 //position around shape of model.
-                translateMatrix
+                * translateMatrix
                 //scale to whole width.
                 * scaleMatrix;
             mat4 worldMatrix = relativeWorldMatrix * inertialWorldMatrix;
@@ -450,8 +451,8 @@ private:
             //draw box around model(extra)
             const float boxVerticalWidth = heightScale / 100;   //thickness of horizontal bars
             const float boxHorizontalWidth = widthScale / 20;   //thickness of vertical bars
-            const float modelMaxHeight = m_height;
-            const float modelMaxWidth = m_maxWidth;
+            const float modelMaxHeight = m_height + boxVerticalWidth/2;
+            const float modelMaxWidth = m_maxWidth + boxHorizontalWidth/2;
             drawBorder(modelMaxHeight, modelMaxWidth, boxVerticalWidth, boxHorizontalWidth, relativeWorldMatrix);
         }
 
@@ -566,6 +567,8 @@ private:
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        //drawBorder(7, 9, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0, 5.0f, 0)));
     }
 };
 class ModelA9 : public CharModel {
@@ -655,6 +658,8 @@ private:
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        //drawBorder(7, 12, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0, 3.5f, 0)));
     }
 };
 class ModelN2 : public CharModel {
@@ -755,6 +760,8 @@ private:
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        //drawBorder(7, 13.5f, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0.5, 3.5f, 0)));
     }
 };
 class ModelN4 : public CharModel {
@@ -834,6 +841,8 @@ private:
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        //drawBorder(7, 12, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0, 3.5f, 0)));
     }
 };
 
