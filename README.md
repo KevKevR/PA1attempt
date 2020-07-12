@@ -32,10 +32,13 @@ Note that there is a distinction between 'a' and 'A'. Capital letters require ho
 Model Controls
 ------
 - Number keys 1 through 5 to select one of the five models. 
+
 The following controls apply to the selected models only.
 - WASD to move model in XY plane.
 - a and d to rotate model about y-axis.
+- U and J to scale model to be bigger or smaller
 - Home key to reset model position and orientation to initial settings. This will also reset the camera's.
+
 
 Camera Controls
 ------
