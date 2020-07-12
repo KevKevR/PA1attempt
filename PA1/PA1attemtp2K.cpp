@@ -1153,7 +1153,7 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
 
 //function will return a matrix for corresponding transformation of inputted keys.
 //note: undefined order priority in case multiple correct keys are pressed (but will select a matrix).
-mat4* modelControl(GLFWwindow* window, map<int, KeyState> previousKeyStates) {
+mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyStates) {
     mat4* selectedTransformation = new mat4[4];
     //default return values
     selectedTransformation[0] = mat4(1.0f);     //translate
@@ -1169,10 +1169,10 @@ mat4* modelControl(GLFWwindow* window, map<int, KeyState> previousKeyStates) {
     };
     map<int, transformation> inputsToModelMatrix;
     map<int, transformation>::iterator itr;
-    float transformSpeed = 0.2f;
+    float transformSpeed = 6 * dt;
     float translateSpeed = transformSpeed;
     float rotateSpeed = 5.0f;   //specifications
-    float scaleSpeed = transformSpeed / 20;
+    float scaleSpeed = transformSpeed / 12;
     if (isShiftPressed(window)) // capital case letters
     {
         //translate model if pressed
@@ -1445,7 +1445,7 @@ int main(int argc, char* argv[])
             modelIndex = selectModelControl(window, modelIndex);
             selectedModel = models[modelIndex];
             //Control model key presses.
-            mat4* relativeWorldMatrix = modelControl(window, previousKeyStates);
+            mat4* relativeWorldMatrix = modelControl(window, dt, previousKeyStates);
 
             //Home key has been pressed, so reset world matrices.
             if (relativeWorldMatrix[3] != mat4(1.0f)) {
