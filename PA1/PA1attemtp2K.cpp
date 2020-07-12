@@ -1,7 +1,13 @@
 //
-// COMP 371 Labs Framework
+// Concordia University COMP 371 Programming Assignment 1, Summer 2020.
 //
-// Created by Nicolas Bergeron on 20/06/2019.
+// Created by :
+//    Jason Beccherini (40130107)
+//    Manuel Romero (40023706)
+//    Gia-Khang Ernest Nguyen (40091426)
+//    Wing-Fei Jason Tiu (40048495)
+//    Kevin Rao (40095427)
+// due July 12th, 2020.
 //
 
 #include <iostream>
