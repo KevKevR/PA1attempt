@@ -9,7 +9,7 @@ Team List
 - Kevin Rao (40095427)
 - Manuel Romero (40023706)
 - Gia-Khang Ernest Nguyen (40091426)
-- 
+- Wing-Fei Jason Tiu (40048495)
 - 
 
 Features and Functionality
