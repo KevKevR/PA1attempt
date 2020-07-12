@@ -17,7 +17,7 @@ Features and Functionality
 This program takes advantage of what OpenGL v3.1 and onwards offers to render colored 3D models with a movable perspective camera.
 The ground is shown with a 100x100 unit grid centered at the origin. Standard xyz axes are also centered at the origin, and are colored in rgb fashion. 
 Models representing each of the students are arbitrarily placed in each of the four corners and center positions. They are models of the following letter-number pairs: S3, N2, A9, N4, V9. All models were drawn with copies of a same, single unit cube object, applied with various transformation to stretch and position them in shapes of alphanumeric characters. Theses models are free to move in the XZ-plane individually through the **models controls** section below. Additional modifications are possible and found in said section. Note that some of these modification apply once per key press, while others are applied continuously as long as the valid key combination is held.
-The view camera initially centers its focus onto the origin point (0, 0, 0). Additional camera and disply properties can be found in the **Displa/Camera** section. The camera moves in first person view tradition. Further details on how to move it are found in the **Camera Controls** section.
+The view camera initially centers its focus onto the origin point (0, 0, 0). Additional camera and display properties can be found in the **Displa/Camera** section. The camera moves in first person view tradition. Further details on how to move it are found in the **Camera Controls** section.
 Rendering mode can change between triangles, lines and points. Controls found in **Rendering Controls** section.
 
 
