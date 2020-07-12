@@ -57,7 +57,8 @@ const int numMainModels = 5;
 
 struct KeyState {
     int keyState;
-    bool shiftPressed;
+    bool needShiftPressed;
+    bool prevWithShiftPressed;
 };
 //class MatrixHolder {
 //    ~MatrixHolder() {
@@ -1215,15 +1216,30 @@ mat4* modelControl(GLFWwindow* window, map<int, KeyState> previousKeyStates) {
     inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_HOME, {
         mat4(2.0f), 3 }));
 
-    //iterate through all pressed keys.
+    //iterate through all keys that could be pressed.
     for (itr = inputsToModelMatrix.begin(); itr != inputsToModelMatrix.end(); ++itr) {
         //get previous key state if tracked, otherwise default release (true).
         //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
-        //default if not tracked
+        //default released if not tracked
         int previousState = GLFW_RELEASE;
         map<int, KeyState>::iterator it = previousKeyStates.find(itr->first);
-        if (it != previousKeyStates.end()) {        //key is tracked
-            previousState = it->second.keyState;    //so update to actual
+        if (it != previousKeyStates.end()) {        //key is a tracked one
+            //toggling shift should not activate the key again.
+            //So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
+            if ((it->second.needShiftPressed == isShiftPressed(window)) && it->second.prevWithShiftPressed) {
+                previousState = GLFW_PRESS;    //so update to actual
+                //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
+            }
+            //else if (isShiftPressed(window) && !it->second.prevWithShiftPressed) {
+            //    previousState = GLFW_PRESS;
+            //    glClearColor(0.4f, 1, 0.0f, 1.0f);
+            //} 
+            else {
+                //otherwise, update to actual previous key.
+                previousState = it->second.keyState;    
+                //glClearColor(1.0f, 0.3f, 0.0f, 1.0f);
+            }
+
         }
 
         if (glfwGetKey(window, itr->first) == GLFW_PRESS && previousState == GLFW_RELEASE) // select model. Apply once for keys that are tracked.
@@ -1233,6 +1249,7 @@ mat4* modelControl(GLFWwindow* window, map<int, KeyState> previousKeyStates) {
                 selectedTransformation[3] = mat4(2.0f);
             }
             else {
+                //group up the applied transformations.
                 selectedTransformation[itr->second.type] = itr->second.matrix * selectedTransformation[itr->second.type];
             }
         }
@@ -1480,29 +1497,21 @@ int main(int argc, char* argv[])
 
 
         //update previous key states.
-        bool shouldConsiderShiftHeld = false;
         map<int, KeyState>::iterator itr;
         for (itr = previousKeyStates.begin(); itr != previousKeyStates.end(); ++itr) {
+            int currentState = glfwGetKey(window, itr->first);
             //only update to pressed if in the right shift mode.
-            if (itr->second.shiftPressed == considerShiftHeld) {
-                int currentState = glfwGetKey(window, itr->first);
+            if (itr->second.needShiftPressed == isShiftPressed(window)) {
                 itr->second.keyState = currentState;
             }
-            //Do not update to release if not in the right shift mode, if it shouldn't be able to update to pressed.
-            else if (itr->second.shiftPressed == isShiftPressed(window)){
-                itr->second.keyState = GLFW_PRESS;
-            }
-            //Consider not pressed before
+            //Consider not pressed before otherwise
             else {
                 itr->second.keyState = GLFW_RELEASE;
             }
 
-            //If shift was held, then any key press extends it.
-            if (considerShiftHeld && glfwGetKey(window, itr->first) == GLFW_PRESS) {
-                shouldConsiderShiftHeld = true;
-            }
+            //consider shift being held with the button, when either shift is held or was held with it and the button is held.
+            itr->second.prevWithShiftPressed = (isShiftPressed(window) || itr->second.prevWithShiftPressed) && currentState == GLFW_PRESS;
         }
-        considerShiftHeld = isShiftPressed(window) || shouldConsiderShiftHeld;
 
         // End Frame
         glfwSwapBuffers(window);
