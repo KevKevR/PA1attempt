@@ -1368,7 +1368,6 @@ int main(int argc, char* argv[])
     float lastFrameTime = glfwGetTime();
 
     //Previous key states to track
-    bool considerShiftHeld = GLFW_RELEASE;
     //int lastMouseLeftState = GLFW_RELEASE;
     map<int, KeyState> previousKeyStates;
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_A, { GLFW_RELEASE , false }));
