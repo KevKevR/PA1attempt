@@ -10,7 +10,7 @@ Team List
 - Manuel Romero (40023706)
 - Gia-Khang Ernest Nguyen (40091426)
 - Wing-Fei Jason Tiu (40048495)
-- 
+- Jason Beccherini (40130107)
 
 Features and Functionality
 ======
