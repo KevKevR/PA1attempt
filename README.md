@@ -6,43 +6,50 @@ due by the end of July 12th, 2020.
 
 Team List
 ======
-- Kevin Rao (40095427)
+- Jason Beccherini (40130107)
 - Manuel Romero (40023706)
 - Gia-Khang Ernest Nguyen (40091426)
 - Wing-Fei Jason Tiu (40048495)
-- Jason Beccherini (40130107)
+- Kevin Rao (40095427)
 
 Features and Functionality
 ======
-//TODO
-(OpenGL, grid, axes, models, positioning, single cube object, colored, movable camera and models, camera focus on origin. Maybe more.)
+This program takes advantage of what OpenGL v3.1 and onwards offers to render colored 3D models with a movable perspective camera.
+The ground is shown with a 100x100 unit grid centered at the origin. Standard xyz axes are also centered at the origin, and are colored in rgb fashion. 
+Models representing each of the students are arbitrarily placed in each of the four corners and center positions. They are models of the following letter-number pairs: S3, N2, A9, N4, V9. All models were drawn with copies of a same, single unit cube object, applied with various transformation to stretch and position them in shapes of alphanumeric characters. Theses models are free to move in the XZ-plane individually through the **models controls** section below. Additional modifications are possible and found in said section. Note that some of these modification apply once per key press, while others are applied continuously as long as the valid key combination is held.
+The view camera initially centers its focus onto the origin point (0, 0, 0). Additional camera and disply properties can be found in the **Displa/Camera** section. The camera moves in first person view tradition. Further details on how to move it are found in the **Camera Controls** section.
+Rendering mode can change between triangles, lines and points. Controls found in **Rendering Controls** section.
 
 
-Display
+Display/Camera
 ----
-Program only supports the following display option
+Program only supports the following display option and camera setting
 - Window size of 1024 * 768
 - 4:3 aspect ratio
 - Double buffering 
+- Perspective projection
+- Hidden surface removal with backface culling and depth test
 
 Controls
 ======
-Note that there is a distinction between 'a' and 'A'. Capital letters require holding the shift key (left).
+Note that there is a distinction between 'a' and 'A'. Capital letters require holding the shift key (left or right).
 
 Model Controls
 ------
-- Number keys 1 through 5 to select one of the five models. 
+- Number keys 1 through 5 to select one of the five models (assigned in this order: S3, N2, A9, N4, V9). 
 
-The following controls apply to the selected models only.
+The following controls apply to the *selected model* only.
 - WASD to move model in XY plane.
-- a and d to rotate model about y-axis.
-- U and J to scale model to be bigger or smaller
+- a and d to incrementally rotate model about y-axis (5 degrees per press).
+- U and J to incrementally scale model to be bigger or smaller.
 - Home key to reset model position and orientation to initial settings. This will also reset the camera's.
 
 
 Camera Controls
 ------
-- Arrow keys to pitch and yaw camera.
+The camera view can be controlled as followed:
+- Arrow keys to pitch and yaw camera. Holding shift will increase the speed.
+- Use hbnm to move the camera's position in/out and side-to-side of the scene. Holding shift will increase the speed.
 - Home key to reset camera to initial settings. This will also reset the selected model's.
 - While holding the left mouse button, vertical mouse motions will zoom the camera in and out (z-axis movement).
 - While holding the middle mouse button, horizontal mouse motions will pan the camera from side to side(rotation about y-axis).
@@ -51,6 +58,6 @@ Camera Controls
 Rendering Controls
 ------
 The models will be rendered according to the following scheme:
-- T    Triangles (Fill/Surfaces)
-- L    Lines (wireframe)
+- T    Triangles (like Fill/Surfaces)
+- L    Lines (like transparent wireframe)
 - P    Points (Vertices)
