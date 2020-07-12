@@ -845,7 +845,7 @@ const char* getVertexShaderSource()
     return
         "#version 330 core\n"
         "layout (location = 0) in vec3 aPos;"
-        "layout (location = 1) in vec3 aColor;"
+        //"layout (location = 1) in vec3 aColor;"
         ""
         "uniform mat4 worldMatrix;"
         "uniform mat4 viewMatrix = mat4(1.0);"  // default value for view matrix (identity)
@@ -854,7 +854,7 @@ const char* getVertexShaderSource()
         "out vec3 vertexColor;"
         "void main()"
         "{"
-        "   vertexColor = aColor;"
+        //"   vertexColor = aColor;"
         "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix;"
         "   gl_Position = modelViewProjection * vec4(aPos.x, aPos.y, aPos.z, 1.0);"
         "}";
@@ -864,7 +864,7 @@ const char* getFragmentShaderSource()
     return
         "#version 330 core\n"
         "uniform vec3 objectColor;"
-        "in vec3 vertexColor;"
+        //"in vec3 vertexColor;"
         "out vec4 FragColor;"
         "void main()"
         "{"
@@ -933,58 +933,30 @@ int compileAndLinkShaders()
 int createVertexBufferObject()
 {
     // Cube model (used for models and axis)
-    vec3 vertexArray[] = {  // position,                            color
-        vec3(-0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f), //left - red
-        vec3(-0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-
-        vec3(-0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
-
-        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f), // far - blue
-        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f),
-
-        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f),
-
-        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 1.0f), // bottom - turquoise
-        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 1.0f, 1.0f),
-        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 1.0f, 1.0f),
-
-        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 1.0f),
-        vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 1.0f),
-        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 1.0f, 1.0f),
-
-        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f), // near - green
-        vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-
-        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-
-        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 1.0f), // right - purple
-        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 1.0f),
-        vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 1.0f),
-
-        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 1.0f),
-        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 1.0f),
-        vec3(0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 1.0f),
-
-        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 1.0f, 0.0f), // top - yellow
-        vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f,-0.5f), vec3(1.0f, 1.0f, 0.0f),
-
-        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f,-0.5f), vec3(1.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(1.0f, 1.0f, 0.0f),
+    vec3 vertexArray[] = {  // position
+        //cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
+        //left
+        vec3(-0.5f,-0.5f,-0.5f), vec3(-0.5f,-0.5f, 0.5f),vec3(-0.5f, 0.5f, 0.5f),
+        vec3(-0.5f,-0.5f,-0.5f),vec3(-0.5f, 0.5f, 0.5f),vec3(-0.5f, 0.5f,-0.5f),
+        // far
+        vec3(0.5f, 0.5f,-0.5f),vec3(-0.5f,-0.5f,-0.5f),vec3(-0.5f, 0.5f,-0.5f),
+        vec3(0.5f, 0.5f,-0.5f),vec3(0.5f,-0.5f,-0.5f),vec3(-0.5f,-0.5f,-0.5f),
+        // bottom
+        vec3(0.5f,-0.5f, 0.5f), vec3(-0.5f,-0.5f,-0.5f),vec3(0.5f,-0.5f,-0.5f),
+        vec3(0.5f,-0.5f, 0.5f),vec3(-0.5f,-0.5f, 0.5f),vec3(-0.5f,-0.5f,-0.5f),
+        // near
+        vec3(-0.5f, 0.5f, 0.5f),vec3(-0.5f,-0.5f, 0.5f),vec3(0.5f,-0.5f, 0.5f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(-0.5f, 0.5f, 0.5f),vec3(0.5f,-0.5f, 0.5f),
+        // right
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.5f,-0.5f,-0.5f), vec3(0.5f, 0.5f,-0.5f),
+        vec3(0.5f,-0.5f,-0.5f), vec3(0.5f, 0.5f, 0.5f), vec3(0.5f,-0.5f, 0.5f),
+        // top
+        vec3(0.5f, 0.5f, 0.5f),vec3(0.5f, 0.5f,-0.5f), vec3(-0.5f, 0.5f,-0.5f), 
+        vec3(0.5f, 0.5f, 0.5f), vec3(-0.5f, 0.5f,-0.5f), vec3(-0.5f, 0.5f, 0.5f), 
 
         //line (0,0,-0.5)to(0,0,0.5)
-        vec3(0.0f, 0.0f, -0.5f), vec3(1.0f, 1.0f, 1.0f),
-        vec3(0.0f, 0.0f, 0.5f), vec3(1.0f, 1.0f, 1.0f),
+        vec3(0.0f, 0.0f, -0.5f),
+        vec3(0.0f, 0.0f, 0.5f),
     };
 
 
@@ -1004,21 +976,10 @@ int createVertexBufferObject()
         3,                   // size
         GL_FLOAT,            // type
         GL_FALSE,            // normalized?
-        2 * sizeof(vec3), // stride - each vertex contain 2 vec3 (position, color)
+        sizeof(vec3),        // stride - each vertex contains vec3 (position)
         (void*)0             // array buffer offset
     );
     glEnableVertexAttribArray(0);
-
-
-    glVertexAttribPointer(1,                            // attribute 1 matches aColor in Vertex Shader
-        3,
-        GL_FLOAT,
-        GL_FALSE,
-        2 * sizeof(vec3),
-        (void*)sizeof(vec3)      // color is offseted a vec3 (comes after position)
-    );
-    glEnableVertexAttribArray(1);
-
 
     return vertexBufferObject;
 }
