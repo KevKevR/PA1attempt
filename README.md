@@ -1,6 +1,6 @@
 Programming Assignment 1 
 ======
-for COMP371 CC, Summer 2020
+for COMP371 CC, Concordia University Summer 2020
 with instructor Serguei A. Mokhov, 
 due by the end of July 12th, 2020.
 
