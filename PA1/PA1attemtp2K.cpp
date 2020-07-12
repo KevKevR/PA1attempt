@@ -1166,7 +1166,7 @@ mat4* modelControl(GLFWwindow* window, map<int, KeyState> previousKeyStates) {
     float transformSpeed = 0.2f;
     float translateSpeed = transformSpeed;
     float rotateSpeed = 5.0f;   //specifications
-    float scaleSpeed = transformSpeed / 4;
+    float scaleSpeed = transformSpeed / 20;
     if (isShiftPressed(window)) // capital case letters
     {
         //translate model if pressed
