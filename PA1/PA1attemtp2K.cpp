@@ -1156,7 +1156,7 @@ mat4* modelControl(GLFWwindow* window) {
     map<int, transformation>::iterator itr;
     float transformSpeed = 0.2f;
     float translateSpeed = transformSpeed;
-    float rotateSpeed = 0.0873f;   //specifications
+    float rotateSpeed = 5.0f;   //specifications
     float scaleSpeed = transformSpeed / 20;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) // capital case letters
     {
