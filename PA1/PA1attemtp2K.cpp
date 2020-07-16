@@ -30,6 +30,12 @@ using namespace std;
 
 const int numMainModels = 5;
 
+// Define (initial) window width and height
+int window_width = 1024, window_height = 768;
+
+// Callback function for handling window resize
+void window_size_callback(GLFWwindow* window, int width, int height);
+
 //class Projectile
 //{
 //public:
@@ -1241,7 +1247,7 @@ int main(int argc, char* argv[])
 #endif
 
     // Create Window and rendering context using GLFW, resolution is 800x600
-    GLFWwindow* window = glfwCreateWindow(1024, 768, "COMP 371 - A1 - Team 4", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(window_width, window_height, "COMP 371 - A1 - Team 4", NULL, NULL);
     if (window == NULL)
     {
         std::cerr << "Failed to create GLFW window" << std::endl;
@@ -1252,7 +1258,7 @@ int main(int argc, char* argv[])
 
     // @TODO 3 - Disable mouse cursor
     // ...
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // Initialize GLEW
     glewExperimental = true; // Needed for core profile
@@ -1262,6 +1268,9 @@ int main(int argc, char* argv[])
         return -1;
     }
 
+    // Register callback functions
+    glfwSetWindowSizeCallback(window, window_size_callback);
+    
     // Grey background
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 
@@ -1553,7 +1562,7 @@ int main(int argc, char* argv[])
         
         // Recompute projection matrix depending on FoV
         projectionMatrix = glm::perspective(radians(foV),            // field of view in degrees
-        800.0f / 600.0f,  // aspect ratio
+        (float) window_width / (float) window_height,  // aspect ratio
         0.01f, 100.0f);   // near and far (near > 0)
         glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
 
@@ -1651,7 +1660,7 @@ int main(int argc, char* argv[])
         // Press middle mouse button -> tilt up and down (pitch)
         if (middleMouseButton)
             cameraVerticalAngle -= dy * cameraAngularSpeed * dt; // taken from Lab 3
-
+        
     }
 
 
@@ -1660,3 +1669,16 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+
+// Handles window resizing. Retrieves window and buffer dimensions, and viewport is adjusted to current buffer dimensions
+void window_size_callback(GLFWwindow* window, int width, int height)
+{
+    window_width = width;
+    window_height = height;
+    // Define the viewport dimensions
+    int vp_width, vp_height;
+    // This function retrieves the size, in pixels, of the framebuffer of the specified window
+    glfwGetFramebufferSize(window, &vp_width, &vp_height);
+    glViewport(0, 0, vp_width, vp_height);
+}
+
