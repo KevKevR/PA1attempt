@@ -33,6 +33,9 @@ const int numMainModels = 5;
 // Define (initial) window width and height
 int window_width = 1024, window_height = 768;
 
+// Position of light source
+vec3 lightPos(0.0f, 30.0f, 0.0f);
+
 // Callback function for handling window resize
 void window_size_callback(GLFWwindow* window, int width, int height);
 
@@ -849,6 +852,7 @@ const char* getVertexShaderSource()
 {
     // For now, you use a string for your shader code, in the assignment, shaders will be stored in .glsl files
     return
+    /*
         "#version 330 core\n"
         "layout (location = 0) in vec3 aPos;"
         //"layout (location = 1) in vec3 aColor;"
@@ -864,10 +868,29 @@ const char* getVertexShaderSource()
         "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix;"
         "   gl_Position = modelViewProjection * vec4(aPos.x, aPos.y, aPos.z, 1.0);"
         "}";
+    */
+        "#version 330 core\n"
+        "layout (location = 0) in vec3 aPos;"
+        "layout (location = 1) in vec3 aNormal;"
+        ""
+        "uniform mat4 worldMatrix;"
+        "uniform mat4 viewMatrix = mat4(1.0);"  // default value for view matrix (identity)
+        "uniform mat4 projectionMatrix = mat4(1.0);"
+        ""
+        "out vec3 normalVec;"
+        "out vec3 fragPos;"
+        "void main()"
+        "{"
+        "   normalVec = mat3(transpose(inverse(worldMatrix))) * aNormal;"
+        "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix;"
+        "   gl_Position = modelViewProjection * vec4(aPos.x, aPos.y, aPos.z, 1.0);"
+        "   fragPos = vec3(worldMatrix * vec4(aPos, 1.0));"
+        "}";
 }
 const char* getFragmentShaderSource()
 {
     return
+    /*
         "#version 330 core\n"
         "uniform vec3 objectColor;"
         //"in vec3 vertexColor;"
@@ -877,6 +900,35 @@ const char* getFragmentShaderSource()
         //"   FragColor = vec4(vertexColor.r, vertexColor.g, vertexColor.b, 1.0f);"
         "   FragColor = vec4(objectColor.r, objectColor.g, objectColor.b, 1.0f);"
         "}";
+     */
+    "#version 330 core\n"
+    "uniform vec3 objectColor;"
+    "uniform vec3 lightPos;"
+    "uniform vec3 viewPos;"
+    "vec3 lightColor = vec3(1.0, 1.0, 1.0);"
+    "in vec3 normalVec;"
+    "in vec3 fragPos;"
+    "out vec4 FragColor;"
+    "void main()"
+    "{"
+    // Ambient
+    "   float ambientStrength = 0.4;"
+    "   vec3 ambient = ambientStrength * lightColor;"
+    // Diffuse
+    "   vec3 norm = normalize(normalVec);"
+    "   vec3 lightDir = normalize(lightPos - fragPos);"
+    "   float diff = max(dot(norm, lightDir), 0.0);"
+    "   vec3 diffuse = diff * lightColor;"
+    // Specular
+    "   float specularStrength = 0.5;"
+    "   vec3 viewDir = normalize(viewPos - fragPos);"
+    "   vec3 reflectDir = reflect(-lightDir, norm);"
+    "   float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);"
+    "   vec3 specular = specularStrength * spec * lightColor;"
+    // Final color output
+    "   vec3 result = (ambient + diffuse + specular) * objectColor;"
+    "   FragColor = vec4(result, 1.0);"
+    "}";
 }
 
 
@@ -939,6 +991,7 @@ int compileAndLinkShaders()
 int createVertexBufferObject()
 {
     // Cube model (used for models and axis)
+    /*
     vec3 vertexArray[] = {  // position
         //cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
         //left
@@ -963,8 +1016,61 @@ int createVertexBufferObject()
         //line (0,0,-0.5)to(0,0,0.5)
         vec3(0.0f, 0.0f, -0.5f),
         vec3(0.0f, 0.0f, 0.5f),
+        
+        // point light source
+        //vec3(0.0f, 0.0f, 0.0f)
     };
+     */
+    
+    vec3 vertexArray[] = {  // position and normal
+        //cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
+        //left
+        vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        vec3(-0.5f,-0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        // far
+        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+        // bottom
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
+        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+        vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
+        // near
+        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        // right
+        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
+        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+        // top
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
 
+        //line (0,0,-0.5)to(0,0,0.5)
+        vec3(0.0f, 0.0f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f)
+    };
 
     // Create a vertex array
     GLuint vertexArrayObject;
@@ -982,10 +1088,19 @@ int createVertexBufferObject()
         3,                   // size
         GL_FLOAT,            // type
         GL_FALSE,            // normalized?
-        sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        2*sizeof(vec3),        // stride - each vertex contains vec3 (position)
         (void*)0             // array buffer offset
     );
     glEnableVertexAttribArray(0);
+    
+    glVertexAttribPointer(1,                   // attribute 1 matches aNormal in Vertex Shader
+        3,                   // size
+        GL_FLOAT,            // type
+        GL_FALSE,            // normalized?
+        2*sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        (void*)sizeof(vec3)  // array buffer offset
+    );
+    glEnableVertexAttribArray(1);
 
     return vertexBufferObject;
 }
@@ -1062,6 +1177,19 @@ void drawAxis(GLuint worldMatrixLocation, GLuint colorLocation) {
     lineWorldMatrix = translate(mat4(1.0f), vec3(0.0f, cellLength * height, cellLength * 2.5f)) * scale(mat4(1.0f), vec3(cellLength * 0.05f, cellLength * 0.05f, cellLength * 5.0f));
     glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
     glUniform3f(colorLocation, 0.0f, 0.0f, 1.0f);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+}
+
+// Draws point light source at (0, 30, 0)
+// Input is location of worldMatrix and location of colorLocation
+void drawLightSource(GLuint worldMatrixLocation, GLuint colorLocation) {
+    mat4 worldMatrix;
+
+    // Draw point light source (a mini white cube just to see it)
+    worldMatrix = translate(mat4(1.0f), lightPos) * scale(mat4(1.0f), vec3(0.05f, 0.05f, 0.05f));
+    glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+    glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
 }
@@ -1271,15 +1399,23 @@ int main(int argc, char* argv[])
     // Register callback functions
     glfwSetWindowSizeCallback(window, window_size_callback);
     
-    // Grey background
-    glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+    // Black background
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     // Compile and link shaders here ...
     int shaderProgram = compileAndLinkShaders();
+    //int lightingShaderProgram = compileAndLinkLightingShaders();
 
     // We can set the shader once, since we have only one
     glUseProgram(shaderProgram);
 
+    // Set light position vector in fragment shader to current light posiition value value
+    GLuint lightPosLocation = glGetUniformLocation(shaderProgram, "normalVec");
+    glUniform3f(lightPosLocation, lightPos.x, lightPos.y, lightPos.z);
+    
+    // Used to ovewrite camera postion in fragment shader
+    GLuint viewPosLocation = glGetUniformLocation(shaderProgram, "viewPos");
+    
     // Used to overwrite color in the fragment shader
     GLuint colorLocation = glGetUniformLocation(shaderProgram, "objectColor");
 
@@ -1400,13 +1536,15 @@ int main(int argc, char* argv[])
         // Draw ground
         GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
 
-
         //draw grid
         glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
         drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
         
         // draw axis
         drawAxis(worldMatrixLocation, colorLocation);
+        
+        // draw point light source
+        drawLightSource(worldMatrixLocation, colorLocation);
 
         //draw models
         {
@@ -1553,6 +1691,9 @@ int main(int argc, char* argv[])
         vec3 cameraSideVector = glm::cross(cameraLookAt, vec3(0.0f, 1.0f, 0.0f));
 
         glm::normalize(cameraSideVector);
+        
+        // Update camera position in fragment vector
+        glUniform3f(viewPosLocation, cameraPosition.x, cameraPosition.y, cameraPosition.z);
         
         // Limit FoV between 1.0 deg and 120.0 deg
         if (foV < 1.0f)
