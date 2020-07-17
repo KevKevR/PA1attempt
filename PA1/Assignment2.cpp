@@ -1,5 +1,5 @@
 //
-// Concordia University COMP 371 Programming Assignment 1, Summer 2020.
+// Concordia University COMP 371 Programming Assignment 2, Summer 2020.
 //
 // Created by :
 //    Jason Beccherini (40130107)
@@ -1242,7 +1242,7 @@ int main(int argc, char* argv[])
 #endif
 
 	// Create Window and rendering context using GLFW, resolution is 800x600
-	GLFWwindow* window = glfwCreateWindow(1024, 768, "COMP 371 - A1 - Team 4", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(1024, 768, "COMP 371 - A2 - Team 4", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cerr << "Failed to create GLFW window" << std::endl;
