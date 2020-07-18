@@ -1,5 +1,5 @@
 //
-// Concordia University COMP 371 Programming Assignment 2, Summer 2020.
+// Concordia University COMP 371 Programming Assignment 1, Summer 2020.
 //
 // Created by :
 //    Jason Beccherini (40130107)
@@ -29,6 +29,19 @@ using namespace glm;
 using namespace std;
 
 const int numMainModels = 5;
+
+// Define (initial) window width and height
+int window_width = 1024, window_height = 768;
+
+// Position of light source for each model
+vec3 lightPosS3(0.0f, 30.0f, 0.0f);
+vec3 lightPosV9(45.5f, 30.f, 45.5f);
+vec3 lightPosA9(-44.5f, 30.0f, -44.5f);
+vec3 lightPosN2(44.0f, 30.0f, -45.0f);
+vec3 lightPosN4(-45.0f, 30.0f, 45.0f);
+
+// Callback function for handling window resize
+void window_size_callback(GLFWwindow* window, int width, int height);
 
 //class Projectile
 //{
@@ -310,14 +323,14 @@ private:
 		const float m9_apothem = ((heightScale + widthScale) / 4);
 		const float m9_centralAngle = radians(360.0f / corners);
 		const float m9_radius = m9_apothem / cos(m9_centralAngle / 2);
-		const float m9_base = 2 * m9_apothem * tan(m9_centralAngle / 2);
+		const float m9_base = 2 * m9_apothem * tanf(m9_centralAngle / 2);
 
 		//base of cube to scale by
-		const float mV_base = widthScale * cos(r_angle);
+		const float mV_base = widthScale * cosf(r_angle);
 		//heigtht of cube to scale by
-		const float mV_height = (heightScale - widthScale * cos(r_angle) * sin(r_angle)) / cos(r_angle);
+		const float mV_height = (heightScale - widthScale * cosf(r_angle) * sinf(r_angle)) / cosf(r_angle);
 		//absolute width of half of V
-		const float letterHalfWidth = mV_height * sin(r_angle) + mV_base * cos(r_angle);
+		const float letterHalfWidth = mV_height * sinf(r_angle) + mV_base * cosf(r_angle);
 
 		//full model measurement
 		const float m_height = heightScale;
@@ -363,9 +376,9 @@ private:
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 		//connect the bottom part of the V legs together
-		const float base = widthScale * cos(r_angle);
-		const float bottomHeight = base * sin(r_angle);
-		const float bottomBase = base * cos(r_angle) * 2;
+		const float base = widthScale * cosf(r_angle);
+		const float bottomHeight = base * sinf(r_angle);
+		const float bottomBase = base * cosf(r_angle) * 2;
 		inertialWorldMatrix =
 			//move into position relative to center of model.
 			modelPositioningMatrix
@@ -759,8 +772,7 @@ private:
 		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		
-
+		//drawBorder(7, 13.5f, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0.5, 3.5f, 0)));
 	}
 };
 class ModelN4 : public CharModel {
@@ -844,33 +856,82 @@ const char* getVertexShaderSource()
 {
 	// For now, you use a string for your shader code, in the assignment, shaders will be stored in .glsl files
 	return
+		/*
+			"#version 330 core\n"
+			"layout (location = 0) in vec3 aPos;"
+			//"layout (location = 1) in vec3 aColor;"
+			""
+			"uniform mat4 worldMatrix;"
+			"uniform mat4 viewMatrix = mat4(1.0);"  // default value for view matrix (identity)
+			"uniform mat4 projectionMatrix = mat4(1.0);"
+			""
+			"out vec3 vertexColor;"
+			"void main()"
+			"{"
+			//"   vertexColor = aColor;"
+			"   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix;"
+			"   gl_Position = modelViewProjection * vec4(aPos.x, aPos.y, aPos.z, 1.0);"
+			"}";
+		*/
 		"#version 330 core\n"
 		"layout (location = 0) in vec3 aPos;"
-		//"layout (location = 1) in vec3 aColor;"
+		"layout (location = 1) in vec3 aNormal;"
 		""
 		"uniform mat4 worldMatrix;"
 		"uniform mat4 viewMatrix = mat4(1.0);"  // default value for view matrix (identity)
 		"uniform mat4 projectionMatrix = mat4(1.0);"
 		""
-		"out vec3 vertexColor;"
+		"out vec3 normalVec;"
+		"out vec3 fragPos;"
 		"void main()"
 		"{"
-		//"   vertexColor = aColor;"
+		"   normalVec = mat3(transpose(inverse(worldMatrix))) * aNormal;"
 		"   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix;"
 		"   gl_Position = modelViewProjection * vec4(aPos.x, aPos.y, aPos.z, 1.0);"
+		"   fragPos = vec3(worldMatrix * vec4(aPos, 1.0));"
 		"}";
 }
 const char* getFragmentShaderSource()
 {
 	return
+		/*
+			"#version 330 core\n"
+			"uniform vec3 objectColor;"
+			//"in vec3 vertexColor;"
+			"out vec4 FragColor;"
+			"void main()"
+			"{"
+			//"   FragColor = vec4(vertexColor.r, vertexColor.g, vertexColor.b, 1.0f);"
+			"   FragColor = vec4(objectColor.r, objectColor.g, objectColor.b, 1.0f);"
+			"}";
+		 */
 		"#version 330 core\n"
 		"uniform vec3 objectColor;"
-		//"in vec3 vertexColor;"
+		"uniform vec3 lightPos;"
+		"uniform vec3 viewPos;"
+		"vec3 lightColor = vec3(1.0, 1.0, 1.0);"
+		"in vec3 normalVec;"
+		"in vec3 fragPos;"
 		"out vec4 FragColor;"
 		"void main()"
 		"{"
-		//"   FragColor = vec4(vertexColor.r, vertexColor.g, vertexColor.b, 1.0f);"
-		"   FragColor = vec4(objectColor.r, objectColor.g, objectColor.b, 1.0f);"
+		// Ambient
+		"   float ambientStrength = 0.4;"
+		"   vec3 ambient = ambientStrength * lightColor;"
+		// Diffuse
+		"   vec3 norm = normalize(normalVec);"
+		"   vec3 lightDir = normalize(lightPos - fragPos);"
+		"   float diff = max(dot(norm, lightDir), 0.0);"
+		"   vec3 diffuse = diff * lightColor;"
+		// Specular
+		"   float specularStrength = 0.5;"
+		"   vec3 viewDir = normalize(viewPos - fragPos);"
+		"   vec3 reflectDir = reflect(-lightDir, norm);"
+		"   float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);"
+		"   vec3 specular = specularStrength * spec * lightColor;"
+		// Final color output
+		"   vec3 result = (ambient + diffuse + specular) * objectColor;"
+		"   FragColor = vec4(result, 1.0);"
 		"}";
 }
 
@@ -934,6 +995,7 @@ int compileAndLinkShaders()
 int createVertexBufferObject()
 {
 	// Cube model (used for models and axis)
+	/*
 	vec3 vertexArray[] = {  // position
 		//cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
 		//left
@@ -954,12 +1016,64 @@ int createVertexBufferObject()
 		// top
 		vec3(0.5f, 0.5f, 0.5f),vec3(0.5f, 0.5f,-0.5f), vec3(-0.5f, 0.5f,-0.5f),
 		vec3(0.5f, 0.5f, 0.5f), vec3(-0.5f, 0.5f,-0.5f), vec3(-0.5f, 0.5f, 0.5f),
+		//line (0,0,-0.5)to(0,0,0.5)
+		vec3(0.0f, 0.0f, -0.5f),
+		vec3(0.0f, 0.0f, 0.5f),
+
+		// point light source
+		//vec3(0.0f, 0.0f, 0.0f)
+	};
+	 */
+
+	vec3 vertexArray[] = {  // position and normal
+		//cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
+		//left
+		vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
+		vec3(-0.5f,-0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+		vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+		vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
+		vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+		vec3(-0.5f, 0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
+		// far
+		vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+		vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+		vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+		vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+		vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+		vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+		// bottom
+		vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+		vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
+		vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
+		vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+		vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+		vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
+		// near
+		vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+		vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+		vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+		vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+		vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+		vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+		// right
+		vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+		// top
+		vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+		vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
+		vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
+		vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+		vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
+		vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
 
 		//line (0,0,-0.5)to(0,0,0.5)
-		
-		vec3(0.0f, 0.0f, 0.5f),
+		vec3(0.0f, 0.0f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
+		vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f)
 	};
-
 
 	// Create a vertex array
 	GLuint vertexArrayObject;
@@ -977,10 +1091,19 @@ int createVertexBufferObject()
 		3,                   // size
 		GL_FLOAT,            // type
 		GL_FALSE,            // normalized?
-		sizeof(vec3),        // stride - each vertex contains vec3 (position)
+		2 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
 		(void*)0             // array buffer offset
 	);
 	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1,                   // attribute 1 matches aNormal in Vertex Shader
+		3,                   // size
+		GL_FLOAT,            // type
+		GL_FALSE,            // normalized?
+		2 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
+		(void*)sizeof(vec3)  // array buffer offset
+	);
+	glEnableVertexAttribArray(1);
 
 	return vertexBufferObject;
 }
@@ -1032,8 +1155,9 @@ void drawGrid(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWor
 			* scale(mat4(1.0f),
 				vec3(1.0f, 1.0f, cellLength * sideLength));
 		worldMatrix = relativeWorldMatrix * lineWorldMatrix;
+		glUniform3f(colorLocation, 1.0f, 0.0f, 1.0f);
 		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-		//glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
+		
 		glDrawArrays(GL_LINES, 36, 2);
 	}
 }
@@ -1057,6 +1181,71 @@ void drawAxis(GLuint worldMatrixLocation, GLuint colorLocation) {
 	lineWorldMatrix = translate(mat4(1.0f), vec3(0.0f, cellLength * height, cellLength * 2.5f)) * scale(mat4(1.0f), vec3(cellLength * 0.05f, cellLength * 0.05f, cellLength * 5.0f));
 	glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
 	glUniform3f(colorLocation, 0.0f, 0.0f, 1.0f);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+}
+
+// Draws point light source at (0, 30, 0)
+// Input is location of worldMatrix and location of colorLocation
+void drawLightSourceS3(GLuint worldMatrixLocation, GLuint colorLocation) {
+	mat4 worldMatrix;
+
+	// Draw point light source (a mini white cube just to see it)
+	worldMatrix = translate(mat4(1.0f), lightPosS3) * scale(mat4(1.0f), vec3(0.05f, 0.05f, 0.05f));
+	glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+	glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+}
+
+// Draws point light source at (45.5f, 30.f, 45.5f)
+// Input is location of worldMatrix and location of colorLocation
+void drawLightSourceV9(GLuint worldMatrixLocation, GLuint colorLocation) {
+	mat4 worldMatrix;
+
+	// Draw point light source (a mini white cube just to see it)
+	worldMatrix = translate(mat4(1.0f), lightPosV9) * scale(mat4(1.0f), vec3(0.05f, 0.05f, 0.05f));
+	glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+	glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+}
+
+// Draws point light source at (-44.5f, 30.0f, -44.5f)
+// Input is location of worldMatrix and location of colorLocation
+void drawLightSourceA9(GLuint worldMatrixLocation, GLuint colorLocation) {
+	mat4 worldMatrix;
+
+	// Draw point light source (a mini white cube just to see it)
+	worldMatrix = translate(mat4(1.0f), lightPosA9) * scale(mat4(1.0f), vec3(0.05f, 0.05f, 0.05f));
+	glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+	glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+}
+
+// Draws point light source at (44.0f, 30.0f, -45.0f)
+// Input is location of worldMatrix and location of colorLocation
+void drawLightSourceN2(GLuint worldMatrixLocation, GLuint colorLocation) {
+	mat4 worldMatrix;
+
+	// Draw point light source (a mini white cube just to see it)
+	worldMatrix = translate(mat4(1.0f), lightPosN2) * scale(mat4(1.0f), vec3(0.05f, 0.05f, 0.05f));
+	glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+	glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+}
+
+// Draws point light source at (-45.0f, 30.0f, 45.0f)
+// Input is location of worldMatrix and location of colorLocation
+void drawLightSourceN4(GLuint worldMatrixLocation, GLuint colorLocation) {
+	mat4 worldMatrix;
+
+	// Draw point light source (a mini white cube just to see it)
+	worldMatrix = translate(mat4(1.0f), lightPosN4) * scale(mat4(1.0f), vec3(0.05f, 0.05f, 0.05f));
+	glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+	glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 }
@@ -1242,7 +1431,7 @@ int main(int argc, char* argv[])
 #endif
 
 	// Create Window and rendering context using GLFW, resolution is 800x600
-	GLFWwindow* window = glfwCreateWindow(1024, 768, "COMP 371 - A2 - Team 4", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(window_width, window_height, "COMP 371 - A1 - Team 4", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cerr << "Failed to create GLFW window" << std::endl;
@@ -1253,7 +1442,7 @@ int main(int argc, char* argv[])
 
 	// @TODO 3 - Disable mouse cursor
 	// ...
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// Initialize GLEW
 	glewExperimental = true; // Needed for core profile
@@ -1263,14 +1452,37 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	// Grey background
-	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+	// Register callback functions
+	glfwSetWindowSizeCallback(window, window_size_callback);
+
+	// Background
+	glClearColor(0.3f, 0.3f, 0.9f, 1.0f);
 
 	// Compile and link shaders here ...
 	int shaderProgram = compileAndLinkShaders();
+	//int lightingShaderProgram = compileAndLinkLightingShaders();
 
 	// We can set the shader once, since we have only one
 	glUseProgram(shaderProgram);
+
+	// Set light position vector in fragment shader to current light posiition value for all models
+	GLuint lightPosLocationS3 = glGetUniformLocation(shaderProgram, "normalVec");
+	glUniform3f(lightPosLocationS3, lightPosS3.x, lightPosS3.y, lightPosS3.z);
+
+	GLuint lightPosLocationV9 = glGetUniformLocation(shaderProgram, "normalVec");
+	glUniform3f(lightPosLocationV9, lightPosV9.x, lightPosV9.y, lightPosV9.z);
+
+	GLuint lightPosLocationA9 = glGetUniformLocation(shaderProgram, "normalVec");
+	glUniform3f(lightPosLocationA9, lightPosA9.x, lightPosA9.y, lightPosA9.z);
+
+	GLuint lightPosLocationN2 = glGetUniformLocation(shaderProgram, "normalVec");
+	glUniform3f(lightPosLocationN2, lightPosN2.x, lightPosN2.y, lightPosN2.z);
+
+	GLuint lightPosLocationN4 = glGetUniformLocation(shaderProgram, "normalVec");
+	glUniform3f(lightPosLocationN4, lightPosN4.x, lightPosN4.y, lightPosN4.z);
+
+	// Used to ovewrite camera postion in fragment shader
+	GLuint viewPosLocation = glGetUniformLocation(shaderProgram, "viewPos");
 
 	// Used to overwrite color in the fragment shader
 	GLuint colorLocation = glGetUniformLocation(shaderProgram, "objectColor");
@@ -1279,7 +1491,7 @@ int main(int argc, char* argv[])
 	const float initial_xpos = 0;
 	const float initial_ypos = 5;
 	const float initial_zpos = 20;
-	const float initial_rpos = sqrt(pow(initial_xpos, 2) + pow(initial_zpos, 2));
+	const float initial_rpos = sqrt(powf(initial_xpos, 2) + powf(initial_zpos, 2));
 	const vec3 initial_cameraPosition(initial_xpos, initial_ypos, initial_zpos);
 	//const vec3 initial_cameraLookAt(0.0f, 0.0f, -1.0f);   //<-overridden by camera Horizontal/Vertical Angle anyways.
 	const vec3 initial_cameraUp(0.0f, 1.0f, 0.0f);
@@ -1290,8 +1502,8 @@ int main(int argc, char* argv[])
 
 
 	// Other camera parameters
-	const float initial_cameraHorizontalAngle = degrees(atan2(initial_zpos, -initial_xpos));
-	const float initial_cameraVerticalAngle = degrees(atan2(initial_ypos, initial_rpos));
+	const float initial_cameraHorizontalAngle = degrees(atan2f(initial_zpos, -initial_xpos));
+	const float initial_cameraVerticalAngle = degrees(atan2f(initial_ypos, initial_rpos));
 	const float initialFoV = 70.0f;
 
 	float cameraSpeed = 10.0f;
@@ -1392,13 +1604,21 @@ int main(int argc, char* argv[])
 		// Draw ground
 		GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
 
-
 		//draw grid
 		glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
 		drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
 
 		// draw axis
+		
 		drawAxis(worldMatrixLocation, colorLocation);
+
+		// draw points for light sources
+		
+		drawLightSourceS3(worldMatrixLocation, colorLocation);
+		drawLightSourceV9(worldMatrixLocation, colorLocation);
+		drawLightSourceA9(worldMatrixLocation, colorLocation);
+		drawLightSourceN2(worldMatrixLocation, colorLocation);
+		drawLightSourceN4(worldMatrixLocation, colorLocation);
 
 		//draw models
 		{
@@ -1493,7 +1713,6 @@ int main(int argc, char* argv[])
 		{
 			cameraFirstPerson = true;
 		}
-
 		if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) // move camera down
 		{
 			cameraFirstPerson = false;
@@ -1541,10 +1760,13 @@ int main(int argc, char* argv[])
 		float theta = radians(cameraHorizontalAngle);
 		float phi = radians(cameraVerticalAngle);
 
-		cameraLookAt = vec3(cos(phi) * cos(theta), sin(phi), -cos(phi) * sin(theta));
+		cameraLookAt = vec3(cosf(phi) * cosf(theta), sinf(phi), -cosf(phi) * sinf(theta));
 		vec3 cameraSideVector = glm::cross(cameraLookAt, vec3(0.0f, 1.0f, 0.0f));
 
 		glm::normalize(cameraSideVector);
+
+		// Update camera position in fragment vector
+		glUniform3f(viewPosLocation, cameraPosition.x, cameraPosition.y, cameraPosition.z);
 
 		// Limit FoV between 1.0 deg and 120.0 deg
 		if (foV < 1.0f)
@@ -1554,7 +1776,7 @@ int main(int argc, char* argv[])
 
 		// Recompute projection matrix depending on FoV
 		projectionMatrix = glm::perspective(radians(foV),            // field of view in degrees
-			800.0f / 600.0f,  // aspect ratio
+			(float)window_width / (float)window_height,  // aspect ratio
 			0.01f, 100.0f);   // near and far (near > 0)
 		glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
 
@@ -1621,7 +1843,6 @@ int main(int argc, char* argv[])
 		if (lastMouseLeftState == GLFW_RELEASE && glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
 			const float projectileSpeed = 25.0f;
 			projectileList.push_back(Projectile(cameraPosition, projectileSpeed * cameraLookAt, shaderProgram));
-
 			//glClearColor(0.5f, 0.5f, 0.0f, 1.0f);
 		}
 		lastMouseLeftState = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
@@ -1660,4 +1881,16 @@ int main(int argc, char* argv[])
 	glfwTerminate();
 
 	return 0;
+}
+
+// Handles window resizing. Retrieves window and buffer dimensions, and viewport is adjusted to current buffer dimensions
+void window_size_callback(GLFWwindow* window, int width, int height)
+{
+	window_width = width;
+	window_height = height;
+	// Define the viewport dimensions
+	int vp_width, vp_height;
+	// This function retrieves the size, in pixels, of the framebuffer of the specified window
+	glfwGetFramebufferSize(window, &vp_width, &vp_height);
+	glViewport(0, 0, vp_width, vp_height);
 }
