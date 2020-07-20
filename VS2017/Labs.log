@@ -1,0 +1,5 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(391,5): warning MSB8028: The intermediate directory (C:\Users\manue\Desktop\Manuel\COMP 371\Assignment2_4\Lab01\Lab_Framework\VS2017\/../Build/Debug/) contains files shared from another project (Labs.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
+glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32s.lib(glew.obj)' or at 'C:\Users\manue\Desktop\Manuel\COMP 371\Assignment2_4\Lab01\Lab_Framework\Bin\vc120.pdb'; linking object as if no debug info
+  Labs.vcxproj -> C:\Users\manue\Desktop\Manuel\COMP 371\Assignment2_4\Lab01\Lab_Framework\VS2017\/../Bin/Assignment2-Debug.exe
