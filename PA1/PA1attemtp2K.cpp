@@ -227,6 +227,15 @@ protected:
 
         }
     }
+    
+    // Draw a sphere surrounding model
+    void drawSphere(mat4 relativeWorldMatrix, float scaler, float yOffset, float xOffset = 0.0f) {
+        // Draw sphere
+        mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(-scaler, -scaler, -scaler)); // to make circle transparent, make scale positive
+        mat4 mWorldMatrix = relativeWorldMatrix * worldMatrix;
+        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+        glDrawArrays(GL_TRIANGLE_STRIP, 38, 1261);
+    }
 
     GLuint worldMatrixLocation;
     GLuint colorLocation;
@@ -306,6 +315,7 @@ public:
 	void draw() {
 		//pass arguments stored in parent class.
 		drawV9(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+        drawSphere(getRelativeWorldMatrix(), 5.5f, 4.0f, 0.25f);
 	}
 
 private:
@@ -487,12 +497,6 @@ private:
 			const float modelMaxWidth = m_maxWidth + boxHorizontalWidth / 2;
 			drawBorder(modelMaxHeight, modelMaxWidth, boxVerticalWidth, boxHorizontalWidth, relativeWorldMatrix);
 		}
-        
-        // Draw sphere
-        worldMatrix = translate(glm::mat4(1.0f), glm::vec3(0.25f, 4.0f, 0.0f)) * scale(glm::mat4(1.0f), glm::vec3(-5.5f, -5.5f, -5.5f));
-        mat4 mWorldMatrix = relativeWorldMatrix * worldMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 38, 1261);
 
 	}
 };
@@ -515,6 +519,7 @@ public:
 	void draw() {
 		//pass arguments stored in parent class.
 		drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+        drawSphere(getRelativeWorldMatrix(), 5.5f, 9.0f);
 	}
 
 private:
@@ -606,13 +611,6 @@ private:
 
 		//drawBorder(7, 9, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0, 5.0f, 0)));
         
-        // Draw sphere
-        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(-5.5f, -5.5f, -5.5f));
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 9.0f, 0.0f));
-        worldMatrix = translationMatrix * scalingMatrix;
-        mWorldMatrix = relativeWorldMatrix * worldMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 38, 1261);
 	}
 };
 class ModelA9 : public CharModel {
@@ -634,6 +632,7 @@ public:
 	void draw() {
 		//pass arguments stored in parent class.
 		drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+        drawSphere(getRelativeWorldMatrix(), 7.0f, 8.0f);
 	}
 
 private:
@@ -700,11 +699,6 @@ private:
 
 		//drawBorder(7, 12, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0, 3.5f, 0)));
     
-        // Draw sphere
-        worldMatrix = translate(glm::mat4(1.0f), glm::vec3(0.0f, 8.0f, 0.0f)) * scale(glm::mat4(1.0f), glm::vec3(-7.0f, -7.0f, -7.0f));
-        mWorldMatrix = relativeWorldMatrix * worldMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 38, 1261);
 	}
 };
 class ModelN2 : public CharModel {
@@ -727,6 +721,7 @@ public:
 	void draw() {
 		//pass arguments stored in parent class.
 		drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+        drawSphere(getRelativeWorldMatrix(), 7.0f, 8.0f, 0.5f);
 	}
 
 private:
@@ -804,11 +799,6 @@ private:
 
 		//drawBorder(7, 13.5f, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0.5, 3.5f, 0)));
         
-        // Draw sphere
-        worldMatrix = translate(glm::mat4(1.0f), glm::vec3(0.5f, 8.0f, 0.0f)) * scale(glm::mat4(1.0f), glm::vec3(-7.0f, -7.0f, -7.0f));
-        mWorldMatrix = relativeWorldMatrix * worldMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 38, 1261);
 	}
 };
 class ModelN4 : public CharModel {
@@ -831,6 +821,7 @@ public:
 	void draw() {
 		//pass arguments stored in parent class.
 		drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+        drawSphere(getRelativeWorldMatrix(), 6.0f, 7.0f);
 	}
 
 private:
@@ -887,11 +878,6 @@ private:
 
 		//drawBorder(7, 12, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0, 3.5f, 0)));
         
-        // Draw sphere
-        worldMatrix = translate(glm::mat4(1.0f), glm::vec3(0.0f, 7.0f, 0.0f)) * scale(glm::mat4(1.0f), glm::vec3(-6.0f, -6.0f, -6.0f));
-        mWorldMatrix = relativeWorldMatrix * worldMatrix;
-        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 38, 1261);
 	}
 };
 
