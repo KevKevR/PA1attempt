@@ -2706,8 +2706,8 @@ int main(int argc, char* argv[])
     // We can set the shader once, since we have only one
     glUseProgram(shaderProgram);
 
-    // Set light position vector in fragment shader to current light posiition value value
-    GLuint lightPosLocation = glGetUniformLocation(shaderProgram, "normalVec");
+    // Set light position vector in fragment shader to current light position value (done once)
+    GLuint lightPosLocation = glGetUniformLocation(shaderProgram, "lightPos");
     glUniform3f(lightPosLocation, lightPos.x, lightPos.y, lightPos.z);
     
     // Used to ovewrite camera postion in fragment shader
