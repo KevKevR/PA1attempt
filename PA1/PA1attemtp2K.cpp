@@ -2789,7 +2789,8 @@ int main(int argc, char* argv[])
 
     // Other OpenGL states to set once
     // Enable Backface culling
-    glEnable(GL_CULL_FACE);
+    
+    //glEnable(GL_CULL_FACE);
 
     // @TODO 1 - Enable Depth Test
     // ...
