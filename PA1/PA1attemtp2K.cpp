@@ -852,6 +852,7 @@ const char* getVertexShaderSource()
         "#version 330 core\n"
         "layout (location = 0) in vec3 aPos;"
         //"layout (location = 1) in vec3 aColor;"
+        "layout(location = 3) in vec3 instanceVec; "     // instancing https://learnopengl.com/Advanced-OpenGL/Instancing
         ""
         "uniform mat4 worldMatrix;"
         "uniform mat4 viewMatrix = mat4(1.0);"  // default value for view matrix (identity)
@@ -862,8 +863,10 @@ const char* getVertexShaderSource()
         "{"
         //"   vertexColor = aColor;"
         "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix;"
-        "   gl_Position = modelViewProjection * vec4(aPos.x, aPos.y, aPos.z, 1.0);"
+        "   gl_Position = modelViewProjection * vec4(aPos, 1.0);"
+        "   gl_Position = modelViewProjection * vec4(aPos+ instanceVec, 1.0);"
         "}";
+
 }
 const char* getFragmentShaderSource()
 {
@@ -936,7 +939,7 @@ int compileAndLinkShaders()
 }
 
 
-int createVertexBufferObject()
+GLuint* createVertexBufferObject()
 {
     // Cube model (used for models and axis)
     vec3 vertexArray[] = {  // position
@@ -963,8 +966,36 @@ int createVertexBufferObject()
         //line (0,0,-0.5)to(0,0,0.5)
         vec3(0.0f, 0.0f, -0.5f),
         vec3(0.0f, 0.0f, 0.5f),
-    };
 
+        //Square (-0.5,0,-0.5) to (0.5,0,0.5)
+        vec3(0.5f, 0.0f, 0.5f),vec3(0.5f, 0.0f,-0.5f), vec3(-0.5f, 0.0f,-0.5f),
+        vec3(0.5f, 0.0f, 0.5f), vec3(-0.5f, 0.0f,-0.5f), vec3(-0.5f, 0.0f, 0.5f),
+    };
+    const int sideLength = 100;
+    const float cellLength = 1.0f;
+    const float height = 0.0f;
+    vec3 offsetArray[sideLength*sideLength] = {};
+    for (int i = 0; i < sideLength; ++i)
+    {
+        /*for (int j = 0; j < sideLength; ++j)
+        {
+            offsetArray[sideLength * i + j +1] =
+                    vec3(-cellLength * (sideLength - 1) / 2 + i * cellLength,
+                        height,
+                        -cellLength * (sideLength - 1) / 2 + j * cellLength);
+        }*/
+        for (int j = 0; j < sideLength; ++j)
+        {
+            //skip the extra one
+            if (i == sideLength - 1 && j == sideLength-1 ) {
+                break;
+            }
+            offsetArray[sideLength * i + j +1] =
+                    vec3(-cellLength * sideLength + (i+1) * cellLength,
+                        height,
+                        -cellLength * sideLength + (j+1) * cellLength);
+        }
+    }
 
     // Create a vertex array
     GLuint vertexArrayObject;
@@ -973,9 +1004,11 @@ int createVertexBufferObject()
 
 
     // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
-    GLuint vertexBufferObject;
-    glGenBuffers(1, &vertexBufferObject);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+    //Have two arrays/buffer.
+    //https://www.khronos.org/opengl/wiki/Tutorial2:_VAOs,_VBOs,_Vertex_and_Fragment_Shaders_(C_/_SDL)
+    GLuint vertexBufferObject[2];
+    glGenBuffers(2, vertexBufferObject);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0,                   // attribute 0 matches aPos in Vertex Shader
@@ -987,8 +1020,62 @@ int createVertexBufferObject()
     );
     glEnableVertexAttribArray(0);
 
+    //https://learnopengl.com/Advanced-OpenGL/Instancing
+    //Setting up the instance array
+    glEnableVertexAttribArray(3);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(offsetArray), offsetArray, GL_STATIC_DRAW);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribDivisor(3, 1);
+
     return vertexBufferObject;
 }
+//https://learnopengl.com/Advanced-OpenGL/Instancing
+//int createVertexBufferObject2(vec3* instanceVec)
+//{
+//    // Cube model (used for models and axis)
+//    vec3 vertexArray[] = {  // position
+//        //Square (-0.5,0,-0.5) to (0.5,0,0.5)
+//        vec3(0.5f, 0.0f, 0.5f),vec3(0.5f, 0.0f,-0.5f), vec3(-0.5f, 0.0f,-0.5f),
+//        vec3(0.5f, 0.0f, 0.5f), vec3(-0.5f, 0.0f,-0.5f), vec3(-0.5f, 0.0f, 0.5f),
+//    };
+//
+//
+//    // Create a vertex array
+//    GLuint vertexArrayObject;
+//    glGenVertexArrays(1, &vertexArrayObject);
+//    glBindVertexArray(vertexArrayObject);
+//
+//
+//    // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
+//    unsigned int instanceVBO;
+//    glGenBuffers(1, &instanceVBO);
+//    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+//    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * 100, &instanceVec[0], GL_STATIC_DRAW);
+//    glBindBuffer(GL_ARRAY_BUFFER, 0);
+//    //GLuint vertexBufferObject;
+//    //glGenBuffers(1, &vertexBufferObject);
+//    //glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+//    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
+//
+//    //glVertexAttribPointer(0,                   // attribute 0 matches aPos in Vertex Shader
+//    //    3,                   // size
+//    //    GL_FLOAT,            // type
+//    //    GL_FALSE,            // normalized?
+//    //    sizeof(vec3),        // stride - each vertex contains vec3 (position)
+//    //    (void*)0             // array buffer offset
+//    //);
+//    //glEnableVertexAttribArray(0);
+//    glEnableVertexAttribArray(3);
+//    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+//    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
+//    glBindBuffer(GL_ARRAY_BUFFER, 0);
+//    glVertexAttribDivisor(3, 1);
+//
+//
+//    return instanceVBO;
+//}
 
 //Input sideLength is length of side of grid by cell count. Default 100.
 //Input cellLength is length of side of single cell. Default 1.
@@ -1041,6 +1128,54 @@ void drawGrid(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWor
         //glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
         glDrawArrays(GL_LINES, 36, 2);
     }
+}
+void drawTile(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.0f), int numCells = 1, float cellLength = 1.0f) {
+    mat4 modelWorldMatrix =
+        //scale to match length.
+        scale(mat4(1.0f),
+            vec3(cellLength, 1.0f, cellLength));
+    mat4 worldMatrix = relativeWorldMatrix * modelWorldMatrix;
+    glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+    //glDrawArrays(GL_TRIANGLES, 38, 6);
+    //Call to use instances
+    //https://learnopengl.com/Advanced-OpenGL/Instancing
+    glDrawArraysInstanced(GL_TRIANGLES, 38, 6, numCells);
+}
+
+//this has become redundant, later just call the function directly.
+void drawTileGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.0f)) {
+    const float sideLength = 100; //# of cells on side.
+    const float cellLength = 1; //length of side of a cell.
+    const int numCells = (int)pow(sideLength,2);
+    const float height = 0;     //y-position of grid.
+
+    //mat4 tileWorldMatrix;
+    //mat4 worldMatrix;
+    //for (int i = 0; i < sideLength; ++i)
+    //{
+    //    for (int j = 0; j < sideLength; ++j)
+    //    {
+    //        tileWorldMatrix =
+    //            //spaced interval along xz-plane.
+    //            translate(mat4(1.0f),
+    //                vec3(-cellLength * (sideLength - 1) / 2 + i * cellLength,
+    //                    height,
+    //                    -cellLength * (sideLength - 1) / 2 + j * cellLength));
+
+    //        worldMatrix = relativeWorldMatrix * tileWorldMatrix;
+    //        drawTile(worldMatrixLocation, worldMatrix, cellLength);
+    //    }
+    //}
+    mat4 tileWorldMatrix;
+    mat4 worldMatrix; 
+    tileWorldMatrix =
+        //spaced interval along xz-plane.
+        translate(mat4(1.0f),
+            vec3(cellLength * (sideLength - 1) / 2,
+                height,
+                cellLength * (sideLength - 1) / 2));
+    worldMatrix = relativeWorldMatrix * tileWorldMatrix;
+    drawTile(worldMatrixLocation, worldMatrix, numCells, cellLength);
 }
 // Draws x, y, z axis at the center of the grid
 // Input is location of worldMatrix and location of colorLocation
@@ -1336,10 +1471,13 @@ int main(int argc, char* argv[])
     GLuint viewMatrixLocation = glGetUniformLocation(shaderProgram, "viewMatrix");
     //glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
 
-
+    vec3 instanceVec[100];
+    instanceVec[0] = vec3(0,0,0);
     // Define and upload geometry to the GPU here ...
-    int vbo = createVertexBufferObject();
-
+    //int vbo2 = createVertexBufferObject2(instanceVec);
+    //int vbo = createVertexBufferObject();
+    GLuint* vbo = createVertexBufferObject();
+    
     // For frame time
     float lastFrameTime = glfwGetTime();
 
@@ -1395,7 +1533,7 @@ int main(int argc, char* argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Draw geometry
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 
         // Draw ground
         GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
@@ -1404,7 +1542,10 @@ int main(int argc, char* argv[])
         //draw grid
         glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
         drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
-        
+        //draw tiles
+        glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
+        drawTileGrid(worldMatrixLocation, mat4(1.0f));
+
         // draw axis
         drawAxis(worldMatrixLocation, colorLocation);
 
