@@ -36,8 +36,13 @@ int window_width = 1024, window_height = 768;
 // Position of light source
 vec3 lightPos = vec3(0.0f, 30.0f, 0.0f);
 
-// Callback function for handling window resize
+// Callback function for handling window resize and key input
 void window_size_callback(GLFWwindow* window, int width, int height);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+
+// Forward declare CharModel class in order to declare a pointer to selected model to manipulate
+class CharModel;
+CharModel* selectedModel;
 
 //class Projectile
 //{
@@ -169,6 +174,10 @@ public:
             }
         }
     }
+    
+    // Return initial y-position of model
+    float getInitY() {return initY;}
+    
 protected:
     void drawBorder(float modelMaxHeight, float modelMaxWidth, float boxVerticalWidth, float boxHorizontalWidth, mat4 relativeWorldMatrix = mat4(1.0f), mat4 modelPositioningMatrix = mat4(1.0f)) {
         //draw box around model(extra)
@@ -224,6 +233,7 @@ protected:
     mat4 initial_relativeTranslateMatrix;   //Initial translate matrix, value to take when reset.
     mat4 initial_relativeRotateMatrix;      //Initial rotate matrix, value to take when reset.
     mat4 initial_relativeScaleMatrix;       //Initial scale matrix, value to take when reset.
+    float initY;                            // Initial y-position in initial translate matrix (note: value assigned to child constructor)
 private:
     mat4 relativeTranslateMatrix;   //Stored translate matrix
     mat4 relativeRotateMatrix;      //Stored rotate matrix
@@ -273,11 +283,12 @@ public:
 	//Constructor
 	ModelV9(int shaderProgram) : CharModel(shaderProgram) {
 		const float model_heightScale = 5.0f; //<-make sure is same as constant in drawV9().
+        initY = model_heightScale / 2;
 		//initialize position with translate matrix
 		initial_relativeTranslateMatrix =
 			translate(mat4(1.0f),
 				vec3(45.5,
-					model_heightScale / 2,
+					initY,
 					45.5));
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
@@ -490,10 +501,11 @@ public:
 
 	ModelS3(int shaderProgram) : CharModel(shaderProgram) {
 		//initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
+        initY = -2.0f;
 		initial_relativeTranslateMatrix =
 			translate(mat4(1.0f),
 				vec3(0,
-					-2,
+					initY,
 					0));
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
@@ -608,10 +620,11 @@ public:
 
 	ModelA9(int shaderProgram) : CharModel(shaderProgram) {
 		//initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
+        initY = 0.0f;
 		initial_relativeTranslateMatrix =
 			translate(mat4(1.0f),
 				vec3(-44.5,
-					0,
+                     initY,
 					-44.5));
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
@@ -700,10 +713,11 @@ public:
 	ModelN2(int shaderProgram) : CharModel(shaderProgram) {
 		//initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
 		//example here has position set to (0, 0, -20).
+        initY = 0.0f;
 		initial_relativeTranslateMatrix =
 			translate(mat4(1.0f),
 				vec3(44,
-					0,
+					initY,
 					-45));
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
@@ -803,10 +817,11 @@ public:
 	ModelN4(int shaderProgram) : CharModel(shaderProgram) {
 		//initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
 		//example here has position set to (0, 0, -20).
+        initY = 0;
 		initial_relativeTranslateMatrix =
 			translate(mat4(1.0f),
 				vec3(-45,
-					0,
+					initY,
 					45));
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
@@ -2655,6 +2670,17 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
     return selectedTransformation;
 }
 
+// Function to randomly position a selected model on spacebar input
+void randomPosModel(CharModel* selectedModel) {
+    // Generate random x and z coordinates inside the grid (int values)
+    int randomPosX = rand() % 91 - 45; // -45 to 45 (not 50 for aesthetic purposes)
+    int randomPosZ = rand() % 91 - 45; // -45 to 45
+    
+    // Change relative translate matrix of selected model
+    mat4 randomRelativeTranslateMatrix = translate(mat4(1.0f), vec3((float) randomPosX, selectedModel->getInitY(), (float) randomPosZ));
+    selectedModel->setRelativeTranslateMatrix(randomRelativeTranslateMatrix);
+}
+
 int main(int argc, char* argv[])
 {
     // Initialize GLFW and OpenGL version
@@ -2695,6 +2721,7 @@ int main(int argc, char* argv[])
 
     // Register callback functions
     glfwSetWindowSizeCallback(window, window_size_callback);
+    glfwSetKeyCallback(window, key_callback);
     
     // Black background
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -2799,7 +2826,7 @@ int main(int argc, char* argv[])
     //list<Projectile> projectileList;
 
     //Models
-    CharModel* selectedModel;
+    //CharModel* selectedModel;
     CharModel* models[numMainModels];
     int modelIndex = 0;
 
@@ -3120,3 +3147,10 @@ void window_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, vp_width, vp_height);
 }
 
+// Key callback method (to not constantly poll some key inputs)
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    
+    // Spacebar will translate a selected model to a random position
+    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+        randomPosModel(selectedModel);
+}
