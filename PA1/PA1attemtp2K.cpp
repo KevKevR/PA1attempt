@@ -478,7 +478,7 @@ private:
 		}
         
         // Draw sphere
-        worldMatrix = translate(glm::mat4(1.0f), glm::vec3(0.0f, 5.5f, 0.0f)) * scale(glm::mat4(1.0f), glm::vec3(6.0f, 6.0f, 6.0f));
+        worldMatrix = translate(glm::mat4(1.0f), glm::vec3(0.25f, 4.0f, 0.0f)) * scale(glm::mat4(1.0f), glm::vec3(5.5f, 5.5f, 5.5f));
         mat4 mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLE_STRIP, 38, 1261);
@@ -595,8 +595,8 @@ private:
 		//drawBorder(7, 9, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0, 5.0f, 0)));
         
         // Draw sphere
-        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(6.0f, 6.0f, 6.0f));
-        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 10.0f, 0.0f));
+        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(5.5f, 5.5f, 5.5f));
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 9.0f, 0.0f));
         worldMatrix = translationMatrix * scalingMatrix;
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
@@ -688,7 +688,7 @@ private:
 		//drawBorder(7, 12, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0, 3.5f, 0)));
     
         // Draw sphere
-        worldMatrix = translate(glm::mat4(1.0f), glm::vec3(0.0f, 8.5f, 0.0f)) * scale(glm::mat4(1.0f), glm::vec3(7.0f, 7.0f, 7.0f));
+        worldMatrix = translate(glm::mat4(1.0f), glm::vec3(0.0f, 8.0f, 0.0f)) * scale(glm::mat4(1.0f), glm::vec3(7.0f, 7.0f, 7.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLE_STRIP, 38, 1261);
@@ -791,7 +791,7 @@ private:
 		//drawBorder(7, 13.5f, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0.5, 3.5f, 0)));
         
         // Draw sphere
-        worldMatrix = translate(glm::mat4(1.0f), glm::vec3(0.5f, 8.5f, 0.0f)) * scale(glm::mat4(1.0f), glm::vec3(7.0f, 7.0f, 7.0f));
+        worldMatrix = translate(glm::mat4(1.0f), glm::vec3(0.5f, 8.0f, 0.0f)) * scale(glm::mat4(1.0f), glm::vec3(7.0f, 7.0f, 7.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLE_STRIP, 38, 1261);
@@ -873,7 +873,7 @@ private:
 		//drawBorder(7, 12, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0, 3.5f, 0)));
         
         // Draw sphere
-        worldMatrix = translate(glm::mat4(1.0f), glm::vec3(0.0f, 7.5f, 0.0f)) * scale(glm::mat4(1.0f), glm::vec3(6.0f, 6.0f, 6.0f));
+        worldMatrix = translate(glm::mat4(1.0f), glm::vec3(0.0f, 7.0f, 0.0f)) * scale(glm::mat4(1.0f), glm::vec3(6.0f, 6.0f, 6.0f));
         mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLE_STRIP, 38, 1261);
@@ -2789,7 +2789,7 @@ int main(int argc, char* argv[])
 
     // Other OpenGL states to set once
     // Enable Backface culling
-    glEnable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
 
     // @TODO 1 - Enable Depth Test
     // ...
