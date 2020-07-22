@@ -1226,7 +1226,7 @@ int compileAndLinkShaders()
 
     // vertex shader
     int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    const char* vertexShaderSource = getVertexShaderSource();
+    const char* vertexShaderSource = getTexturedVertexShaderSource();
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
 
@@ -1242,7 +1242,7 @@ int compileAndLinkShaders()
 
     // fragment shader
     int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    const char* fragmentShaderSource = getFragmentShaderSource();
+    const char* fragmentShaderSource = getTexturedFragmentShaderSource();
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
 
@@ -3029,9 +3029,9 @@ int main(int argc, char* argv[])
 
 	// Compile and link shaders here ...
 	//int colorShaderProgram = compileAndLinkShaders(getVertexShaderSource(), getFragmentShaderSource());
-	int texturedShaderProgram = compileAndLinkShaders();
+	int shaderProgram = compileAndLinkShaders();
 
-	glUseProgram(texturedShaderProgram);
+	glUseProgram(shaderProgram);
 
     // Set light position vector in fragment shader to current light position value (done once)
     GLuint lightPosLocation = glGetUniformLocation(shaderProgram, "lightPos");
@@ -3042,6 +3042,9 @@ int main(int argc, char* argv[])
     
     // Used to overwrite color in the fragment shader
     GLuint colorLocation = glGetUniformLocation(shaderProgram, "objectColor");
+
+    GLuint enableTextureLocation = glGetUniformLocation(shaderProgram, "hasTexture");
+    int enableTexture = 0;	//0 for on, 1 for off
 
     // Camera parameters for view transform
     const float initial_xpos = 0;
@@ -3086,7 +3089,7 @@ int main(int argc, char* argv[])
 //    -3.0f, 3.0f,    // bottom/top
 //    -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
 
-	GLuint projectionMatrixLocation = glGetUniformLocation(texturedShaderProgram, "projectionMatrix");
+	GLuint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
 	//projectionMatrixLocation = glGetUniformLocation(colorShaderProgram, "projectionMatrix");
 	glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
 
@@ -3094,7 +3097,7 @@ int main(int argc, char* argv[])
 	//mat4 viewMatrix = lookAt(cameraPosition,  // eye
 	//                         cameraPosition + cameraLookAt,  // center
 	//                         cameraUp ); // up
-	GLuint viewMatrixLocation = glGetUniformLocation(texturedShaderProgram, "viewMatrix");
+	GLuint viewMatrixLocation = glGetUniformLocation(shaderProgram, "viewMatrix");
 	//viewMatrixLocation = glGetUniformLocation(colorShaderProgram, "viewMatrix");
 
 	//glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
@@ -3137,11 +3140,11 @@ int main(int argc, char* argv[])
     CharModel* models[numMainModels];
     int modelIndex = 0;
 
-	ModelS3 s3(texturedShaderProgram);
-	ModelV9 v9(texturedShaderProgram);
-	ModelA9 a9(texturedShaderProgram);
-	ModelN2 n2(texturedShaderProgram);
-	ModelN4 n4(texturedShaderProgram);
+	ModelS3 s3(shaderProgram);
+	ModelV9 v9(shaderProgram);
+	ModelA9 a9(shaderProgram);
+	ModelN2 n2(shaderProgram);
+	ModelN4 n4(shaderProgram);
 
 
     models[0] = &s3;
@@ -3166,7 +3169,7 @@ int main(int argc, char* argv[])
 		glBindBuffer(GL_ARRAY_BUFFER, texturedCubeVAO);
 
 		// Draw ground
-		GLuint worldMatrixLocation = glGetUniformLocation(texturedShaderProgram, "worldMatrix");
+		GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
 		//worldMatrixLocation = glGetUniformLocation(colorShaderProgram, "worldMatrix");
 
 
@@ -3180,12 +3183,12 @@ int main(int argc, char* argv[])
 		//glBindBuffer(GL_ARRAY_BUFFER, texturedCubeVAO);
 
 
-		glUseProgram(texturedShaderProgram);
+		glUseProgram(shaderProgram);
 		// draw axis
 		drawAxis(worldMatrixLocation, colorLocation);
 		glUniform1i(enableTextureLocation, enableTexture);
 
-		//glUseProgram(texturedShaderProgram);
+		//glUseProgram(shaderProgram);
 		//draw models
 		{
 			//selection with keys.
@@ -3218,7 +3221,7 @@ int main(int argc, char* argv[])
 			glUniform3f(colorLocation, 0.2f, 0.2f, 1.0f);
 
 
-			glUseProgram(texturedShaderProgram);
+			glUseProgram(shaderProgram);
 
 
 
@@ -3413,7 +3416,7 @@ int main(int argc, char* argv[])
             viewMatrix = lookAt(position, position + cameraLookAt, cameraUp);
         }
 
-		GLuint viewMatrixLocation = glGetUniformLocation(texturedShaderProgram, "viewMatrix");
+		GLuint viewMatrixLocation = glGetUniformLocation(shaderProgram, "viewMatrix");
 		//viewMatrixLocation = glGetUniformLocation(colorShaderProgram, "viewMatrix");
 		glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
 
