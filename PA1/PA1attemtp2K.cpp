@@ -885,25 +885,6 @@ const char* getVertexShaderSource()
 {
     // For now, you use a string for your shader code, in the assignment, shaders will be stored in .glsl files
     return
-    /*
-        "#version 330 core\n"
-        "layout (location = 0) in vec3 aPos;"
-        //"layout (location = 1) in vec3 aColor;"
-        "layout(location = 3) in vec3 instanceVec; "     // instancing https://learnopengl.com/Advanced-OpenGL/Instancing
-        ""
-        "uniform mat4 worldMatrix;"
-        "uniform mat4 viewMatrix = mat4(1.0);"  // default value for view matrix (identity)
-        "uniform mat4 projectionMatrix = mat4(1.0);"
-        ""
-        "out vec3 vertexColor;"
-        "void main()"
-        "{"
-        //"   vertexColor = aColor;"
-        "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix;"
-        "   gl_Position = modelViewProjection * vec4(aPos, 1.0);"
-        "   gl_Position = modelViewProjection * vec4(aPos+ instanceVec, 1.0);"
-        "}";
-    */
         "#version 330 core\n"
         "layout (location = 0) in vec3 aPos;"
         "layout (location = 1) in vec3 aNormal;"
@@ -926,17 +907,6 @@ const char* getVertexShaderSource()
 const char* getFragmentShaderSource()
 {
     return
-    /*
-        "#version 330 core\n"
-        "uniform vec3 objectColor;"
-        //"in vec3 vertexColor;"
-        "out vec4 FragColor;"
-        "void main()"
-        "{"
-        //"   FragColor = vec4(vertexColor.r, vertexColor.g, vertexColor.b, 1.0f);"
-        "   FragColor = vec4(objectColor.r, objectColor.g, objectColor.b, 1.0f);"
-        "}";
-     */
     "#version 330 core\n"
     "uniform vec3 objectColor;"
     "uniform vec3 lightPos;"
@@ -1027,38 +997,7 @@ int compileAndLinkShaders()
 GLuint* createVertexBufferObject()
 {
     // Cube model (used for models and axis)
-    /*
-    vec3 vertexArray[] = {  // position
-        //cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
-        //left
-        vec3(-0.5f,-0.5f,-0.5f), vec3(-0.5f,-0.5f, 0.5f),vec3(-0.5f, 0.5f, 0.5f),
-        vec3(-0.5f,-0.5f,-0.5f),vec3(-0.5f, 0.5f, 0.5f),vec3(-0.5f, 0.5f,-0.5f),
-        // far
-        vec3(0.5f, 0.5f,-0.5f),vec3(-0.5f,-0.5f,-0.5f),vec3(-0.5f, 0.5f,-0.5f),
-        vec3(0.5f, 0.5f,-0.5f),vec3(0.5f,-0.5f,-0.5f),vec3(-0.5f,-0.5f,-0.5f),
-        // bottom
-        vec3(0.5f,-0.5f, 0.5f), vec3(-0.5f,-0.5f,-0.5f),vec3(0.5f,-0.5f,-0.5f),
-        vec3(0.5f,-0.5f, 0.5f),vec3(-0.5f,-0.5f, 0.5f),vec3(-0.5f,-0.5f,-0.5f),
-        // near
-        vec3(-0.5f, 0.5f, 0.5f),vec3(-0.5f,-0.5f, 0.5f),vec3(0.5f,-0.5f, 0.5f),
-        vec3(0.5f, 0.5f, 0.5f), vec3(-0.5f, 0.5f, 0.5f),vec3(0.5f,-0.5f, 0.5f),
-        // right
-        vec3(0.5f, 0.5f, 0.5f), vec3(0.5f,-0.5f,-0.5f), vec3(0.5f, 0.5f,-0.5f),
-        vec3(0.5f,-0.5f,-0.5f), vec3(0.5f, 0.5f, 0.5f), vec3(0.5f,-0.5f, 0.5f),
-        // top
-        vec3(0.5f, 0.5f, 0.5f),vec3(0.5f, 0.5f,-0.5f), vec3(-0.5f, 0.5f,-0.5f), 
-        vec3(0.5f, 0.5f, 0.5f), vec3(-0.5f, 0.5f,-0.5f), vec3(-0.5f, 0.5f, 0.5f), 
 
-        //line (0,0,-0.5)to(0,0,0.5)
-        vec3(0.0f, 0.0f, -0.5f),
-        vec3(0.0f, 0.0f, 0.5f),
-
-        //Square (-0.5,0,-0.5) to (0.5,0,0.5)
-        vec3(0.5f, 0.0f, 0.5f),vec3(0.5f, 0.0f,-0.5f), vec3(-0.5f, 0.0f,-0.5f),
-        vec3(0.5f, 0.0f, 0.5f), vec3(-0.5f, 0.0f,-0.5f), vec3(-0.5f, 0.0f, 0.5f),
-    };
-     */
-    
     vec3 vertexArray[] = {  // position and normal
         //cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
         //left
@@ -1107,8 +1046,16 @@ GLuint* createVertexBufferObject()
         //line (0,0,-0.5)to(0,0,0.5)
         vec3(0.0f, 0.0f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+
+        //Square (-0.5,0,-0.5) to (0.5,0,0.5)
+        vec3(0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.5f, 0.0f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(-0.5f, 0.0f,-0.5f),vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.5f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(-0.5f, 0.0f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(-0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),
         
-        // 1261 Sphere vertices (from lab5) (38)
+        // 1261 Sphere vertices (from lab5) (44)
         // Note: Normals may be wrong, but there's too many to modify
         vec3(0.000000, 0.000000, -1.000000), vec3(0.000000, 0.000000, -1.000000),
         vec3(0.173648, 0.000000, -0.984808), vec3(0.173648, 0.000000, -0.984808),
@@ -2380,13 +2327,6 @@ GLuint* createVertexBufferObject()
     vec3 offsetArray[sideLength*sideLength] = {};
     for (int i = 0; i < sideLength; ++i)
     {
-        /*for (int j = 0; j < sideLength; ++j)
-        {
-            offsetArray[sideLength * i + j +1] =
-                    vec3(-cellLength * (sideLength - 1) / 2 + i * cellLength,
-                        height,
-                        -cellLength * (sideLength - 1) / 2 + j * cellLength);
-        }*/
         for (int j = 0; j < sideLength; ++j)
         {
             //skip the extra one
@@ -2455,7 +2395,8 @@ void drawGrid(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWor
     const float sideLength = 100; //# of cells on side.
     const float cellLength = 1; //length of side of a cell.
 
-    const float height = 0;     //y-position of grid.
+    //make the grid pop-out a bit from the tile grid
+    const float height = 0.03f;     //y-position of grid.
 
     mat4 lineWorldMatrix;
     mat4 worldMatrix;
@@ -2497,54 +2438,33 @@ void drawGrid(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWor
         glDrawArrays(GL_LINES, 36, 2);
     }
 }
-void drawTile(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.0f), int numCells = 1, float cellLength = 1.0f) {
-    mat4 modelWorldMatrix =
-        //scale to match length.
-        scale(mat4(1.0f),
-            vec3(cellLength, 1.0f, cellLength));
-    mat4 worldMatrix = relativeWorldMatrix * modelWorldMatrix;
-    glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-    //glDrawArrays(GL_TRIANGLES, 38, 6);
-    //Call to use instances
-    //https://learnopengl.com/Advanced-OpenGL/Instancing
-    glDrawArraysInstanced(GL_TRIANGLES, 38, 6, numCells);
-}
 
-//this has become redundant, later just call the function directly.
+//draws ground with tiles arranged as a grid.
 void drawTileGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.0f)) {
     const float sideLength = 100; //# of cells on side.
     const float cellLength = 1; //length of side of a cell.
     const int numCells = (int)pow(sideLength,2);
     const float height = 0;     //y-position of grid.
 
-    //mat4 tileWorldMatrix;
-    //mat4 worldMatrix;
-    //for (int i = 0; i < sideLength; ++i)
-    //{
-    //    for (int j = 0; j < sideLength; ++j)
-    //    {
-    //        tileWorldMatrix =
-    //            //spaced interval along xz-plane.
-    //            translate(mat4(1.0f),
-    //                vec3(-cellLength * (sideLength - 1) / 2 + i * cellLength,
-    //                    height,
-    //                    -cellLength * (sideLength - 1) / 2 + j * cellLength));
-
-    //        worldMatrix = relativeWorldMatrix * tileWorldMatrix;
-    //        drawTile(worldMatrixLocation, worldMatrix, cellLength);
-    //    }
-    //}
     mat4 tileWorldMatrix;
     mat4 worldMatrix; 
+    //set the first tile to draw as the one in (+x, +z) corner.
     tileWorldMatrix =
         //spaced interval along xz-plane.
         translate(mat4(1.0f),
             vec3(cellLength * (sideLength - 1) / 2,
                 height,
-                cellLength * (sideLength - 1) / 2));
+                cellLength * (sideLength - 1) / 2))
+        //scale to match length.
+        * scale(mat4(1.0f),
+            vec3(cellLength, 1.0f, cellLength));;
     worldMatrix = relativeWorldMatrix * tileWorldMatrix;
-    drawTile(worldMatrixLocation, worldMatrix, numCells, cellLength);
+    glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+    //Call to use instances
+    //https://learnopengl.com/Advanced-OpenGL/Instancing
+    glDrawArraysInstanced(GL_TRIANGLES, 38, 6, numCells);
 }
+
 // Draws x, y, z axis at the center of the grid
 // Input is location of worldMatrix and location of colorLocation
 void drawAxis(GLuint worldMatrixLocation, GLuint colorLocation) {
@@ -2624,18 +2544,20 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
 //function will return a matrix for corresponding transformation of inputted keys.
 //note: undefined order priority in case multiple correct keys are pressed (but will select a matrix).
 mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyStates) {
-    mat4* selectedTransformation = new mat4[4];
+    mat4* selectedTransformation = new mat4[3];
     //default return values
     selectedTransformation[0] = mat4(1.0f);     //translate
     selectedTransformation[1] = mat4(1.0f);     //rotate
     selectedTransformation[2] = mat4(1.0f);     //scale
 
-    selectedTransformation[3] = mat4(1.0f);     //signal to reset position and orientation if changed.
-
     //allows map value to contain 2 variables.
     struct transformation {
         mat4 matrix;
         int type;
+        //type, same type should be communitative.
+        //0 : translate
+        //1 : rotate
+        //2 : scale
     };
     map<int, transformation> inputsToModelMatrix;
     map<int, transformation>::iterator itr;
@@ -2688,12 +2610,10 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
                 radians(rotateSpeed),
                 vec3(0.0f, -1.0f, 0.0f)), 1 }));
     }
-    //reset position and orientation if pressed
-    inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_HOME, {
-        mat4(2.0f), 3 }));
 
     //iterate through all keys that could be pressed.
     for (itr = inputsToModelMatrix.begin(); itr != inputsToModelMatrix.end(); ++itr) {
+        ////////////////
         //get previous key state if tracked, otherwise default release (true).
         //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
         //default released if not tracked
@@ -2717,6 +2637,7 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
             }
 
         }
+        ////////////////
 
         if (glfwGetKey(window, itr->first) == GLFW_PRESS && previousState == GLFW_RELEASE) // select model. Apply once for keys that are tracked.
         {
@@ -2731,6 +2652,43 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
         }
     }
     return selectedTransformation;
+}
+//retrieve bool on whether a setting should be applied or not, based on key press.
+bool* customControl(GLFWwindow * window, map<int, KeyState> previousKeyStates) {
+    const int numKeys = 1;  //number of keys tied to settings.
+    bool selectedSetting[numKeys] = {}; //initialize as false.
+    //array of keys tied to settings.
+    const int keyControl[numKeys] = { GLFW_KEY_HOME };
+
+    //for every key tied to a setting, check if it is pressed.
+    for (int i = 0; i < numKeys; i++) {
+        ////////////////
+        //get previous key state if tracked, otherwise default release (true).
+        //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
+        //default released if not tracked
+        int previousState = GLFW_RELEASE;
+        map<int, KeyState>::iterator it = previousKeyStates.find(keyControl[i]);
+        if (it != previousKeyStates.end()) {        //key is a tracked one
+            //toggling shift should not activate the key again.
+            //So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
+            if ((it->second.needShiftPressed == isShiftPressed(window)) && it->second.prevWithShiftPressed) {
+                previousState = GLFW_PRESS;    //so update to actual
+                //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
+            }
+            else {
+                //otherwise, update to actual previous key.
+                previousState = it->second.keyState;
+                //glClearColor(1.0f, 0.3f, 0.0f, 1.0f);
+            }
+        }
+        ////////////////
+
+        if (glfwGetKey(window, keyControl[i]) == GLFW_PRESS && previousState == GLFW_RELEASE) // key action. Apply once for keys that are tracked.
+        {
+            selectedSetting[i] = true;
+        }
+    }
+    return selectedSetting;
 }
 
 // Function to randomly position a selected model on spacebar input
@@ -2944,9 +2902,9 @@ int main(int argc, char* argv[])
             selectedModel = models[modelIndex];
             //Control model key presses.
             mat4* relativeWorldMatrix = modelControl(window, dt, previousKeyStates);
-
+            bool* selectedSetting = customControl(window, previousKeyStates);
             //Home key has been pressed, so reset world matrices.
-            if (relativeWorldMatrix[3] != mat4(1.0f)) {
+            if (selectedSetting[0]) {
                 selectedModel->resetInitialRelativeMatrices();
                 //reset camera too.
                 cameraPosition = initial_cameraPosition;
