@@ -2808,6 +2808,7 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
     const float translateSpeed = transformSpeed;
     const float rotateSpeed = 5.0f;   //specifications
     const float scaleSpeed = transformSpeed / 12;
+    //TODO: code shearing into separate movement function (since the shearing itself is not in the user's control, only the movement)
     const float shearSpeed = transformSpeed * 3;        //temporary, will move to another method for movement
     // capital case letters only
     if (isShiftPressed(window))
@@ -2860,6 +2861,7 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
     {
         //shear model if pressed
         //temporary, will move to another method for movement
+        //TODO: code shearing into separate movement function (since the shearing itself is not in the user's control, only the movement)
         inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_Q, {
             mat4(1, 0, 0, 0,  // first column
             0, 1, 0, 0,  // second column
@@ -3145,6 +3147,7 @@ int main(int argc, char* argv[])
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_U, { GLFW_RELEASE , true }));
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_J, { GLFW_RELEASE , true }));
     //shear model (temporary)
+    //TODO: code shearing into separate movement function (since the shearing itself is not in the user's control, only the movement)
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_Q, { GLFW_RELEASE , false }));
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_E, { GLFW_RELEASE , false }));
     //toggle textures
