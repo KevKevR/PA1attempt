@@ -24,9 +24,17 @@
 #include <glm/common.hpp>
 #include <map> 
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 using namespace glm;
 using namespace std;
+
+GLuint loadTexture(const char* filename);
+
+//GLuint boxTextureID;
+//GLuint metalTextureID;
+
 
 const int numMainModels = 5;
 
@@ -44,36 +52,70 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 class CharModel;
 CharModel* selectedModel;
 
-//class Projectile
-//{
-//public:
-//    Projectile(vec3 position, vec3 velocity, int shaderProgram) : mPosition(position), mVelocity(velocity)
-//    {
-//        mWorldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
-//        mColorLocation = glGetUniformLocation(shaderProgram, "objectColor");
-//    }
-//
-//    void Update(float dt)
-//    {
-//        mPosition += mVelocity * dt;
-//    }
-//
-//    void Draw() {
-//        // this is a bit of a shortcut, since we have a single vbo, it is already bound
-//        // let's just set the world matrix in the vertex shader
-//
-//        mat4 worldMatrix = translate(mat4(1.0f), mPosition) * rotate(mat4(1.0f), radians(180.0f), vec3(0.0f, 1.0f, 0.0f)) * scale(mat4(1.0f), vec3(0.2f, 0.2f, 0.2f));
-//        glUniformMatrix4fv(mWorldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-//        glUniform3f(mColorLocation, 0.0f, 0.0f, 1.0f);
-//        glDrawArrays(GL_TRIANGLES, 0, 36);
-//    }
-//
-//private:
-//    GLuint mWorldMatrixLocation;
-//    GLuint mColorLocation;
-//    vec3 mPosition;
-//    vec3 mVelocity;
-//};
+struct TexturedColoredVertex
+{
+	TexturedColoredVertex(vec3 _position, vec3 _color, vec2 _uv)
+		: position(_position), color(_color), uv(_uv) {}
+
+	vec3 position;
+	vec3 color;
+	vec2 uv;
+};
+
+// Textured Cube model
+const TexturedColoredVertex texturedCubeVertexArray[] = {  // position,                            color
+	TexturedColoredVertex(vec3(-0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f), vec2(0.0f, 0.0f)), //left - red
+	TexturedColoredVertex(vec3(-0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f), vec2(0.0f, 1.0f)),
+	TexturedColoredVertex(vec3(-0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f), vec2(1.0f, 1.0f)),
+
+	TexturedColoredVertex(vec3(-0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f), vec2(0.0f, 0.0f)),
+	TexturedColoredVertex(vec3(-0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f), vec2(1.0f, 1.0f)),
+	TexturedColoredVertex(vec3(-0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f), vec2(1.0f, 0.0f)),
+
+	TexturedColoredVertex(vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f), vec2(1.0f, 1.0f)), // far - blue
+	TexturedColoredVertex(vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f), vec2(0.0f, 0.0f)),
+	TexturedColoredVertex(vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f), vec2(0.0f, 1.0f)),
+
+	TexturedColoredVertex(vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f), vec2(1.0f, 1.0f)),
+	TexturedColoredVertex(vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f), vec2(1.0f, 0.0f)),
+	TexturedColoredVertex(vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, 1.0f), vec2(0.0f, 0.0f)),
+
+	TexturedColoredVertex(vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 1.0f), vec2(1.0f, 1.0f)), // bottom - turquoise
+	TexturedColoredVertex(vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 1.0f, 1.0f), vec2(0.0f, 0.0f)),
+	TexturedColoredVertex(vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 1.0f, 1.0f), vec2(1.0f, 0.0f)),
+
+	TexturedColoredVertex(vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 1.0f), vec2(1.0f, 1.0f)),
+	TexturedColoredVertex(vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 1.0f), vec2(0.0f, 1.0f)),
+	TexturedColoredVertex(vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 1.0f, 1.0f), vec2(0.0f, 0.0f)),
+
+	TexturedColoredVertex(vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f), vec2(0.0f, 1.0f)), // near - green
+	TexturedColoredVertex(vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f), vec2(0.0f, 0.0f)),
+	TexturedColoredVertex(vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f), vec2(1.0f, 0.0f)),
+
+	TexturedColoredVertex(vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f), vec2(1.0f, 1.0f)),
+	TexturedColoredVertex(vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f), vec2(0.0f, 1.0f)),
+	TexturedColoredVertex(vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f), vec2(1.0f, 0.0f)),
+
+	TexturedColoredVertex(vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 1.0f), vec2(1.0f, 1.0f)), // right - purple
+	TexturedColoredVertex(vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 1.0f), vec2(0.0f, 0.0f)),
+	TexturedColoredVertex(vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 1.0f), vec2(1.0f, 0.0f)),
+
+	TexturedColoredVertex(vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 1.0f), vec2(0.0f, 0.0f)),
+	TexturedColoredVertex(vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 1.0f), vec2(1.0f, 1.0f)),
+	TexturedColoredVertex(vec3(0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 1.0f), vec2(0.0f, 1.0f)),
+
+	TexturedColoredVertex(vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 1.0f, 0.0f), vec2(1.0f, 1.0f)), // top - yellow
+	TexturedColoredVertex(vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 1.0f, 0.0f), vec2(1.0f, 0.0f)),
+	TexturedColoredVertex(vec3(-0.5f, 0.5f,-0.5f), vec3(1.0f, 1.0f, 0.0f), vec2(0.0f, 0.0f)),
+
+	TexturedColoredVertex(vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 1.0f, 0.0f), vec2(1.0f, 1.0f)),
+	TexturedColoredVertex(vec3(-0.5f, 0.5f,-0.5f), vec3(1.0f, 1.0f, 0.0f), vec2(0.0f, 0.0f)),
+	TexturedColoredVertex(vec3(-0.5f, 0.5f, 0.5f), vec3(1.0f, 1.0f, 0.0f), vec2(0.0f, 1.0f)),
+
+	//line
+	TexturedColoredVertex(vec3(0.0f, 0.0f, -0.5f), vec3(1.0f, 1.0f, 0.0f), vec2(1.0f, 1.0f)),
+	TexturedColoredVertex(vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f), vec2(0.0f, 0.0f)),
+};
 
 struct KeyState {
     int keyState;
@@ -157,7 +199,14 @@ public:
         return relativeTranslateMatrix * relativeRotateMatrix * relativeScaleMatrix;
     }
 
-    virtual void draw() {
+	virtual void drawLetter() {
+		//implement in derived class please.
+	}
+
+	virtual void drawNumber() {
+		//implement in derived class please.
+	}
+    virtual void drawSphere() {
         //implement in derived class please.
     }
 
@@ -166,15 +215,28 @@ public:
         setRelativeWorldMatrix(initial_relativeTranslateMatrix, initial_relativeRotateMatrix, initial_relativeScaleMatrix);
     }
 
-    //Class method to draws all passed models. (issues when unloaded models).
-    static void draw(CharModel* arr[numMainModels]) {
+	//Class method to draws all passed models. (issues when unloaded models).
+	static void drawLetter(CharModel* arr[numMainModels]) {
+		for (int i = 0; i < numMainModels; i++) {
+			if (arr[i]) {
+				arr[i]->drawLetter();
+			}
+		}
+	}
+    static void drawNumber(CharModel* arr[numMainModels]) {
         for (int i = 0; i < numMainModels; i++) {
             if (arr[i]) {
-                arr[i]->draw();
+                arr[i]->drawNumber();
             }
         }
     }
-    
+    static void drawSphere(CharModel* arr[numMainModels]) {
+        for (int i = 0; i < numMainModels; i++) {
+            if (arr[i]) {
+                arr[i]->drawSphere();
+            }
+        }
+    }
     // Return initial y-position of model
     float getInitY() {return initY;}
     
@@ -248,44 +310,6 @@ private:
     mat4 relativeRotateMatrix;      //Stored rotate matrix
     mat4 relativeScaleMatrix;       //Stored scale matrix
 };
-//example usage of model subclass.
-//To convert to your model:
-//- replace Model_template with your model name.
-//- set initial position/orientation/size in the world where you want the model to be with initial_relative[...]Matrix.
-//- replace the drawModel function your draw function.
-//- done!
-//class Model_template : public CharModel {
-//public:
-//
-//    Model_template(int shaderProgram) : CharModel(shaderProgram) {
-//        //initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
-//        //example here has position set to (0, 0, -20).
-//        initial_relativeTranslateMatrix =
-//            translate(mat4(1.0f),
-//                vec3(0,
-//                    0,
-//                    -20));
-//
-//        setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
-//    }
-//
-//    //no need to change anything here, except drawModel's name if you feel like it.
-//    void draw() {
-//        //pass arguments stored in parent class.
-//        drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
-//    }
-//
-//private:
-//    void drawModel(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
-//        //code goes here
-//
-//        //pattern to draw models to make use of relativeWorldMatrix:
-//        //worldMatrix = relativeWorldMatrix * (model's original matrices);
-//        //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
-//        //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
-//        //glDrawArrays(GL_TRIANGLES, 0, 36);
-//    }
-//};
 
 class ModelV9 : public CharModel {
 public:
@@ -312,15 +336,25 @@ public:
 	}
 
 	//override draw method.
-	void draw() {
+	void drawLetter() {
 		//pass arguments stored in parent class.
-		drawV9(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
-        drawSphere(getRelativeWorldMatrix(), 5.5f, 4.0f, 0.25f);
+        glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 0.0f);
+		drawModelLetterV9(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
 	}
 
-private:
-	void drawV9(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+	void drawNumber() {
+		//pass arguments stored in parent class.
+        glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 0.0f);
+		drawModelNumberV9(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+	}
+    void drawSphere() {
+        //pass arguments stored in parent class.
+        glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 0.0f);
+        CharModel::drawSphere(getRelativeWorldMatrix(), 5.5f, 4.0f, 0.25f);
+    }
 
+private:
+	void drawModelLetterV9(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
 		//total height is heightScale
 		//total width is 2*(letterHalfWidth+apothem)
 		//parameters.
@@ -412,6 +446,48 @@ private:
 		//glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
+	}
+	void drawModelNumberV9(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+		//total height is heightScale
+		//total width is 2*(letterHalfWidth+apothem)
+		//parameters.
+		const float heightScale = 5;
+		const float widthScale = 1;
+		const float angle = 20.0f;
+		const int corners = 6;
+		//corners = (corners < 3) ? 3 : corners;  //minimum 3 corners.
+
+		mat4 inertialWorldMatrix;   //model from an inertial view of reference, ie centered at origin.
+		mat4 worldMatrix;           //complete matrix after all transformations.
+
+									//convert angles to radians
+		const float r_angle = abs(radians((float)angle));
+
+		//future calculations done early to determine modelPositioningMatrix for letter, and box measurements.
+		const float m9_apothem = ((heightScale + widthScale) / 4);
+		const float m9_centralAngle = radians(360.0f / corners);
+		const float m9_radius = m9_apothem / cos(m9_centralAngle / 2);
+		const float m9_base = 2 * m9_apothem * tanf(m9_centralAngle / 2);
+
+		//base of cube to scale by
+		const float mV_base = widthScale * cosf(r_angle);
+		//heigtht of cube to scale by
+		const float mV_height = (heightScale - widthScale * cosf(r_angle) * sinf(r_angle)) / cosf(r_angle);
+		//absolute width of half of V
+		const float letterHalfWidth = mV_height * sinf(r_angle) + mV_base * cosf(r_angle);
+
+		//full model measurement
+		const float m_height = heightScale;
+		const float m_width = (2 * (letterHalfWidth + m9_apothem));
+		const float m_maxWidth = 2 * (letterHalfWidth + m9_radius);
+
+		//Offset for V to center the model. Origin will touch bottom center.
+		mat4 modelPositioningMatrix =
+			translate(mat4(1.0f),
+				vec3((-(letterHalfWidth / 2 + m9_apothem)),
+					0,
+					0));
+
 
 		//Draw 9.
 		//total height is heightScale
@@ -489,14 +565,6 @@ private:
 				glDrawArrays(GL_TRIANGLES, 0, 36);
 			}
 		}
-		{
-			//draw box around model(extra)
-			const float boxVerticalWidth = heightScale / 100;   //thickness of horizontal bars
-			const float boxHorizontalWidth = widthScale / 20;   //thickness of vertical bars
-			const float modelMaxHeight = m_height + boxVerticalWidth / 2;
-			const float modelMaxWidth = m_maxWidth + boxHorizontalWidth / 2;
-			drawBorder(modelMaxHeight, modelMaxWidth, boxVerticalWidth, boxHorizontalWidth, relativeWorldMatrix);
-		}
 
 	}
 };
@@ -516,14 +584,27 @@ public:
 	}
 
 	//no need to change anything here, except drawModel's name if you feel like it.
-	void draw() {
+	void drawLetter() {
 		//pass arguments stored in parent class.
-		drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
-        drawSphere(getRelativeWorldMatrix(), 5.5f, 9.0f);
+        glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
+		drawModelLetterS3(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
 	}
 
+	void drawNumber() {
+		//pass arguments stored in parent class.
+        glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
+		drawModelNumberS3(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+	}
+    void drawSphere() {
+        //pass arguments stored in parent class.
+        glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
+        CharModel::drawSphere(getRelativeWorldMatrix(), 5.5f, 9.0f);
+
+    }
+
+
 private:
-	void drawModel(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+	void drawModelNumberS3(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
 		//code goes here
 		mat4 mWorldMatrix;
 		mat4 scalingMatrix, translationMatrix;
@@ -558,6 +639,13 @@ private:
 		mWorldMatrix = relativeWorldMatrix * worldMatrix;
 		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
+	}
+
+	void drawModelLetterS3(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+		//code goes here
+		mat4 mWorldMatrix;
+		mat4 scalingMatrix, translationMatrix;
+		glm::mat4 worldMatrix = translationMatrix * scalingMatrix;
 
 		//Draw S
 		scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.5f, 1.0f));
@@ -613,6 +701,7 @@ private:
         
 	}
 };
+
 class ModelA9 : public CharModel {
 public:
 
@@ -629,14 +718,26 @@ public:
 	}
 
 	//no need to change anything here, except drawModel's name if you feel like it.
-	void draw() {
+	void drawLetter() {
 		//pass arguments stored in parent class.
-		drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
-        drawSphere(getRelativeWorldMatrix(), 7.0f, 8.0f);
+        glUniform3f(colorLocation, 233.0f / 255.0f, 1, 0.0f);
+		drawModelLetterA9(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
 	}
 
+	void drawNumber() {
+		//pass arguments stored in parent class.
+        glUniform3f(colorLocation, 233.0f / 255.0f, 1, 0.0f);
+		drawModelNumberA9(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+	}
+    void drawSphere() {
+        //pass arguments stored in parent class.
+        glUniform3f(colorLocation, 233.0f / 255.0f, 1, 0.0f);
+        CharModel::drawSphere(getRelativeWorldMatrix(), 7.0f, 8.0f);
+
+    }
+
 private:
-	void drawModel(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+	void drawModelLetterA9(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
 		//code goes here
 
 		//pattern to draw models to make use of relativeWorldMatrix:
@@ -671,6 +772,11 @@ private:
 		mWorldMatrix = relativeWorldMatrix * worldMatrix;
 		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
+	}
+	void drawModelNumberA9(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+		//code goes here
+		mat4 worldMatrix = mat4(1.0f);
+		mat4 mWorldMatrix;
 
 		// Draw 9
 		// Long Vertical Bar
@@ -701,6 +807,7 @@ private:
     
 	}
 };
+
 class ModelN2 : public CharModel {
 public:
 
@@ -718,14 +825,25 @@ public:
 	}
 
 	//no need to change anything here, except drawModel's name if you feel like it.
-	void draw() {
+	void drawLetter() {
 		//pass arguments stored in parent class.
-		drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
-        drawSphere(getRelativeWorldMatrix(), 7.0f, 8.0f, 0.5f);
+        glUniform3f(colorLocation, 1, 0, 233.0f / 255.0f);
+		drawModelLetterN2(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
 	}
 
+	void drawNumber() {
+		//pass arguments stored in parent class.
+        glUniform3f(colorLocation, 1, 0, 233.0f / 255.0f);
+		drawModelNumberN2(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+	}
+    void drawSphere() {
+        //pass arguments stored in parent class.
+        glUniform3f(colorLocation, 1, 0, 233.0f / 255.0f);
+        CharModel::drawSphere(getRelativeWorldMatrix(), 7.0f, 8.0f, 0.5f);
+    }
+
 private:
-	void drawModel(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+	void drawModelLetterN2(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
 		//code goes here
 
 		//pattern to draw models to make use of relativeWorldMatrix:
@@ -765,6 +883,16 @@ private:
 		mWorldMatrix = relativeWorldMatrix * worldMatrix;
 		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
+	}
+	void drawModelNumberN2(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+		//code goes here
+
+		//pattern to draw models to make use of relativeWorldMatrix:
+		//worldMatrix = relativeWorldMatrix * (model's original matrices);
+		//glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+		//glDrawArrays(GL_TRIANGLES, 0, 36);
+		mat4 worldMatrix = mat4(1.0f);
+		mat4 mWorldMatrix;
 
 		// Draw 2
 		// Right Vertical Bar
@@ -801,6 +929,7 @@ private:
         
 	}
 };
+
 class ModelN4 : public CharModel {
 public:
 
@@ -818,14 +947,25 @@ public:
 	}
 
 	//no need to change anything here, except drawModel's name if you feel like it.
-	void draw() {
+	void drawLetter() {
 		//pass arguments stored in parent class.
-		drawModel(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
-        drawSphere(getRelativeWorldMatrix(), 6.0f, 7.0f);
+        glUniform3f(colorLocation, 0.8, 0.8, 0.8f);
+		drawModelLetterN4(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
 	}
 
+	void drawNumber() {
+		//pass arguments stored in parent class.
+        glUniform3f(colorLocation, 0.8, 0.8, 0.8f);
+		drawModelNumberN4(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+	}
+    void drawSphere() {
+        //pass arguments stored in parent class.
+        glUniform3f(colorLocation, 0.8, 0.8, 0.8f);
+        CharModel::drawSphere(getRelativeWorldMatrix(), 6.0f, 7.0f);
+    }
+
 private:
-	void drawModel(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+	void drawModelLetterN4(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
 		//code goes here
 
 		//pattern to draw models to make use of relativeWorldMatrix:
@@ -855,7 +995,11 @@ private:
 		mWorldMatrix = relativeWorldMatrix * worldMatrix;
 		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
-
+	}
+	void drawModelNumberN4(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+		//code goes here
+		mat4 worldMatrix = mat4(1.0f);
+		mat4 mWorldMatrix;
 
 		// Draw 4
 		// Right Vertical Bar
@@ -994,7 +1138,7 @@ int compileAndLinkShaders()
 }
 
 
-GLuint* createVertexBufferObject()
+GLuint* createTexturedCubeVertexArrayObject()
 {
     // Cube model (used for models and axis)
 
@@ -2329,8 +2473,8 @@ GLuint* createVertexBufferObject()
     {
         for (int j = 0; j < sideLength; ++j)
         {
-            //skip the extra one
-            if (i == sideLength - 1 && j == sideLength-1 ) {
+            //skip the extra one (the last one)
+            if (i == sideLength - 1 && j == sideLength - 1 ) {
                 break;
             }
             offsetArray[sideLength * i + j +1] =
@@ -2345,33 +2489,54 @@ GLuint* createVertexBufferObject()
     glGenVertexArrays(1, &vertexArrayObject);
     glBindVertexArray(vertexArrayObject);
 
-
     // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
-    //Have two arrays/buffer.
+    //Have multiple arrays/buffer.
     //https://www.khronos.org/opengl/wiki/Tutorial2:_VAOs,_VBOs,_Vertex_and_Fragment_Shaders_(C_/_SDL)
-    GLuint vertexBufferObject[2];
-    glGenBuffers(2, vertexBufferObject);
+    GLuint vertexBufferObject[3];
+    glGenBuffers(3, vertexBufferObject);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[0]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(texturedCubeVertexArray), texturedCubeVertexArray, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(1,                            // attribute 1 matches aColor in Vertex Shader
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        sizeof(TexturedColoredVertex),
+        (void*)sizeof(vec3)      // color is offseted a vec3 (comes after position)
+    );
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2,                            // attribute 2 matches aUV in Vertex Shader
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        sizeof(TexturedColoredVertex),
+        (void*)(2 * sizeof(vec3))      // uv is offseted by 2 vec3 (comes after position and color)
+    );
+    glEnableVertexAttribArray(2);
+
+
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0,                   // attribute 0 matches aPos in Vertex Shader
         3,                   // size
         GL_FLOAT,            // type
         GL_FALSE,            // normalized?
-        2*sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        2 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
         (void*)0             // array buffer offset
     );
     glEnableVertexAttribArray(0);
-    
-    glVertexAttribPointer(1,                   // attribute 1 matches aNormal in Vertex Shader
+
+    glVertexAttribPointer(4,                   // attribute 1 matches aNormal in Vertex Shader
         3,                   // size
         GL_FLOAT,            // type
         GL_FALSE,            // normalized?
-        2*sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        2 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
         (void*)sizeof(vec3)  // array buffer offset
     );
-    glEnableVertexAttribArray(1);
-
+    glEnableVertexAttribArray(4);
 
     //https://learnopengl.com/Advanced-OpenGL/Instancing
     //Setting up the instance array
@@ -2383,6 +2548,169 @@ GLuint* createVertexBufferObject()
     glVertexAttribDivisor(3, 1);
 
     return vertexBufferObject;
+    return vertexArrayObject;
+}
+
+const char* getVertexShaderSource()
+{
+    return
+        "#version 330 core\n"
+        "layout (location = 0) in vec3 aPos;"
+		"layout (location = 1) in vec3 aColor;"
+		"layout (location = 2) in vec2 aUV;"
+        "layout (location = 4) in vec3 aNormal;"
+        ""
+        "uniform mat4 worldMatrix;"
+        "uniform mat4 viewMatrix = mat4(1.0);"  // default value for view matrix (identity)
+        "uniform mat4 projectionMatrix = mat4(1.0);"
+        ""
+        "out vec3 normalVec;"
+        "out vec3 fragPos;"
+		"out vec2 vertexUV;"
+        "void main()"
+        "{"
+        "   normalVec = mat3(transpose(inverse(worldMatrix))) * aNormal;"
+        "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix;"
+        "   gl_Position = modelViewProjection * vec4(aPos.x, aPos.y, aPos.z, 1.0);"
+		"   vertexUV = aUV;"
+        "   fragPos = vec3(worldMatrix * vec4(aPos, 1.0));"
+        "}";
+}
+
+const char* getFragmentShaderSource()
+{
+    return
+    "#version 330 core\n"
+    "uniform vec3 objectColor;"
+    "uniform vec3 lightPos;"
+    "uniform vec3 viewPos;"
+		"uniform sampler2D textureSampler;"
+		"uniform bool hasTexture;"
+    "vec3 lightColor = vec3(1.0, 1.0, 1.0);"
+    "in vec3 normalVec;"
+    "in vec3 fragPos;"
+		"in vec2 vertexUV;"
+    "out vec4 FragColor;"
+    "void main()"
+    "{"
+		"   vec4 textureColor = texture( textureSampler, vertexUV );"
+        //if it doesn't have a texture, do not modify its color
+		"   if (!hasTexture){"
+		"	   textureColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);"
+		"   }"
+        // Ambient
+        "   float ambientStrength = 0.4;"
+        "   vec3 ambient = ambientStrength * lightColor;"
+        // Diffuse
+        "   vec3 norm = normalize(normalVec);"
+        "   vec3 lightDir = normalize(lightPos - fragPos);"
+        "   float diff = max(dot(norm, lightDir), 0.0);"
+        "   vec3 diffuse = diff * lightColor;"
+        // Specular
+        "   float specularStrength = 0.5;"
+        "   vec3 viewDir = normalize(viewPos - fragPos);"
+        "   vec3 reflectDir = reflect(-lightDir, norm);"
+        "   float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);"
+        "   vec3 specular = specularStrength * spec * lightColor;"
+        // Final color output
+        "   vec4 result = vec4((ambient + diffuse + specular) * objectColor, 1.0f);"
+        "   FragColor = result * textureColor;"
+    "}";
+}
+
+int compileAndLinkShaders()
+{
+    // compile and link shader program
+    // return shader program id
+    // ------------------------------------
+
+    // vertex shader
+    int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    const char* vertexShaderSource = getVertexShaderSource();
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+
+    // check for shader compile errors
+    int success;
+    char infoLog[512];
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+
+    // fragment shader
+    int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    const char* fragmentShaderSource = getFragmentShaderSource();
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+
+    // check for shader compile errors
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+
+    // link shaders
+    int shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    // check for linking errors
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+    }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return shaderProgram;
+}
+
+GLuint loadTexture(const char* filename)
+{
+	// Step1 Create and bind textures
+	GLuint textureId = 0;
+	glGenTextures(1, &textureId);
+	assert(textureId != 0);
+
+
+	glBindTexture(GL_TEXTURE_2D, textureId);
+
+	// Step2 Set filter parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	// Step3 Load Textures with dimension data
+	int width, height, nrChannels;
+	unsigned char* data = stbi_load(filename, &width, &height, &nrChannels, 0);
+	if (!data)
+	{
+		std::cerr << "Error::Texture could not load texture file:" << filename << std::endl;
+		return 0;
+	}
+
+	// Step4 Upload the texture to the PU
+	GLenum format = 0;
+	if (nrChannels == 1)
+		format = GL_RED;
+	else if (nrChannels == 3)
+		format = GL_RGB;
+	else if (nrChannels == 4)
+		format = GL_RGBA;
+	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height,
+		0, format, GL_UNSIGNED_BYTE, data);
+
+	// Step5 Free resources
+	stbi_image_free(data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return textureId;
 }
 
 //Input sideLength is length of side of grid by cell count. Default 100.
@@ -2544,11 +2872,14 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
 //function will return a matrix for corresponding transformation of inputted keys.
 //note: undefined order priority in case multiple correct keys are pressed (but will select a matrix).
 mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyStates) {
-    mat4* selectedTransformation = new mat4[3];
-    //default return values
-    selectedTransformation[0] = mat4(1.0f);     //translate
-    selectedTransformation[1] = mat4(1.0f);     //rotate
-    selectedTransformation[2] = mat4(1.0f);     //scale
+	mat4* selectedTransformation = new mat4[5];
+	//default return values
+	selectedTransformation[0] = mat4(1.0f);     //translate
+	selectedTransformation[1] = mat4(1.0f);     //rotate
+	selectedTransformation[2] = mat4(1.0f);     //scale
+
+	selectedTransformation[3] = mat4(1.0f);     //signal to reset position and orientation if changed.
+	selectedTransformation[4] = mat4(1.0f);     //signal to toggle textures if changed.
 
     //allows map value to contain 2 variables.
     struct transformation {
@@ -2591,25 +2922,31 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
                     0,
                     0)), 0 }));
 
-        //scale model if pressed
-        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_U, {
-            scale(mat4(1.0f),
-                vec3((1 + scaleSpeed), (1 + scaleSpeed), (1 + scaleSpeed))), 2 }));
-        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_J, {
-            scale(mat4(1.0f),
-                vec3(1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed))), 2 }));
-    }
-    else {
-        //rotate model if pressed
-        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_A, {
-            rotate(mat4(1.0f),
-                radians(rotateSpeed),
-                vec3(0.0f, 1.0f, 0.0f)), 1 }));
-        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_D, {
-            rotate(mat4(1.0f),
-                radians(rotateSpeed),
-                vec3(0.0f, -1.0f, 0.0f)), 1 }));
-    }
+		//scale model if pressed
+		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_U, {
+			scale(mat4(1.0f),
+			vec3((1 + scaleSpeed), (1 + scaleSpeed), (1 + scaleSpeed))), 2 }));
+		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_J, {
+			scale(mat4(1.0f),
+			vec3(1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed))), 2 }));
+	}
+	else {
+		//rotate model if pressed
+		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_A, {
+			rotate(mat4(1.0f),
+			radians(rotateSpeed),
+			vec3(0.0f, 1.0f, 0.0f)), 1 }));
+		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_D, {
+			rotate(mat4(1.0f),
+			radians(rotateSpeed),
+			vec3(0.0f, -1.0f, 0.0f)), 1 }));
+	}
+	//reset position and orientation if pressed
+	inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_HOME, {
+		mat4(2.0f), 3 }));
+	//toggle texture when pressed
+	inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_X, {
+		mat4(2.0f), 4 }));
 
     //iterate through all keys that could be pressed.
     for (itr = inputsToModelMatrix.begin(); itr != inputsToModelMatrix.end(); ++itr) {
@@ -2743,7 +3080,23 @@ int main(int argc, char* argv[])
     // Register callback functions
     glfwSetWindowSizeCallback(window, window_size_callback);
     glfwSetKeyCallback(window, key_callback);
-    
+
+
+    // Load Textures
+#if defined(PLATFORM_OSX)
+    GLuint brickTextureID = loadTexture("Textures/brick.jpg");
+    GLuint cementTextureID = loadTexture("Textures/cement.jpg");
+    GLuint metalTextureID = loadTexture("Textures/metal.jpg");
+    GLuint boxTextureID = loadTexture("Textures/box.jpg");
+
+#else
+    GLuint brickTextureID = loadTexture("../Assets/Textures/brick.jpg");
+    GLuint cementTextureID = loadTexture("../Assets/Textures/cement.jpg");
+    GLuint metalTextureID = loadTexture("../Assets/Textures/metal.jpg");
+    GLuint boxTextureID = loadTexture("../Assets/Textures/box.jpg");
+
+#endif
+
     // Black background
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -2756,12 +3109,15 @@ int main(int argc, char* argv[])
     // Set light position vector in fragment shader to current light position value (done once)
     GLuint lightPosLocation = glGetUniformLocation(shaderProgram, "lightPos");
     glUniform3f(lightPosLocation, lightPos.x, lightPos.y, lightPos.z);
-    
+
     // Used to ovewrite camera postion in fragment shader
     GLuint viewPosLocation = glGetUniformLocation(shaderProgram, "viewPos");
-    
+
     // Used to overwrite color in the fragment shader
     GLuint colorLocation = glGetUniformLocation(shaderProgram, "objectColor");
+
+    GLuint enableTextureLocation = glGetUniformLocation(shaderProgram, "hasTexture");
+    int enableTexture = 1;	//1 for on, 0 for off
 
     // Camera parameters for view transform
     const float initial_xpos = 0;
@@ -2788,12 +3144,12 @@ int main(int argc, char* argv[])
     float cameraVerticalAngle = -initial_cameraVerticalAngle;
     bool  cameraFirstPerson = true; // press 1 or 2 to toggle this variable
     float foV = initialFoV;
-    
+
     // Mouse input parameters (true if pressed, false if released)
     bool leftMouseButton = false;
     bool rightMouseButton = false;
     bool middleMouseButton = false;
-    
+
     // Spinning cube at camera position
     float spinningCubeAngle = 0.0f;
 
@@ -2818,12 +3174,15 @@ int main(int argc, char* argv[])
 
     //used for draw instancing.
     vec3 instanceVec[100];
-    instanceVec[0] = vec3(0,0,0);
+    instanceVec[0] = vec3(0, 0, 0);
+    {//select one of the two later, merging
+    // Define and upload geometry to the GPU here ...
+    int cubeVAO = createTexturedCubeVertexArrayObject();
 
     // Define and upload geometry to the GPU here ...
     //int vbo = createVertexBufferObject();
     GLuint* vbo = createVertexBufferObject();
-    
+}
     // For frame time
     float lastFrameTime = glfwGetTime();
 
@@ -2835,8 +3194,10 @@ int main(int argc, char* argv[])
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_U, { GLFW_RELEASE , true }));
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_J, { GLFW_RELEASE , true }));
 
-    double lastMousePosX, lastMousePosY;
-    glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
+	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_X, { GLFW_RELEASE , false }));
+
+	double lastMousePosX, lastMousePosY;
+	glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
 
     // Other OpenGL states to set once
     // Enable Backface culling
@@ -2846,8 +3207,6 @@ int main(int argc, char* argv[])
     // ...
     glEnable(GL_DEPTH_TEST);
 
-    // Container for projectiles to be implemented in tutorial
-    //list<Projectile> projectileList;
 
     //Models
     //CharModel* selectedModel;
@@ -2877,15 +3236,19 @@ int main(int argc, char* argv[])
         // @TODO 1 - Clear Depth Buffer Bit as well
         // ...
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // Draw geometry
-        glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-
+        {//**merging
+            // Draw geometry
+            glBindBuffer(GL_ARRAY_BUFFER, cubeVAO);
+            // Draw geometry
+            glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+        }
         // Draw ground
         GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
 
         //draw grid
+        glBindTexture(GL_TEXTURE_2D, 0);
         glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
+        glUniform1i(enableTextureLocation, 0);
         drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
         //draw tiles
         glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
@@ -2893,6 +3256,7 @@ int main(int argc, char* argv[])
 
         // draw axis
         drawAxis(worldMatrixLocation, colorLocation);
+        glUniform1i(enableTextureLocation, enableTexture);
 
         //draw models
         {
@@ -2914,21 +3278,29 @@ int main(int argc, char* argv[])
                 cameraUp = initial_cameraUp;
                 foV = initialFoV;
             }
+            //todo:convert
+            //X key has been pressed, so toggle textures.
+            if (relativeWorldMatrix[4] != mat4(1.0f)) {
+                enableTexture = enableTexture * -1 + 1;
+            }
             //Adjust selected model accordingly.
             selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
 
-            //draw all models
-            glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
-            CharModel::draw(models);
-        }
+			//draw all models
+			//glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+			glUniform3f(colorLocation, 0.2f, 0.2f, 1.0f);
 
-        // @TODO 3 - Update and draw projectiles
-        // ...
+			glBindTexture(GL_TEXTURE_2D, boxTextureID);
+			CharModel::drawLetter(models);
+			glBindTexture(GL_TEXTURE_2D, metalTextureID);
+			CharModel::drawNumber(models);
+            //Sphere has no texture for now.
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glUniform1i(enableTextureLocation, 0);
+            CharModel::drawSphere(models);
+            glUniform1i(enableTextureLocation, enableTexture);
+		}
 
-        //for (list<Projectile>::iterator it = projectileList.begin(); it != projectileList.end(); it++) {
-        //    it->Update(dt);
-        //    it->Draw();
-        //}
 
         // Spinning cube at camera position
         spinningCubeAngle += 180.0f * dt;
@@ -2954,7 +3326,11 @@ int main(int argc, char* argv[])
             //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
         }
         glUniform3f(colorLocation, 0.0f, 0.5f, 0.5f);
+        //no texture
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glUniform1i(enableTextureLocation, 0);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+        glUniform1i(enableTextureLocation, enableTexture);
 
 
         //update previous key states.
@@ -3108,21 +3484,7 @@ int main(int argc, char* argv[])
         GLuint viewMatrixLocation = glGetUniformLocation(shaderProgram, "viewMatrix");
         glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
 
-        // @TODO 2 - Shoot Projectiles
-        //
-        // shoot projectiles on mouse left click
-        // To detect onPress events, we need to check the last state and the current state to detect the state change
-        // Otherwise, you would shoot many projectiles on each mouse press
-        // ...
-        /*
-        if (lastMouseLeftState == GLFW_RELEASE && glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-            const float projectileSpeed = 25.0f;
-            projectileList.push_back(Projectile(cameraPosition, projectileSpeed * cameraLookAt, shaderProgram));
-
-            //glClearColor(0.5f, 0.5f, 0.0f, 1.0f);
-        }
-        lastMouseLeftState = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-        */
+       
         
         // Process mouse button inputs (press assigns button to true, release to false)
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
