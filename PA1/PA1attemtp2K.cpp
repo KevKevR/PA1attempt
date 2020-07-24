@@ -1025,119 +1025,7 @@ private:
 	}
 };
 
-const char* getVertexShaderSource()
-{
-    // For now, you use a string for your shader code, in the assignment, shaders will be stored in .glsl files
-    return
-        "#version 330 core\n"
-        "layout (location = 0) in vec3 aPos;"
-        "layout (location = 1) in vec3 aNormal;"
-        "layout(location = 3) in vec3 instanceVec; "     // instancing https://learnopengl.com/Advanced-OpenGL/Instancing
-        ""
-        "uniform mat4 worldMatrix;"
-        "uniform mat4 viewMatrix = mat4(1.0);"  // default value for view matrix (identity)
-        "uniform mat4 projectionMatrix = mat4(1.0);"
-        ""
-        "out vec3 normalVec;"
-        "out vec3 fragPos;"
-        "void main()"
-        "{"
-        "   normalVec = mat3(transpose(inverse(worldMatrix))) * aNormal;"
-        "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix;"
-        "   gl_Position = modelViewProjection * vec4(aPos + instanceVec, 1.0);"
-        "   fragPos = vec3(worldMatrix * vec4(aPos, 1.0));"
-        "}";
-}
-const char* getFragmentShaderSource()
-{
-    return
-    "#version 330 core\n"
-    "uniform vec3 objectColor;"
-    "uniform vec3 lightPos;"
-    "uniform vec3 viewPos;"
-    "vec3 lightColor = vec3(1.0, 1.0, 1.0);"
-    "in vec3 normalVec;"
-    "in vec3 fragPos;"
-    "out vec4 FragColor;"
-    "void main()"
-    "{"
-    // Ambient
-    "   float ambientStrength = 0.4;"
-    "   vec3 ambient = ambientStrength * lightColor;"
-    // Diffuse
-    "   vec3 norm = normalize(normalVec);"
-    "   vec3 lightDir = normalize(lightPos - fragPos);"
-    "   float diff = max(dot(norm, lightDir), 0.0);"
-    "   vec3 diffuse = diff * lightColor;"
-    // Specular
-    "   float specularStrength = 0.5;"
-    "   vec3 viewDir = normalize(viewPos - fragPos);"
-    "   vec3 reflectDir = reflect(-lightDir, norm);"
-    "   float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);"
-    "   vec3 specular = specularStrength * spec * lightColor;"
-    // Final color output
-    "   vec3 result = (ambient + diffuse + specular) * objectColor;"
-    "   FragColor = vec4(result, 1.0);"
-    "}";
-}
-
-
-int compileAndLinkShaders()
-{
-    // compile and link shader program
-    // return shader program id
-    // ------------------------------------
-
-    // vertex shader
-    int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    const char* vertexShaderSource = getVertexShaderSource();
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    // check for shader compile errors
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-
-    // fragment shader
-    int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    const char* fragmentShaderSource = getFragmentShaderSource();
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-
-    // check for shader compile errors
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-
-    // link shaders
-    int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    // check for linking errors
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    return shaderProgram;
-}
-
-
+//int createTexturedCubeVertexArrayObject()
 GLuint* createTexturedCubeVertexArrayObject()
 {
     // Cube model (used for models and axis)
@@ -2462,7 +2350,6 @@ GLuint* createTexturedCubeVertexArrayObject()
         vec3(0.171010, -0.030154, -0.984808), vec3(0.171010, -0.030154, -0.984808),
         vec3(0.173648, -0.000000, -0.984808), vec3(0.173648, -0.000000, -0.984808),
         vec3(0.000000, 0.000000, -1.000000), vec3(0.000000, 0.000000, -1.000000)
-        
     };
 
     const int sideLength = 100;
@@ -2541,14 +2428,14 @@ GLuint* createTexturedCubeVertexArrayObject()
     //https://learnopengl.com/Advanced-OpenGL/Instancing
     //Setting up the instance array
     glEnableVertexAttribArray(3);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[2]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(offsetArray), offsetArray, GL_STATIC_DRAW);
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glVertexAttribDivisor(3, 1);
 
     return vertexBufferObject;
-    return vertexArrayObject;
+    //return vertexArrayObject;
 }
 
 const char* getVertexShaderSource()
@@ -2558,6 +2445,7 @@ const char* getVertexShaderSource()
         "layout (location = 0) in vec3 aPos;"
 		"layout (location = 1) in vec3 aColor;"
 		"layout (location = 2) in vec2 aUV;"
+        "layout (location = 3) in vec3 instanceVec; "     // instancing https://learnopengl.com/Advanced-OpenGL/Instancing
         "layout (location = 4) in vec3 aNormal;"
         ""
         "uniform mat4 worldMatrix;"
@@ -2571,7 +2459,7 @@ const char* getVertexShaderSource()
         "{"
         "   normalVec = mat3(transpose(inverse(worldMatrix))) * aNormal;"
         "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix;"
-        "   gl_Position = modelViewProjection * vec4(aPos.x, aPos.y, aPos.z, 1.0);"
+        "   gl_Position = modelViewProjection * vec4(aPos + instanceVec, 1.0);"
 		"   vertexUV = aUV;"
         "   fragPos = vec3(worldMatrix * vec4(aPos, 1.0));"
         "}";
@@ -2581,23 +2469,28 @@ const char* getFragmentShaderSource()
 {
     return
     "#version 330 core\n"
-    "uniform vec3 objectColor;"
-    "uniform vec3 lightPos;"
+    "uniform vec3 objectColor;"     //object inherent color
+    "uniform vec3 lightPos;"        //light properties
     "uniform vec3 viewPos;"
-		"uniform sampler2D textureSampler;"
-		"uniform bool hasTexture;"
-    "vec3 lightColor = vec3(1.0, 1.0, 1.0);"
-    "in vec3 normalVec;"
+	"uniform sampler2D textureSampler;" //texture properties
+	"uniform bool hasTexture;"
+
+    "vec3 lightColor = vec3(1.0, 1.0, 1.0);"    //light property
+
     "in vec3 fragPos;"
-		"in vec2 vertexUV;"
-    "out vec4 FragColor;"
+    "in vec3 normalVec;"    //light properties
+	"in vec2 vertexUV;"     //texture properties
+
+    "out vec4 FragColor;"   //output
     "void main()"
     "{"
+        //assign texture color
 		"   vec4 textureColor = texture( textureSampler, vertexUV );"
         //if it doesn't have a texture, do not modify its color
 		"   if (!hasTexture){"
 		"	   textureColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);"
 		"   }"
+        //Phong model lighting
         // Ambient
         "   float ambientStrength = 0.4;"
         "   vec3 ambient = ambientStrength * lightColor;"
@@ -2612,7 +2505,7 @@ const char* getFragmentShaderSource()
         "   vec3 reflectDir = reflect(-lightDir, norm);"
         "   float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);"
         "   vec3 specular = specularStrength * spec * lightColor;"
-        // Final color output
+        // Final color output from phong model
         "   vec4 result = vec4((ambient + diffuse + specular) * objectColor, 1.0f);"
         "   FragColor = result * textureColor;"
     "}";
@@ -3067,7 +2960,7 @@ int main(int argc, char* argv[])
 
     // @TODO 3 - Disable mouse cursor
     // ...
-    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // Initialize GLEW
     glewExperimental = true; // Needed for core profile
@@ -3175,14 +3068,14 @@ int main(int argc, char* argv[])
     //used for draw instancing.
     vec3 instanceVec[100];
     instanceVec[0] = vec3(0, 0, 0);
-    {//select one of the two later, merging
+    //select one of the two later, merging
     // Define and upload geometry to the GPU here ...
-    int cubeVAO = createTexturedCubeVertexArrayObject();
+    //int cubeVAO = createTexturedCubeVertexArrayObject();
 
     // Define and upload geometry to the GPU here ...
     //int vbo = createVertexBufferObject();
-    GLuint* vbo = createVertexBufferObject();
-}
+    GLuint* vbo = createTexturedCubeVertexArrayObject();
+
     // For frame time
     float lastFrameTime = glfwGetTime();
 
@@ -3236,12 +3129,12 @@ int main(int argc, char* argv[])
         // @TODO 1 - Clear Depth Buffer Bit as well
         // ...
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        {//**merging
+        //**merging
             // Draw geometry
-            glBindBuffer(GL_ARRAY_BUFFER, cubeVAO);
+            //glBindBuffer(GL_ARRAY_BUFFER, cubeVAO);
             // Draw geometry
             glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-        }
+        
         // Draw ground
         GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
 
@@ -3357,18 +3250,6 @@ int main(int argc, char* argv[])
         // Handle inputs
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(window, true);
-
-        /*
-        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) // move camera down
-        {
-            cameraFirstPerson = true;
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) // move camera down
-        {
-            cameraFirstPerson = false;
-        }
-        */
 
 
         // This was solution for Lab02 - Moving camera exercise
