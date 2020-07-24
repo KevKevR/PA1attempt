@@ -1,5 +1,5 @@
 //
-// Concordia University COMP 371 Programming Assignment 1, Summer 2020.
+// Concordia University COMP 371 Programming Assignment 2, Summer 2020.
 //
 // Created by :
 //    Jason Beccherini (40130107)
@@ -7,7 +7,7 @@
 //    Gia-Khang Ernest Nguyen (40091426)
 //    Wing-Fei Jason Tiu (40048495)
 //    Kevin Rao (40095427)
-// due July 12th, 2020.
+// due July 27th, 2020.
 //
 
 #include <iostream>
@@ -31,10 +31,6 @@ using namespace glm;
 using namespace std;
 
 GLuint loadTexture(const char* filename);
-
-//GLuint boxTextureID;
-//GLuint metalTextureID;
-
 
 const int numMainModels = 5;
 
@@ -152,7 +148,7 @@ public:
         relativeTranslateMatrix = mat4(1.0f);
         relativeRotateMatrix = mat4(1.0f);
         relativeScaleMatrix = mat4(1.0f);
-
+        initY = 0;
     }
 
     mat4 getRelativeTranslateMatrix() {
@@ -460,7 +456,7 @@ private:
 		mat4 inertialWorldMatrix;   //model from an inertial view of reference, ie centered at origin.
 		mat4 worldMatrix;           //complete matrix after all transformations.
 
-									//convert angles to radians
+		//convert angles to radians
 		const float r_angle = abs(radians((float)angle));
 
 		//future calculations done early to determine modelPositioningMatrix for letter, and box measurements.
@@ -1025,8 +1021,7 @@ private:
 	}
 };
 
-//int createTexturedCubeVertexArrayObject()
-GLuint* createTexturedCubeVertexArrayObject()
+int createTexturedCubeVertexArrayObject()
 {
     // Cube model (used for models and axis)
 
@@ -2352,6 +2347,8 @@ GLuint* createTexturedCubeVertexArrayObject()
         vec3(0.000000, 0.000000, -1.000000), vec3(0.000000, 0.000000, -1.000000)
     };
 
+
+    //create instancing array for tile grid. 
     const int sideLength = 100;
     const float cellLength = 1.0f;
     const float height = 0.0f;
@@ -2434,19 +2431,18 @@ GLuint* createTexturedCubeVertexArrayObject()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glVertexAttribDivisor(3, 1);
 
-    return vertexBufferObject;
-    //return vertexArrayObject;
+    return vertexArrayObject;
 }
 
 const char* getVertexShaderSource()
 {
     return
         "#version 330 core\n"
-        "layout (location = 0) in vec3 aPos;"
-		"layout (location = 1) in vec3 aColor;"
-		"layout (location = 2) in vec2 aUV;"
-        "layout (location = 3) in vec3 instanceVec; "     // instancing https://learnopengl.com/Advanced-OpenGL/Instancing
-        "layout (location = 4) in vec3 aNormal;"
+        "layout (location = 0) in vec3 aPos;"           //vertex position
+		"layout (location = 1) in vec3 aColor;"         //vertex color
+		"layout (location = 2) in vec2 aUV;"            //vertex texture location
+        "layout (location = 3) in vec3 instanceVec; "   // instancing https://learnopengl.com/Advanced-OpenGL/Instancing
+        "layout (location = 4) in vec3 aNormal;"        //vertex normal
         ""
         "uniform mat4 worldMatrix;"
         "uniform mat4 viewMatrix = mat4(1.0);"  // default value for view matrix (identity)
@@ -2464,7 +2460,6 @@ const char* getVertexShaderSource()
         "   fragPos = vec3(worldMatrix * vec4(aPos, 1.0));"
         "}";
 }
-
 const char* getFragmentShaderSource()
 {
     return
@@ -2476,6 +2471,7 @@ const char* getFragmentShaderSource()
 	"uniform bool hasTexture;"
 
     "vec3 lightColor = vec3(1.0, 1.0, 1.0);"    //light property
+    "vec4 textureColor;"                        //texture property
 
     "in vec3 fragPos;"
     "in vec3 normalVec;"    //light properties
@@ -2484,12 +2480,16 @@ const char* getFragmentShaderSource()
     "out vec4 FragColor;"   //output
     "void main()"
     "{"
+        //Texture
         //assign texture color
-		"   vec4 textureColor = texture( textureSampler, vertexUV );"
-        //if it doesn't have a texture, do not modify its color
-		"   if (!hasTexture){"
-		"	   textureColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);"
+		"   if (hasTexture){"
+		"      textureColor = texture( textureSampler, vertexUV );"
 		"   }"
+        //if it shouldn't have a texture, do not modify its color
+        "   else {"
+		"	   textureColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);"
+        "   }"
+
         //Phong model lighting
         // Ambient
         "   float ambientStrength = 0.4;"
@@ -2765,17 +2765,14 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
 //function will return a matrix for corresponding transformation of inputted keys.
 //note: undefined order priority in case multiple correct keys are pressed (but will select a matrix).
 mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyStates) {
-	mat4* selectedTransformation = new mat4[5];
+	mat4* selectedTransformation = new mat4[3];
 	//default return values
 	selectedTransformation[0] = mat4(1.0f);     //translate
 	selectedTransformation[1] = mat4(1.0f);     //rotate
 	selectedTransformation[2] = mat4(1.0f);     //scale
 
-	selectedTransformation[3] = mat4(1.0f);     //signal to reset position and orientation if changed.
-	selectedTransformation[4] = mat4(1.0f);     //signal to toggle textures if changed.
-
     //allows map value to contain 2 variables.
-    struct transformation {
+    struct Transformation {
         mat4 matrix;
         int type;
         //type, same type should be communitative.
@@ -2783,8 +2780,8 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
         //1 : rotate
         //2 : scale
     };
-    map<int, transformation> inputsToModelMatrix;
-    map<int, transformation>::iterator itr;
+    map<int, Transformation> inputsToModelMatrix;
+    map<int, Transformation>::iterator itr;
     float transformSpeed = 6 * dt;
     float translateSpeed = transformSpeed;
     float rotateSpeed = 5.0f;   //specifications
@@ -2793,53 +2790,47 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
     {
         //translate model if pressed
         //vertical movement
-        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_W, {
+        inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_W, {
             translate(mat4(1.0f),
                 vec3(0,
                     0,
                     -translateSpeed)), 0 }));
-        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_S, {
+        inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_S, {
             translate(mat4(1.0f),
                 vec3(0,
                     0,
                     translateSpeed)), 0 }));
         //horizontal movement
-        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_D, {
+        inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_D, {
             translate(mat4(1.0f),
                 vec3(translateSpeed,
                     0,
                     0)), 0 }));
-        inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_A, {
+        inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_A, {
             translate(mat4(1.0f),
                 vec3(-translateSpeed,
                     0,
                     0)), 0 }));
 
 		//scale model if pressed
-		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_U, {
+		inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_U, {
 			scale(mat4(1.0f),
 			vec3((1 + scaleSpeed), (1 + scaleSpeed), (1 + scaleSpeed))), 2 }));
-		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_J, {
+		inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_J, {
 			scale(mat4(1.0f),
 			vec3(1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed))), 2 }));
 	}
 	else {
 		//rotate model if pressed
-		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_A, {
+		inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_A, {
 			rotate(mat4(1.0f),
 			radians(rotateSpeed),
 			vec3(0.0f, 1.0f, 0.0f)), 1 }));
-		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_D, {
+		inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_D, {
 			rotate(mat4(1.0f),
 			radians(rotateSpeed),
 			vec3(0.0f, -1.0f, 0.0f)), 1 }));
 	}
-	//reset position and orientation if pressed
-	inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_HOME, {
-		mat4(2.0f), 3 }));
-	//toggle texture when pressed
-	inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_X, {
-		mat4(2.0f), 4 }));
 
     //iterate through all keys that could be pressed.
     for (itr = inputsToModelMatrix.begin(); itr != inputsToModelMatrix.end(); ++itr) {
@@ -2871,24 +2862,46 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
 
         if (glfwGetKey(window, itr->first) == GLFW_PRESS && previousState == GLFW_RELEASE) // select model. Apply once for keys that are tracked.
         {
-            if (itr->second.type == 3) {
-                //signal to reset position and orientation.
-                selectedTransformation[3] = mat4(2.0f);
-            }
-            else {
-                //group up the applied transformations.
-                selectedTransformation[itr->second.type] = itr->second.matrix * selectedTransformation[itr->second.type];
-            }
+            //group up the applied transformations.
+            selectedTransformation[itr->second.type] = itr->second.matrix * selectedTransformation[itr->second.type];
         }
     }
     return selectedTransformation;
 }
 //retrieve bool on whether a setting should be applied or not, based on key press.
 bool* customControl(GLFWwindow * window, map<int, KeyState> previousKeyStates) {
-    const int numKeys = 1;  //number of keys tied to settings.
-    bool selectedSetting[numKeys] = {}; //initialize as false.
+    struct Key {
+        GLuint key;     //key
+        bool shiftKey;  //whether shift should be pressed along with key
+
+        Key(GLuint k, bool sk = false) {
+            key = k;
+            shiftKey = sk;
+        }
+    };
+
+    //can modify this area
     //array of keys tied to settings.
-    const int keyControl[numKeys] = { GLFW_KEY_HOME };
+    const Key keyControl[] = {
+        //{KEY, shift requirement(default false)}
+        //signal to reset position and orientation
+        {GLFW_KEY_HOME},
+        {GLFW_KEY_HOME, true},
+        //signal to toggle textures
+        {GLFW_KEY_X, true}
+    };
+
+    //all below is automatic
+    //consider if shift is pressed (referred to multiple times, so store it in a variable).
+    const bool shiftPressed = isShiftPressed(window);
+    //number of keys tied to settings.
+    const int numKeys = sizeof(keyControl)/ sizeof(keyControl[0]);
+    
+    bool* selectedSetting = new bool[numKeys];
+    //initialize values as false.
+    for (int i = 0; i < numKeys; i++) {
+        selectedSetting[i] = false;
+    }
 
     //for every key tied to a setting, check if it is pressed.
     for (int i = 0; i < numKeys; i++) {
@@ -2897,11 +2910,11 @@ bool* customControl(GLFWwindow * window, map<int, KeyState> previousKeyStates) {
         //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
         //default released if not tracked
         int previousState = GLFW_RELEASE;
-        map<int, KeyState>::iterator it = previousKeyStates.find(keyControl[i]);
+        map<int, KeyState>::iterator it = previousKeyStates.find(keyControl[i].key);
         if (it != previousKeyStates.end()) {        //key is a tracked one
             //toggling shift should not activate the key again.
             //So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
-            if ((it->second.needShiftPressed == isShiftPressed(window)) && it->second.prevWithShiftPressed) {
+            if (it->second.needShiftPressed == shiftPressed && it->second.prevWithShiftPressed) {
                 previousState = GLFW_PRESS;    //so update to actual
                 //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
             }
@@ -2912,8 +2925,9 @@ bool* customControl(GLFWwindow * window, map<int, KeyState> previousKeyStates) {
             }
         }
         ////////////////
-
-        if (glfwGetKey(window, keyControl[i]) == GLFW_PRESS && previousState == GLFW_RELEASE) // key action. Apply once for keys that are tracked.
+        if (glfwGetKey(window, keyControl[i].key) == GLFW_PRESS 
+            && previousState == GLFW_RELEASE 
+            && keyControl[i].shiftKey == shiftPressed) // key action. Apply once for keys that are tracked.
         {
             selectedSetting[i] = true;
         }
@@ -3016,6 +3030,7 @@ int main(int argc, char* argv[])
     const float initial_xpos = 0;
     const float initial_ypos = 5;
     const float initial_zpos = 20;
+    //distance to origin in xz-plane.
     const float initial_rpos = sqrt(powf(initial_xpos, 2) + powf(initial_zpos, 2));
     const vec3 initial_cameraPosition(initial_xpos, initial_ypos, initial_zpos);
     //const vec3 initial_cameraLookAt(0.0f, 0.0f, -1.0f);   //<-overridden by camera Horizontal/Vertical Angle anyways.
@@ -3025,8 +3040,7 @@ int main(int argc, char* argv[])
     vec3 cameraLookAt /*= initial_cameraLookAt*/;
     vec3 cameraUp = initial_cameraUp;
 
-
-    // Other camera parameters
+    // Other camera parameters, set to look at origin.
     const float initial_cameraHorizontalAngle = degrees(atan2f(initial_zpos, -initial_xpos));
     const float initial_cameraVerticalAngle = degrees(atan2f(initial_ypos, initial_rpos));
     const float initialFoV = 70.0f;
@@ -3047,13 +3061,13 @@ int main(int argc, char* argv[])
     float spinningCubeAngle = 0.0f;
 
     // Set projection matrix for shader
-    mat4 projectionMatrix = glm::perspective(radians(initialFoV),            // field of view in degrees
+    mat4 projectionMatrix = glm::perspective(radians(initialFoV),   // field of view in degrees
         800.0f / 600.0f,  // aspect ratio
         0.01f, 100.0f);   // near and far (near > 0)
 
-//glm::mat4 projectionMatrix = glm::ortho(-4.0f, 4.0f,    // left/right
-//    -3.0f, 3.0f,    // bottom/top
-//    -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
+    //glm::mat4 projectionMatrix = glm::ortho(-4.0f, 4.0f,    // left/right
+    //    -3.0f, 3.0f,    // bottom/top
+    //    -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
 
     GLuint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
     glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
@@ -3068,13 +3082,8 @@ int main(int argc, char* argv[])
     //used for draw instancing.
     vec3 instanceVec[100];
     instanceVec[0] = vec3(0, 0, 0);
-    //select one of the two later, merging
     // Define and upload geometry to the GPU here ...
-    //int cubeVAO = createTexturedCubeVertexArrayObject();
-
-    // Define and upload geometry to the GPU here ...
-    //int vbo = createVertexBufferObject();
-    GLuint* vbo = createTexturedCubeVertexArrayObject();
+    int cubeVAO = createTexturedCubeVertexArrayObject();
 
     // For frame time
     float lastFrameTime = glfwGetTime();
@@ -3082,12 +3091,15 @@ int main(int argc, char* argv[])
     //Previous key states to track
     //int lastMouseLeftState = GLFW_RELEASE;
     map<int, KeyState> previousKeyStates;
+    //(<key>, { <initialized previous state> , <shift required>})
+    //model y-axis rotations
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_A, { GLFW_RELEASE , false }));
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_D, { GLFW_RELEASE , false }));
+    //model scalings
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_U, { GLFW_RELEASE , true }));
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_J, { GLFW_RELEASE , true }));
-
-	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_X, { GLFW_RELEASE , false }));
+    //toggle textures
+	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_X, { GLFW_RELEASE , true }));
 
 	double lastMousePosX, lastMousePosY;
 	glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
@@ -3129,12 +3141,10 @@ int main(int argc, char* argv[])
         // @TODO 1 - Clear Depth Buffer Bit as well
         // ...
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //**merging
-            // Draw geometry
-            //glBindBuffer(GL_ARRAY_BUFFER, cubeVAO);
-            // Draw geometry
-            glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-        
+
+        // Draw geometry
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVAO);
+
         // Draw ground
         GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
 
@@ -3161,7 +3171,7 @@ int main(int argc, char* argv[])
             mat4* relativeWorldMatrix = modelControl(window, dt, previousKeyStates);
             bool* selectedSetting = customControl(window, previousKeyStates);
             //Home key has been pressed, so reset world matrices.
-            if (selectedSetting[0]) {
+            if (selectedSetting[0] || selectedSetting[1]) {
                 selectedModel->resetInitialRelativeMatrices();
                 //reset camera too.
                 cameraPosition = initial_cameraPosition;
@@ -3171,9 +3181,8 @@ int main(int argc, char* argv[])
                 cameraUp = initial_cameraUp;
                 foV = initialFoV;
             }
-            //todo:convert
             //X key has been pressed, so toggle textures.
-            if (relativeWorldMatrix[4] != mat4(1.0f)) {
+            if (selectedSetting[2]) {
                 enableTexture = enableTexture * -1 + 1;
             }
             //Adjust selected model accordingly.
@@ -3253,11 +3262,11 @@ int main(int argc, char* argv[])
 
 
         // This was solution for Lab02 - Moving camera exercise
-        // We'll change this to be a first or third person camera
         bool fastCam = isShiftPressed(window);
         float currentCameraSpeed = (fastCam) ? cameraFastSpeed : cameraSpeed;
 
 
+        //lab 03 code
         // @TODO 4 - Calculate mouse motion dx and dy
         //         - Update camera horizontal and vertical angle
         // Please understand the code when you un-comment it!
@@ -3394,7 +3403,6 @@ int main(int argc, char* argv[])
             cameraVerticalAngle -= dy * cameraAngularSpeed * dt; // taken from Lab 3
         
     }
-
 
     // Shutdown GLFW
     glfwTerminate();
