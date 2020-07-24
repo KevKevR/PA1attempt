@@ -60,6 +60,7 @@ struct TexturedColoredVertex
 
 // Textured Cube model
 const TexturedColoredVertex texturedCubeVertexArray[] = {  // position,                            color
+    //                      position(unused)        color(unused)           uv
 	TexturedColoredVertex(vec3(-0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f), vec2(0.0f, 0.0f)), //left - red
 	TexturedColoredVertex(vec3(-0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f), vec2(0.0f, 1.0f)),
 	TexturedColoredVertex(vec3(-0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f), vec2(1.0f, 1.0f)),
@@ -111,6 +112,15 @@ const TexturedColoredVertex texturedCubeVertexArray[] = {  // position,         
 	//line
 	TexturedColoredVertex(vec3(0.0f, 0.0f, -0.5f), vec3(1.0f, 1.0f, 0.0f), vec2(1.0f, 1.0f)),
 	TexturedColoredVertex(vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 0.0f, 0.0f), vec2(0.0f, 0.0f)),
+
+    //Square (-0.5,0,-0.5) to (0.5,0,0.5)
+    TexturedColoredVertex(vec3(0.5f, 0.0f, 0.5f), vec3(1.0f, 0.0f, 1.0f), vec2(1.0f, 1.0f)), // top - yellow
+    TexturedColoredVertex(vec3(0.5f, 0.0f,-0.5f), vec3(1.0f, 0.0f, 1.0f), vec2(1.0f, 0.0f)),
+    TexturedColoredVertex(vec3(-0.5f, 0.0f,-0.5f), vec3(1.0f, 0.0f, 1.0f), vec2(0.0f, 0.0f)),
+
+    TexturedColoredVertex(vec3(0.5f, 0.0f, 0.5f), vec3(1.0f, 0.0f, 1.0f), vec2(1.0f, 1.0f)),
+    TexturedColoredVertex(vec3(-0.5f, 0.0f,-0.5f), vec3(1.0f, 0.0f, 1.0f), vec2(0.0f, 0.0f)),
+    TexturedColoredVertex(vec3(-0.5f, 0.0f, 0.5f), vec3(1.0f, 0.0f, 1.0f), vec2(0.0f, 1.0f)),
 };
 
 struct KeyState {
@@ -2393,14 +2403,15 @@ int createTexturedCubeVertexArrayObject()
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(texturedCubeVertexArray), texturedCubeVertexArray, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(1,                            // attribute 1 matches aColor in Vertex Shader
-        3,
-        GL_FLOAT,
-        GL_FALSE,
-        sizeof(TexturedColoredVertex),
-        (void*)sizeof(vec3)      // color is offseted a vec3 (comes after position)
-    );
-    glEnableVertexAttribArray(1);
+    //// unused location
+    //glVertexAttribPointer(1,                            // attribute 1 matches aColor in Vertex Shader
+    //    3,
+    //    GL_FLOAT,
+    //    GL_FALSE,
+    //    sizeof(TexturedColoredVertex),
+    //    (void*)sizeof(vec3)      // color is offseted a vec3 (comes after position)
+    //);
+    //glEnableVertexAttribArray(1);
 
     glVertexAttribPointer(2,                            // attribute 2 matches aUV in Vertex Shader
         2,
@@ -2451,7 +2462,7 @@ const char* getVertexShaderSource()
     return
         "#version 330 core\n"
         "layout (location = 0) in vec3 aPos;"           //vertex position
-		"layout (location = 1) in vec3 aColor;"         //vertex color
+		//"layout (location = 1) in vec3 aColor;"         //vertex color    (unused)
 		"layout (location = 2) in vec2 aUV;"            //vertex texture location
         "layout (location = 3) in vec3 instanceVec; "   // instancing https://learnopengl.com/Advanced-OpenGL/Instancing
         "layout (location = 4) in vec3 aNormal;"        //vertex normal
@@ -3028,10 +3039,14 @@ int main(int argc, char* argv[])
     GLuint boxTextureID = loadTexture("Textures/box.jpg");
 
 #else
-    GLuint brickTextureID = loadTexture("../Assets/Textures/brick.jpg");
-    GLuint cementTextureID = loadTexture("../Assets/Textures/cement.jpg");
-    GLuint metalTextureID = loadTexture("../Assets/Textures/metal.jpg");
-    GLuint boxTextureID = loadTexture("../Assets/Textures/box.jpg");
+    //GLuint brickTextureID = loadTexture("../Assets/Textures/brick.jpg");
+    //GLuint cementTextureID = loadTexture("../Assets/Textures/cement.jpg");
+    //GLuint metalTextureID = loadTexture("../Assets/Textures/metal.jpg");
+    //GLuint boxTextureID = loadTexture("../Assets/Textures/box.jpg");
+    GLuint brickTextureID = loadTexture("Assets/Textures/brick.jpg");
+    GLuint cementTextureID = loadTexture("Assets/Textures/cement.jpg");
+    GLuint metalTextureID = loadTexture("Assets/Textures/metal.jpg");
+    GLuint boxTextureID = loadTexture("Assets/Textures/box.jpg");
 
 #endif
 
@@ -3187,14 +3202,15 @@ int main(int argc, char* argv[])
         glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
         glUniform1i(enableTextureLocation, 0);
         drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
-        //draw tiles
-        glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
-        drawTileGrid(worldMatrixLocation, mat4(1.0f));
-
         // draw axis
         drawAxis(worldMatrixLocation, colorLocation);
         glUniform1i(enableTextureLocation, enableTexture);
 
+        //draw tiles
+        glBindTexture(GL_TEXTURE_2D, brickTextureID);
+        glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
+        drawTileGrid(worldMatrixLocation, mat4(1.0f));
+        
         //draw models
         {
             //selection with keys.
