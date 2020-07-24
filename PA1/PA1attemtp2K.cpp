@@ -171,6 +171,14 @@ public:
         relativeRotateMatrix = relRWM * relativeRotateMatrix;
     }
 
+    //return scale matrix without shear elements
+    mat4 getRelativeUndeformedScaleMatrix() {
+        mat4 diagonal = mat4(relativeScaleMatrix[0].x, 0, 0, 0,
+            0, relativeScaleMatrix[1].y, 0, 0,
+            0, 0, relativeScaleMatrix[2].z, 0,
+            0, 0, 0, 1);
+        return diagonal;
+    }
     mat4 getRelativeScaleMatrix() {
         return relativeScaleMatrix;
     }
@@ -192,7 +200,11 @@ public:
         addRelativeScaleMatrix(relSWM);
     }
     mat4 getRelativeWorldMatrix() {
-        return relativeTranslateMatrix * relativeRotateMatrix * relativeScaleMatrix;
+        return getRelativeTranslateMatrix() * getRelativeRotateMatrix() * getRelativeScaleMatrix();
+    }
+    //return without shear elements
+    mat4 getRelativeUndeformedWorldMatrix() {
+        return getRelativeTranslateMatrix() * getRelativeRotateMatrix() * getRelativeUndeformedScaleMatrix();
     }
 
 	virtual void drawLetter() {
@@ -346,7 +358,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 0.0f);
-        CharModel::drawSphere(getRelativeWorldMatrix(), 5.5f, 4.0f, 0.25f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 5.5f, 4.0f, 0.25f);
     }
 
 private:
@@ -594,7 +606,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
-        CharModel::drawSphere(getRelativeWorldMatrix(), 5.5f, 9.0f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 5.5f, 9.0f);
 
     }
 
@@ -728,7 +740,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 233.0f / 255.0f, 1, 0.0f);
-        CharModel::drawSphere(getRelativeWorldMatrix(), 7.0f, 8.0f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 7.0f, 8.0f);
 
     }
 
@@ -835,7 +847,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 1, 0, 233.0f / 255.0f);
-        CharModel::drawSphere(getRelativeWorldMatrix(), 7.0f, 8.0f, 0.5f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 7.0f, 8.0f, 0.5f);
     }
 
 private:
@@ -957,7 +969,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 0.8, 0.8, 0.8f);
-        CharModel::drawSphere(getRelativeWorldMatrix(), 6.0f, 7.0f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 6.0f, 7.0f);
     }
 
 private:
@@ -2740,7 +2752,6 @@ void drawControl(GLFWwindow* window) {
 //function will return a model index on correct key presses.
 //note: undefined priority in case multiple correct keys are pressed (but will select a model).
 int selectModelControl(GLFWwindow* window, int previousModelIndex) {
-
     map<int, int> inputsToModelIndex;
     map<int, int>::iterator itr;
     inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_1, 0));
@@ -2782,11 +2793,13 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
     };
     map<int, Transformation> inputsToModelMatrix;
     map<int, Transformation>::iterator itr;
-    float transformSpeed = 6 * dt;
-    float translateSpeed = transformSpeed;
-    float rotateSpeed = 5.0f;   //specifications
-    float scaleSpeed = transformSpeed / 12;
-    if (isShiftPressed(window)) // capital case letters
+    const float transformSpeed = 6 * dt;
+    const float translateSpeed = transformSpeed;
+    const float rotateSpeed = 5.0f;   //specifications
+    const float scaleSpeed = transformSpeed / 12;
+    const float shearSpeed = transformSpeed * 3;        //temporary, will move to another method for movement
+    // capital case letters only
+    if (isShiftPressed(window))
     {
         //translate model if pressed
         //vertical movement
@@ -2820,6 +2833,7 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
 			scale(mat4(1.0f),
 			vec3(1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed))), 2 }));
 	}
+    //lower case only
 	else {
 		//rotate model if pressed
 		inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_A, {
@@ -2831,6 +2845,23 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
 			radians(rotateSpeed),
 			vec3(0.0f, -1.0f, 0.0f)), 1 }));
 	}
+    //lower or upper case allowed.
+    {
+        //shear model if pressed
+        //temporary, will move to another method for movement
+        inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_Q, {
+            mat4(1, 0, 0, 0,  // first column
+            0, 1, 0, 0,  // second column
+            shearSpeed, 0, 1, 0,  // third column
+            0, 0, 0, 1) // fourth column
+            , 2 }));
+        inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_E, {
+            mat4(1, 0, 0, 0,  // first column
+            0, 1, 0, 0,  // second column
+            -shearSpeed, 0, 1, 0,  // third column
+            0, 0, 0, 1) // fourth column
+            , 2 }));
+    }
 
     //iterate through all keys that could be pressed.
     for (itr = inputsToModelMatrix.begin(); itr != inputsToModelMatrix.end(); ++itr) {
@@ -3098,6 +3129,9 @@ int main(int argc, char* argv[])
     //model scalings
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_U, { GLFW_RELEASE , true }));
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_J, { GLFW_RELEASE , true }));
+    //shear model (temporary)
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_Q, { GLFW_RELEASE , false }));
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_E, { GLFW_RELEASE , false }));
     //toggle textures
 	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_X, { GLFW_RELEASE , true }));
 
