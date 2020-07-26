@@ -26,6 +26,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include <vector>
 
 using namespace glm;
 using namespace std;
@@ -47,6 +48,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 // Forward declare CharModel class in order to declare a pointer to selected model to manipulate
 class CharModel;
 CharModel* selectedModel;
+
+struct SphereOffset {
+    float xOffset;
+    float yOffset;
+};
 
 struct TexturedColoredVertex
 {
@@ -148,28 +154,66 @@ class WalkCycle {
 public:
     WalkCycle(float tPerState = 1) {
         timePerState = tPerState;
+        timeInState = 0;
         state = 0;
         currentPosition = 0;
+        stopWalkPosition = 0;
     }
     //increment time step
     void stepForward(float dt) {
         switch(state){
         case 1:
+        {
             //walking, periodic movement from -0.5 to 0.5.
-            currentPosition += dt / timePerState;
-            //bound to approx. [-0.5f, 0.5f] interval.
-            currentPosition = fmodf(currentPosition+0.5f, 1) -0.5f;
-            break;
-        default:
-            //stop, return to 0.
-            currentPosition += copysignf(dt / timePerState, -currentPosition);
+            //set direction to -1 or 1;
+            const int direction = 1;
+            currentPosition += dt / timePerState * direction;
             break;
         }
+        case 2:
+        {
+            //return to 0.
+            int towardsCenter = sign(currentPosition);
+            if (fabsf(currentPosition) < 0.25f) {
+                towardsCenter *= -1;
+            }
+            currentPosition += copysignf(dt / timePerState, towardsCenter);
+
+            //stop when returned to position 0.
+            if (signbit(currentPosition) != signbit(stopWalkPosition)) {
+                currentPosition = 0;
+                setState(0);
+            }
+
+            //stop when returned to position 0. timer in case.
+            timeInState += dt;
+            if (timeInState >= timePerState) {
+                currentPosition = 0;
+                setState(0);
+            }
+            break;
+        }
+        case 0:
+        default:
+        {
+            //stop
+            currentPosition = 0;
+            break;
+        }
+        }
+        //bound to approx. [-0.5f, 0.5f] interval.
+        //positive modulo 
+        //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
+        //currentPosition = fmodf(currentPosition + 0.5f, 1) -0.5f ;
+        float mod = 1;
+        currentPosition = fmodf(mod + fmodf(currentPosition + 0.5f, mod), mod) - 0.5f;
     }
 
     //allow state to change.
     void setState(int s) {
         state = s;
+        timeInState = 0;
+        stopWalkPosition = currentPosition;
     }
     int getState() {
         return state;
@@ -182,17 +226,23 @@ public:
     //return position
     float getPosition() {
         //position between [-1, 1].
-        return currentPosition * 2;
+        //return currentPosition * 2;
+        return 0*sinf(radians(180.0f * (currentPosition * 2)));
     }
 private:
     //state
-    // 0: stop, or return to default position.
+    // 0: stop.
     // 1: walking, periodic movement.
+    // 2: return to dedault position.
     int state;
     //period
     float timePerState;
+    //duration
+    float timeInState;
     //current position.
     float currentPosition;
+    //stop position
+    float stopWalkPosition;
 };
 
 class CharModel {
@@ -210,21 +260,24 @@ public:
         relativeScaleMatrix = mat4(1.0f);
         initY = 0;
 
-        state = WalkCycle(2);
+
+
+        state = WalkCycle(0);
+        sphereOffset = { 0,0 };
     }
 
     //let other class handle walking.
     WalkCycle state;
-    float updateWalkProgress(float dt, int st = -1, int tState = -1) {
+    float updateWalkProgress(float dt, int st = -1, float tState = -1) {
         //increment time
         state.stepForward(dt);
 
         //update state if set to do so.
-        if (!st < 0) {
+        if (!(st < 0)) {
             state.setState(st);
         }
         //update time per state if set to do so.
-        if (!tState < 0) {
+        if (!(tState < 0)) {
             state.setTimePerState(tState);
         }
 
@@ -254,22 +307,29 @@ public:
 
     //return scale matrix without shear elements
     mat4 getRelativeUndeformedScaleMatrix() {
-        mat4 diagonal = mat4(relativeScaleMatrix[0].x, 0, 0, 0,
-            0, relativeScaleMatrix[1].y, 0, 0,
-            0, 0, relativeScaleMatrix[2].z, 0,
+        mat4 motion = walkMotion(state.getPosition());
+        mat4 scale = relativeScaleMatrix/* * motion*/;
+
+        float baseOffset = 0.0f;
+        float heightOffset = 2.6f;
+        float sideMovement = motion[1].x * baseOffset * heightOffset;
+        float verticalMovement = (motion[1].y - 1) * heightOffset;
+        mat4 follow = translate(mat4(1.0f),
+            vec3(sideMovement,
+                verticalMovement,
+                0));
+
+        //float minScale = min(min(relativeScaleMatrix[0].x, relativeScaleMatrix[1].y), relativeScaleMatrix[2].z);
+        float minScale = min(min(scale[0].x, scale[1].y), scale[2].z);
+        mat4 diagonal = mat4(minScale, 0, 0, 0,
+            0, minScale, 0, 0,
+            0, 0, minScale, 0,
             0, 0, 0, 1);
-        return diagonal;
+
+        return diagonal * follow;
     }
     mat4 getRelativeScaleMatrix() {
-
-        //mat4 shearMotion(float position) {
-            const float amplitude = 10;
-            float position = state.getPosition();
-            mat4 motion = mat4(1, 0, 0, 0,  // first column
-                amplitude * sinf(position), 1, 0, 0,  // second column
-                0, 0, 1, 0,  // third column
-                0, 0, 0, 1); // fourth column
-        //}
+        mat4 motion = walkMotion(state.getPosition());
         return relativeScaleMatrix * motion;
     }
     void setRelativeScaleMatrix(mat4 relSWM) {
@@ -336,17 +396,42 @@ public:
         }
     }
     static vector<int> update(CharModel* arr[numMainModels], float dt) {
-        vector<int> a(0);
+        vector<int> positions(numMainModels);
         for (int i = 0; i < numMainModels; i++) {
             if (arr[i]) {
-                arr[i]->updateWalkProgress(dt);
+                positions[i] = arr[i]->updateWalkProgress(dt);
             }
         }
+        return positions;
     }
     // Return initial y-position of model
     float getInitY() {return initY;}
     
 protected:
+    SphereOffset sphereOffset;
+    //shear motion when walking
+    mat4 walkMotion(float position) {
+        const float amplitude = 4;
+        //const float position = state.getPosition();
+
+        //shear side-to-side + vertical scaling.
+        mat4 motion = 
+            mat4(1, 0, 0, 0,  // first column
+            //amplitude * sinf(radians(180.0f*position)), 1, 0, 0,  // second column
+            amplitude * position, 1 + sqrt(amplitude) * powf(position, 2), 0, 0,  // second column
+            0, 0, 1, 0,  // third column
+            0, 0, 0, 1); // fourth column
+        return motion;
+    }
+    //mat4 followWalkMotion(mat4 motion) {
+    //    float sideMovement = motion[1].x;
+    //    float verticalMovement = motion[1].y;
+    //    mat4 follow = translate(mat4(1.0f),
+    //        vec3(sideMovement,
+    //            verticalMovement,
+    //            0));
+    //    return follow;
+    //}
     void drawBorder(float modelMaxHeight, float modelMaxWidth, float boxVerticalWidth, float boxHorizontalWidth, mat4 relativeWorldMatrix = mat4(1.0f), mat4 modelPositioningMatrix = mat4(1.0f)) {
         //draw box around model(extra)
         //const float boxVerticalWidth = heightScale / 100;   //thickness of horizontal bars
@@ -360,7 +445,7 @@ protected:
 
         for (int i = 0; i < 4; i++) {
             const bool isHorizontal = i < 2;
-            const int parity = pow(-1, i + 1);
+            const int parity = powf(-1, i + 1);
 
             //horizontal and vertical bar distinction. 
             mat4 translateMatrix = (isHorizontal)
@@ -397,8 +482,11 @@ protected:
     }
     
     // Draw a sphere surrounding model
-    void drawSphere(mat4 relativeWorldMatrix, float scaler, float yOffset, float xOffset = 0.0f) {
+    void drawSphere(mat4 relativeWorldMatrix, float scaler) {
         // Draw sphere
+        float xOffset = sphereOffset.xOffset;
+        float yOffset = sphereOffset.yOffset;
+
         mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(-scaler, -scaler, -scaler)); // to make circle transparent, make scale positive
         mat4 mWorldMatrix = relativeWorldMatrix * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
@@ -439,6 +527,8 @@ public:
 		//initialize size with scale matrix
 		initial_relativeScaleMatrix = mat4(1.0f);
 		setRelativeScaleMatrix(initial_relativeScaleMatrix);
+
+        sphereOffset = { 0.25f, 2.6f };
 	}
 
 	//override draw method.
@@ -456,7 +546,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 0.0f);
-        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 5.5f, 4.0f, 0.25f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 5.5f);
     }
 
 private:
@@ -687,6 +777,8 @@ public:
 					0));
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
+
+        sphereOffset = { 0.0f, 9.0f };
 	}
 
 	//no need to change anything here, except drawModel's name if you feel like it.
@@ -704,7 +796,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
-        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 5.5f, 9.0f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 5.5f);
 
     }
 
@@ -821,6 +913,7 @@ public:
 					-44.5));
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
+        sphereOffset = { 0.0f, 8.0f };
 	}
 
 	//no need to change anything here, except drawModel's name if you feel like it.
@@ -838,7 +931,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 233.0f / 255.0f, 1, 0.0f);
-        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 7.0f, 8.0f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 7.0f);
 
     }
 
@@ -928,6 +1021,7 @@ public:
 					-45));
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
+        sphereOffset = { 0.5f, 8.0f };
 	}
 
 	//no need to change anything here, except drawModel's name if you feel like it.
@@ -945,7 +1039,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 1, 0, 233.0f / 255.0f);
-        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 7.0f, 8.0f, 0.5f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 7.0f);
     }
 
 private:
@@ -1050,6 +1144,7 @@ public:
 					45));
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
+        sphereOffset = { 0.0f, 7.0f };
 	}
 
 	//no need to change anything here, except drawModel's name if you feel like it.
@@ -1067,7 +1162,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 0.8, 0.8, 0.8f);
-        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 6.0f, 7.0f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 6.0f);
     }
 
 private:
@@ -3141,7 +3236,7 @@ int main(int argc, char* argv[])
 #endif
 
     // Black background
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
 
     // Compile and link shaders here ...
     int shaderProgram = compileAndLinkShaders();
@@ -3197,13 +3292,13 @@ int main(int argc, char* argv[])
     float spinningCubeAngle = 0.0f;
 
     // Set projection matrix for shader
-    mat4 projectionMatrix = glm::perspective(radians(initialFoV),   // field of view in degrees
-        800.0f / 600.0f,  // aspect ratio
-        0.01f, 100.0f);   // near and far (near > 0)
+    //mat4 projectionMatrix = glm::perspective(radians(initialFoV),   // field of view in degrees
+    //    800.0f / 600.0f,  // aspect ratio
+    //    0.01f, 100.0f);   // near and far (near > 0)
 
-    //glm::mat4 projectionMatrix = glm::ortho(-4.0f, 4.0f,    // left/right
-    //    -3.0f, 3.0f,    // bottom/top
-    //    -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
+    glm::mat4 projectionMatrix = glm::ortho(-10.0f, 10.0f,    // left/right
+        -10.0f, 10.0f,    // bottom/top
+        -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
 
     GLuint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
     glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
@@ -3325,6 +3420,9 @@ int main(int argc, char* argv[])
             //X key has been pressed, so toggle textures.
             if (selectedSetting[2]) {
                 enableTexture = enableTexture * -1 + 1;
+                int temp = selectedModel->state.getState();
+                temp = (temp ==1) ? 2: 1;
+                selectedModel->state.setState(temp);
             }
             //Adjust selected model accordingly.
             selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
@@ -3342,6 +3440,7 @@ int main(int argc, char* argv[])
             glUniform1i(enableTextureLocation, 0);
             CharModel::drawSphere(models);
             glUniform1i(enableTextureLocation, enableTexture);
+            CharModel::update(models, dt);
 		}
 
 
