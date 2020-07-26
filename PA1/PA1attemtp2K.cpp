@@ -144,6 +144,56 @@ struct KeyState {
 //private:
 //    mat4 matrix;
 //};
+class WalkCycle {
+public:
+    WalkCycle(float tPerState = 1) {
+        timePerState = tPerState;
+        state = 0;
+        currentPosition = 0;
+    }
+    //increment time step
+    void stepForward(float dt) {
+        switch(state){
+        case 1:
+            //walking, periodic movement from -0.5 to 0.5.
+            currentPosition += dt / timePerState;
+            //bound to approx. [-0.5f, 0.5f] interval.
+            currentPosition = fmodf(currentPosition+0.5f, 1) -0.5f;
+            break;
+        default:
+            //stop, return to 0.
+            currentPosition += copysignf(dt / timePerState, -currentPosition);
+            break;
+        }
+    }
+
+    //allow state to change.
+    void setState(int s) {
+        state = s;
+    }
+    int getState() {
+        return state;
+    }
+    //allow period to change
+    void setTimePerState(float tPerState) {
+        timePerState = tPerState;
+    }
+
+    //return position
+    float getPosition() {
+        //position between [-1, 1].
+        return currentPosition * 2;
+    }
+private:
+    //state
+    // 0: stop, or return to default position.
+    // 1: walking, periodic movement.
+    int state;
+    //period
+    float timePerState;
+    //current position.
+    float currentPosition;
+};
 
 class CharModel {
 public:
@@ -159,6 +209,27 @@ public:
         relativeRotateMatrix = mat4(1.0f);
         relativeScaleMatrix = mat4(1.0f);
         initY = 0;
+
+        state = WalkCycle(2);
+    }
+
+    //let other class handle walking.
+    WalkCycle state;
+    float updateWalkProgress(float dt, int st = -1, int tState = -1) {
+        //increment time
+        state.stepForward(dt);
+
+        //update state if set to do so.
+        if (!st < 0) {
+            state.setState(st);
+        }
+        //update time per state if set to do so.
+        if (!tState < 0) {
+            state.setTimePerState(tState);
+        }
+
+        //return position
+        return state.getPosition();
     }
 
     mat4 getRelativeTranslateMatrix() {
@@ -190,7 +261,16 @@ public:
         return diagonal;
     }
     mat4 getRelativeScaleMatrix() {
-        return relativeScaleMatrix;
+
+        //mat4 shearMotion(float position) {
+            const float amplitude = 10;
+            float position = state.getPosition();
+            mat4 motion = mat4(1, 0, 0, 0,  // first column
+                amplitude * sinf(position), 1, 0, 0,  // second column
+                0, 0, 1, 0,  // third column
+                0, 0, 0, 1); // fourth column
+        //}
+        return relativeScaleMatrix * motion;
     }
     void setRelativeScaleMatrix(mat4 relSWM) {
         relativeScaleMatrix = relSWM;
@@ -252,6 +332,14 @@ public:
         for (int i = 0; i < numMainModels; i++) {
             if (arr[i]) {
                 arr[i]->drawSphere();
+            }
+        }
+    }
+    static vector<int> update(CharModel* arr[numMainModels], float dt) {
+        vector<int> a(0);
+        for (int i = 0; i < numMainModels; i++) {
+            if (arr[i]) {
+                arr[i]->updateWalkProgress(dt);
             }
         }
     }
