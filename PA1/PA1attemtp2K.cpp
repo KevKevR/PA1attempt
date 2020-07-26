@@ -29,6 +29,7 @@
 #include <glm/gtc/matrix_transform.hpp> // include this to create transformation matrices
 #include <glm/common.hpp>
 #include <map> 
+#include <vector>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -513,10 +514,11 @@ protected:
         const float scaler = sphereOffset.scaler;
 
 
-        mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(-scaler, -scaler, -scaler)); // to make circle transparent, make scale positive
+        //mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(-scaler, -scaler, -scaler));
+        mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(scaler, scaler, scaler));
         mat4 mWorldMatrix = relativeWorldMatrix * sphereFollow() * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 44, 1261);
+        glDrawArrays(GL_TRIANGLE_STRIP, 38, 600);
     }
 
     GLuint worldMatrixLocation;
@@ -1251,7 +1253,116 @@ private:
         
 	}
 };
+vector<vec3> sphereVertices(const int heightParts, const int ringParts) {
 
+    const int vertexArrNum = 38;
+    vec3 vertexArr[vertexArrNum * 2] = {
+        //left
+        vec3(-0.5f, -0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        vec3(-0.5f, -0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        vec3(-0.5f, -0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        // far
+        vec3(0.5f, 0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
+        vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
+        vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
+        vec3(0.5f, 0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
+        vec3(0.5f, -0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
+        vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
+        // bottom
+        vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+        vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, -1.0f, 0.0f),
+        vec3(0.5f, -0.5f, -0.5f), vec3(0.0f, -1.0f, 0.0f),
+        vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+        vec3(-0.5f, -0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+        vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, -1.0f, 0.0f),
+        // near
+        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        vec3(-0.5f, -0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        // right
+        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+        vec3(0.5f, -0.5f, -0.5f), vec3(1.0f, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f, -0.5f), vec3(1.0f, 0.0f, 0.0f),
+        vec3(0.5f, -0.5f, -0.5f), vec3(1.0f, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+        vec3(0.5f, -0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+        // top
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+
+        //line (0,0,-0.5)to(0,0,0.5)
+        vec3(0.0f, 0.0f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+    };
+
+    //plan to compute sphere vertices by iterating along cylindrical coordinates -> convert to rectangular.
+    //sphere radius, rho
+    const float radius = 1.0f;
+    //division of sphere parts/resolution
+    //# of angles to divide ring in xz-plane.
+    //const int ringParts = 5;
+    //ringParts minimum is 3.
+    //# of segments height in y is divided into.
+    //const int heightParts = 4;
+    //heightParts minimum is 3.
+
+
+    //# of vertices is 2 * ringParts per heightParts, ommitting the topmost.
+    //38*2 + (heightParts-1)*ringParts*2*2
+    //const int numVertices = (heightParts - 1) * ringParts * 2;
+
+    //vec3 sphereArray[numVertices] = {};
+    vector<vec3> vecSphereArray(vertexArrNum * 2);
+    
+
+    for (int i = 0; i < vertexArrNum * 2 ; i++) {
+        vecSphereArray[i] = vertexArr[i];
+    }
+
+
+    /// attempt 3
+    //for every height part
+    for (int i = 0; i < heightParts - 1; i++) {
+        //for each part of a ring
+        for (int j = 0; j < ringParts; j++) {
+            //alternate between heights to form a strip.
+            //slightly redundant on bottommost and topmost vertices.
+            for (int k = 0; k < 2; k++) {
+                int alternate = k;
+                //y is height
+                // v v v diameter divided by area part count, then center to origin. so spacing is by diameter
+                float ya = (i + alternate) * 2 * radius / (heightParts - 1) - radius;
+                // v v v height segment is given by phi angle.
+                float y = radius *(sinf(radians(2* 90*((float)(i + alternate) / (heightParts - 1) - 0.5f))));
+                //vertices for a xz-ring at height y.
+                //r is radial distance
+                float r = sqrt(radius * radius - y * y);
+
+                //ring
+                float theta = radians(j * 360.0f / ringParts);
+                float x = r * cosf(theta);
+                float z = r * sinf(theta);
+                //every height will have ringParts# * 2 of elements
+
+                vecSphereArray.push_back(vec3(x, y, z));
+                vecSphereArray.push_back(vec3(x, y, z));
+            }
+        }
+    }
+
+    //return sphereArray;
+    return vecSphereArray;
+}
 int createTexturedCubeVertexArrayObject()
 {
     // Cube model (used for models and axis)
@@ -2636,9 +2747,26 @@ int createTexturedCubeVertexArrayObject()
     glEnableVertexAttribArray(2);
 
 
+    const int vertexArrayNum = 38;
+    const int heightParts = 16;
+    const int ringParts = 20;
+    //make sure the sphere draw function draws [(heightParts-1)*ringParts*2] figures.
+    //https://stackoverflow.com/questions/4264304/how-to-return-an-array-from-a-function
+    vector<vec3> vertexArraySphere = sphereVertices(heightParts, ringParts);
+
+    vec3 vertexArr2[vertexArrayNum *2 + (heightParts-1)*ringParts*2*2];
+    //convert it to array
+    for (int i = 0; i < vertexArraySphere.size(); i++) {
+        vertexArr2[i] = vertexArraySphere[i];
+    }
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
+    // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
+    //GLuint vertexBufferObject;
+    //glGenBuffers(1, &vertexBufferObject);
+    //glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArr2), vertexArr2, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0,                   // attribute 0 matches aPos in Vertex Shader
         3,                   // size
@@ -4127,7 +4255,6 @@ int main(int argc, char* argv[])
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_U, { GLFW_RELEASE , true }));
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_J, { GLFW_RELEASE , true }));
     //shear model (temporary)
-    //TODO: code shearing into separate movement function (since the shearing itself is not in the user's control, only the movement)
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_Q, { GLFW_RELEASE , false }));
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_E, { GLFW_RELEASE , false }));
     //toggle textures
