@@ -52,6 +52,7 @@ CharModel* selectedModel;
 struct SphereOffset {
     float xOffset;
     float yOffset;
+    float scaler;
 };
 
 struct TexturedColoredVertex
@@ -155,13 +156,14 @@ public:
     WalkCycle(float tPerState = 1) {
         timePerState = tPerState;
         timeInState = 0;
-        state = 0;
+        walkState = 0;
         currentPosition = 0;
         stopWalkPosition = 0;
     }
     //increment time step
     void stepForward(float dt) {
-        switch(state){
+        //speed controlled with timePerState.
+        switch(walkState){
         case 1:
         {
             //walking, periodic movement from -0.5 to 0.5.
@@ -205,18 +207,18 @@ public:
         //positive modulo 
         //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
         //currentPosition = fmodf(currentPosition + 0.5f, 1) -0.5f ;
-        float mod = 1;
+        const float mod = 1;
         currentPosition = fmodf(mod + fmodf(currentPosition + 0.5f, mod), mod) - 0.5f;
     }
 
-    //allow state to change.
+    //allow walkState to change.
     void setState(int s) {
-        state = s;
+        walkState = s;
         timeInState = 0;
         stopWalkPosition = currentPosition;
     }
     int getState() {
-        return state;
+        return walkState;
     }
     //allow period to change
     void setTimePerState(float tPerState) {
@@ -230,11 +232,11 @@ public:
         return sinf(radians(180.0f * (currentPosition * 2)));
     }
 private:
-    //state
+    //walkState
     // 0: stop.
     // 1: walking, periodic movement.
-    // 2: return to dedault position.
-    int state;
+    // 2: return to default position.
+    int walkState;
     //period
     float timePerState;
     //duration
@@ -262,27 +264,27 @@ public:
 
 
 
-        state = WalkCycle(2);
+        walkState = WalkCycle(1);
         sphereOffset = { 0,0 };
     }
 
     //let other class handle walking.
-    WalkCycle state;
+    WalkCycle walkState;
     float updateWalkProgress(float dt, int st = -1, float tState = -1) {
         //increment time
-        state.stepForward(dt);
+        walkState.stepForward(dt);
 
-        //update state if set to do so.
+        //update walkState if set to do so.
         if (!(st < 0)) {
-            state.setState(st);
+            walkState.setState(st);
         }
-        //update time per state if set to do so.
+        //update time per walkState if set to do so.
         if (!(tState < 0)) {
-            state.setTimePerState(tState);
+            walkState.setTimePerState(tState);
         }
 
         //return position
-        return state.getPosition();
+        return walkState.getPosition();
     }
 
     mat4 getRelativeTranslateMatrix() {
@@ -307,16 +309,16 @@ public:
 
     //return scale matrix without shear elements
     mat4 getRelativeUndeformedScaleMatrix() {
-        mat4 motion = walkMotion(state.getPosition());
+        //mat4 motion = walkMotion(walkState.getPosition());
         mat4 scale = relativeScaleMatrix/* * motion*/;
 
-        float heightOffset = sphereOffset.yOffset;
-        float sideMovement = motion[1].x * heightOffset;
-        float verticalMovement = (motion[1].y - 1) * heightOffset;
-        mat4 follow = translate(mat4(1.0f),
-            vec3(sideMovement,
-                verticalMovement,
-                0));
+        //float heightOffset = sphereOffset.yOffset;
+        //float sideMovement = motion[1].x * heightOffset;
+        //float verticalMovement = (motion[1].y - 1) * heightOffset;
+        //mat4 follow = translate(mat4(1.0f),
+        //    vec3(sideMovement,
+        //        verticalMovement,
+        //        0));
 
         //float minScale = min(min(relativeScaleMatrix[0].x, relativeScaleMatrix[1].y), relativeScaleMatrix[2].z);
         float minScale = min(min(scale[0].x, scale[1].y), scale[2].z);
@@ -325,10 +327,10 @@ public:
             0, 0, minScale, 0,
             0, 0, 0, 1);
 
-        return diagonal * follow;
+        return diagonal/* * follow*/;
     }
     mat4 getRelativeScaleMatrix() {
-        mat4 motion = walkMotion(state.getPosition());
+        mat4 motion = walkMotion(walkState.getPosition());
         return relativeScaleMatrix * motion;
     }
     void setRelativeScaleMatrix(mat4 relSWM) {
@@ -411,7 +413,7 @@ protected:
     //shear motion when walking
     mat4 walkMotion(float position) {
         const float amplitude = 4;
-        //const float position = state.getPosition();
+        //const float position = walkState.getPosition();
 
         //shear side-to-side + vertical scaling.
         mat4 motion = 
@@ -431,6 +433,19 @@ protected:
     //            0));
     //    return follow;
     //}
+    mat4 sphereFollow() {
+        mat4 motion = walkMotion(walkState.getPosition());
+
+        float heightOffset = sphereOffset.yOffset;
+        float sideMovement = motion[1].x * heightOffset;
+        float verticalMovement = (motion[1].y - 1) * heightOffset;
+        mat4 follow = translate(mat4(1.0f),
+            vec3(sideMovement,
+                verticalMovement,
+                0));
+        return follow;
+    }
+
     void drawBorder(float modelMaxHeight, float modelMaxWidth, float boxVerticalWidth, float boxHorizontalWidth, mat4 relativeWorldMatrix = mat4(1.0f), mat4 modelPositioningMatrix = mat4(1.0f)) {
         //draw box around model(extra)
         //const float boxVerticalWidth = heightScale / 100;   //thickness of horizontal bars
@@ -481,13 +496,18 @@ protected:
     }
     
     // Draw a sphere surrounding model
-    void drawSphere(mat4 relativeWorldMatrix, float scaler) {
+    void drawSphere(mat4 relativeWorldMatrix) {
         // Draw sphere
-        float xOffset = sphereOffset.xOffset;
-        float yOffset = sphereOffset.yOffset;
+        //attach the sphere to the model with a point lower/higher than its center.
+        const float yHover = 0.0f;
+
+        const float xOffset = sphereOffset.xOffset;
+        const float yOffset = sphereOffset.yOffset + yHover;
+        const float scaler = sphereOffset.scaler;
+
 
         mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(-scaler, -scaler, -scaler)); // to make circle transparent, make scale positive
-        mat4 mWorldMatrix = relativeWorldMatrix * worldMatrix;
+        mat4 mWorldMatrix = relativeWorldMatrix * sphereFollow() * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLE_STRIP, 44, 1261);
     }
@@ -509,7 +529,7 @@ public:
 	//Constructor
 	ModelV9(int shaderProgram) : CharModel(shaderProgram) {
 		const float model_heightScale = 5.0f; //<-make sure is same as constant in drawV9().
-        initY = model_heightScale / 2;
+        initY = 0;
 		//initialize position with translate matrix
 		initial_relativeTranslateMatrix =
 			translate(mat4(1.0f),
@@ -527,7 +547,7 @@ public:
 		initial_relativeScaleMatrix = mat4(1.0f);
 		setRelativeScaleMatrix(initial_relativeScaleMatrix);
 
-        sphereOffset = { 0.0f, 2.6f };
+        sphereOffset = { 0.0f, model_heightScale*1.1f, model_heightScale *0.98f};
 	}
 
 	//override draw method.
@@ -545,7 +565,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 0.0f);
-        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 5.5f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix());
     }
 
 private:
@@ -587,7 +607,7 @@ private:
 		mat4 modelPositioningMatrix =
 			translate(mat4(1.0f),
 				vec3((-(letterHalfWidth / 2 + m9_apothem)),
-					0,
+                    m_height/2,
 					0));
 
 		//Draw "V".
@@ -680,7 +700,7 @@ private:
 		mat4 modelPositioningMatrix =
 			translate(mat4(1.0f),
 				vec3((-(letterHalfWidth / 2 + m9_apothem)),
-					0,
+                    m_height,
 					0));
 
 
@@ -692,7 +712,7 @@ private:
 		modelPositioningMatrix =
 			translate(mat4(1.0f),
 				vec3(letterHalfWidth,
-					-(m_height / 2),
+					0,
 					0));
 		//Draw in shape of regular polygons.
 		for (int i = 0; i < corners; ++i)
@@ -777,7 +797,7 @@ public:
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
 
-        sphereOffset = { 0.0f, 9.0f };
+        sphereOffset = { 0.0f, 9.0f, 5.5f };
 	}
 
 	//no need to change anything here, except drawModel's name if you feel like it.
@@ -795,7 +815,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
-        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 5.5f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix());
 
     }
 
@@ -912,7 +932,7 @@ public:
 					-44.5));
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
-        sphereOffset = { 0.0f, 8.0f };
+        sphereOffset = { 0.0f, 8.0f, 7.0f };
 	}
 
 	//no need to change anything here, except drawModel's name if you feel like it.
@@ -930,7 +950,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 233.0f / 255.0f, 1, 0.0f);
-        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 7.0f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix());
 
     }
 
@@ -1020,7 +1040,7 @@ public:
 					-45));
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
-        sphereOffset = { 0.5f, 8.0f };
+        sphereOffset = { 0.5f, 8.0f, 7.0f };
 	}
 
 	//no need to change anything here, except drawModel's name if you feel like it.
@@ -1038,7 +1058,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 1, 0, 233.0f / 255.0f);
-        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 7.0f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix());
     }
 
 private:
@@ -1143,7 +1163,7 @@ public:
 					45));
 
 		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
-        sphereOffset = { 0.0f, 7.0f };
+        sphereOffset = { 0.0f, 7.0f, 6.0f };
 	}
 
 	//no need to change anything here, except drawModel's name if you feel like it.
@@ -1161,7 +1181,7 @@ public:
     void drawSphere() {
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 0.8, 0.8, 0.8f);
-        CharModel::drawSphere(getRelativeUndeformedWorldMatrix(), 6.0f);
+        CharModel::drawSphere(getRelativeUndeformedWorldMatrix());
     }
 
 private:
@@ -2919,6 +2939,66 @@ bool isShiftPressed(GLFWwindow* window) {
     return glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
 }
 
+bool checkModelMovement(GLFWwindow* window, map<int, KeyState> previousKeyStates) {
+    vector<GLuint> inputs;
+    vector<GLuint>::iterator itr;
+
+    // capital case letters only
+    if (isShiftPressed(window))
+    {
+        //translate model movement
+        //vertical movement
+        inputs.push_back(GLFW_KEY_W);
+        inputs.push_back(GLFW_KEY_S);
+
+        //horizontal movement
+        inputs.push_back(GLFW_KEY_D);
+        inputs.push_back(GLFW_KEY_A);
+    }
+    //lower case only
+    else {
+        //none for now
+    }
+    //lower or upper case allowed.
+    {
+        //none for now
+    }
+
+    //iterate through all keys that could be pressed.
+    for ( itr = inputs.begin(); itr != inputs.end(); ++itr) {
+        ////////////////
+        //get previous key state if tracked, otherwise default release (true).
+        //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
+        //default released if not tracked
+        int previousState = GLFW_RELEASE;
+        map<int, KeyState>::iterator it = previousKeyStates.find(*itr);
+        if (it != previousKeyStates.end()) {        //key is a tracked one
+            //toggling shift should not activate the key again.
+            //So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
+            if ((it->second.needShiftPressed == isShiftPressed(window)) && it->second.prevWithShiftPressed) {
+                previousState = GLFW_PRESS;    //so update to actual
+                //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
+            }
+            else {
+                //otherwise, update to actual previous key.
+                previousState = it->second.keyState;
+                //glClearColor(1.0f, 0.3f, 0.0f, 1.0f);
+            }
+
+        }
+        ////////////////
+
+        //enter block if valid key is pressed for movement.
+        if (glfwGetKey(window, *itr) == GLFW_PRESS && previousState == GLFW_RELEASE)
+        {
+            //key press detected
+            return true;
+        }
+    }
+    //no key press detected
+    return false;
+}
+
 //function will switch the selected draw mode on correct key presses.
 //note: undefined priority in case multiple correct keys are pressed (but will select a draw mode).
 void drawControl(GLFWwindow* window) {
@@ -3234,7 +3314,7 @@ int main(int argc, char* argv[])
 
 #endif
 
-    // Black background
+    // Grey background
     glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
 
     // Compile and link shaders here ...
@@ -3291,13 +3371,13 @@ int main(int argc, char* argv[])
     float spinningCubeAngle = 0.0f;
 
     // Set projection matrix for shader
-    //mat4 projectionMatrix = glm::perspective(radians(initialFoV),   // field of view in degrees
-    //    800.0f / 600.0f,  // aspect ratio
-    //    0.01f, 100.0f);   // near and far (near > 0)
+    mat4 projectionMatrix = glm::perspective(radians(initialFoV),   // field of view in degrees
+        800.0f / 600.0f,  // aspect ratio
+        0.01f, 100.0f);   // near and far (near > 0)
 
-    glm::mat4 projectionMatrix = glm::ortho(-40.0f, 40.0f,    // left/right
-        -40.0f, 40.0f,    // bottom/top
-        -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
+    //glm::mat4 projectionMatrix = glm::ortho(-40.0f, 40.0f,    // left/right
+    //    -40.0f, 40.0f,    // bottom/top
+    //    -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
 
     GLuint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
     glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
@@ -3364,6 +3444,9 @@ int main(int argc, char* argv[])
     models[3] = &n4;
     models[4] = &v9;
 
+    //previous frame, if valid input to model.
+    bool prevHadMovement = false;
+
     // Entering Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -3401,13 +3484,18 @@ int main(int argc, char* argv[])
             //selection with keys.
             drawControl(window);
             modelIndex = selectModelControl(window, modelIndex);
+            CharModel* prevModel = selectedModel;
             selectedModel = models[modelIndex];
             //Control model key presses.
             mat4* relativeWorldMatrix = modelControl(window, dt, previousKeyStates);
+            bool hasMovement = checkModelMovement(window, previousKeyStates);
             bool* selectedSetting = customControl(window, previousKeyStates);
             //Home key has been pressed, so reset world matrices.
             if (selectedSetting[0] || selectedSetting[1]) {
+                //reset TRS matrices
                 selectedModel->resetInitialRelativeMatrices();
+                //reset walk state.
+                selectedModel->walkState.setState(0);
                 //reset camera too.
                 cameraPosition = initial_cameraPosition;
                 //cameraLookAt = initial_cameraLookAt;
@@ -3419,12 +3507,32 @@ int main(int argc, char* argv[])
             //X key has been pressed, so toggle textures.
             if (selectedSetting[2]) {
                 enableTexture = enableTexture * -1 + 1;
-                int temp = selectedModel->state.getState();
-                temp = (temp ==1) ? 2: 1;
-                selectedModel->state.setState(temp);
+                
+                
+                //manual toggle shear movement.
+                //ToDo: delete this comment.
+                //int temp = selectedModel->walkState.getState();
+                //temp = (temp ==1) ? 2: 1;
+                //selectedModel->walkState.setState(temp);
             }
             //Adjust selected model accordingly.
             selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
+
+            //checks whether the models move
+            if (hasMovement) {
+                //start walking
+                selectedModel->walkState.setState(1);
+            }
+            else if (prevHadMovement){
+                //stop walking
+                selectedModel->walkState.setState(2);
+            }
+            prevHadMovement = hasMovement;
+
+            //makes previous model stop walking
+            if (prevModel != selectedModel && prevModel) {
+                prevModel->walkState.setState(2);
+            }
 
 			//draw all models
 			//glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
@@ -3555,9 +3663,9 @@ int main(int argc, char* argv[])
             foV = 120.0f;
         
         // Recompute projection matrix depending on FoV
-        //projectionMatrix = glm::perspective(radians(foV),            // field of view in degrees
-        //(float) window_width / (float) window_height,  // aspect ratio
-        //0.01f, 100.0f);   // near and far (near > 0)
+        projectionMatrix = glm::perspective(radians(foV),            // field of view in degrees
+        (float) window_width / (float) window_height,  // aspect ratio
+        0.01f, 100.0f);   // near and far (near > 0)
         glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
 
         // @TODO 5 = use camera lookat and side vectors to update positions with HNBM
