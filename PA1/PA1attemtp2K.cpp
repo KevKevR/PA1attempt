@@ -227,7 +227,7 @@ public:
     float getPosition() {
         //position between [-1, 1].
         //return currentPosition * 2;
-        return 0*sinf(radians(180.0f * (currentPosition * 2)));
+        return sinf(radians(180.0f * (currentPosition * 2)));
     }
 private:
     //state
@@ -262,7 +262,7 @@ public:
 
 
 
-        state = WalkCycle(0);
+        state = WalkCycle(2);
         sphereOffset = { 0,0 };
     }
 
@@ -310,9 +310,8 @@ public:
         mat4 motion = walkMotion(state.getPosition());
         mat4 scale = relativeScaleMatrix/* * motion*/;
 
-        float baseOffset = 0.0f;
-        float heightOffset = 2.6f;
-        float sideMovement = motion[1].x * baseOffset * heightOffset;
+        float heightOffset = sphereOffset.yOffset;
+        float sideMovement = motion[1].x * heightOffset;
         float verticalMovement = (motion[1].y - 1) * heightOffset;
         mat4 follow = translate(mat4(1.0f),
             vec3(sideMovement,
@@ -528,7 +527,7 @@ public:
 		initial_relativeScaleMatrix = mat4(1.0f);
 		setRelativeScaleMatrix(initial_relativeScaleMatrix);
 
-        sphereOffset = { 0.25f, 2.6f };
+        sphereOffset = { 0.0f, 2.6f };
 	}
 
 	//override draw method.
@@ -3296,8 +3295,8 @@ int main(int argc, char* argv[])
     //    800.0f / 600.0f,  // aspect ratio
     //    0.01f, 100.0f);   // near and far (near > 0)
 
-    glm::mat4 projectionMatrix = glm::ortho(-10.0f, 10.0f,    // left/right
-        -10.0f, 10.0f,    // bottom/top
+    glm::mat4 projectionMatrix = glm::ortho(-40.0f, 40.0f,    // left/right
+        -40.0f, 40.0f,    // bottom/top
         -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
 
     GLuint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
@@ -3556,9 +3555,9 @@ int main(int argc, char* argv[])
             foV = 120.0f;
         
         // Recompute projection matrix depending on FoV
-        projectionMatrix = glm::perspective(radians(foV),            // field of view in degrees
-        (float) window_width / (float) window_height,  // aspect ratio
-        0.01f, 100.0f);   // near and far (near > 0)
+        //projectionMatrix = glm::perspective(radians(foV),            // field of view in degrees
+        //(float) window_width / (float) window_height,  // aspect ratio
+        //0.01f, 100.0f);   // near and far (near > 0)
         glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
 
         // @TODO 5 = use camera lookat and side vectors to update positions with HNBM
