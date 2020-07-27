@@ -2672,10 +2672,12 @@ const char* getVertexShaderSource()
         "uniform mat4 worldMatrix;"
         "uniform mat4 viewMatrix = mat4(1.0);"  // default value for view matrix (identity)
         "uniform mat4 projectionMatrix = mat4(1.0);"
+        "uniform mat4 lightSpaceMatrix;"                //shadow
         ""
         "out vec3 normalVec;"
         "out vec3 fragPos;"
 		"out vec2 vertexUV;"
+        "out vec4 fragPosLightSpace;"                   //shadow
         "void main()"
         "{"
         "   normalVec = mat3(transpose(inverse(worldMatrix))) * aNormal;"
@@ -2683,6 +2685,8 @@ const char* getVertexShaderSource()
         "   gl_Position = modelViewProjection * vec4(aPos + instanceVec, 1.0);"
 		"   vertexUV = aUV;"
         "   fragPos = vec3(worldMatrix * vec4(aPos, 1.0));"
+        //fragPos from light's view
+        "   fragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);"
         "}";
 }
 const char* getFragmentShaderSource()
@@ -2694,6 +2698,7 @@ const char* getFragmentShaderSource()
     "uniform vec3 viewPos;"
 	"uniform sampler2D textureSampler;" //texture properties
 	"uniform bool hasTexture;"
+    //"uniform sampler2D shadowMap;"  //shadow
 
     "vec3 lightColor = vec3(1.0, 1.0, 1.0);"    //light property
     "vec4 textureColor;"                        //texture property
@@ -2701,8 +2706,24 @@ const char* getFragmentShaderSource()
     "in vec3 fragPos;"
     "in vec3 normalVec;"    //light properties
 	"in vec2 vertexUV;"     //texture properties
+    "in vec4 fragPosLightSpace;"    //shadow
 
     "out vec4 FragColor;"   //output
+
+    ////shadow calculation
+    //"float ShadowCalculation(vec4 fragPosLightSpace)"
+    //"{"
+    ////manual perspective divide (for perspective projection)
+    //"    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;"
+    ////range from [-1, 1] to [0, 1].
+    //"    projCoords = projCoords * 0.5 + 0.5;"
+    ////closest depth value
+    //"    float closestDepth = texture(shadowMap, projCoords.xy).r;"
+    ////current depth value
+    //"    float currentDepth = projCoords.z;"
+    ////is in shadow if not the closest depth.
+    //"    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;"
+    //"}"
     "void main()"
     "{"
         //Texture
@@ -3666,6 +3687,70 @@ void randomPosModel(CharModel* selectedModel) {
     selectedModel->setRelativeTranslateMatrix(randomRelativeTranslateMatrix);
 }
 
+struct TextureId {
+    int depthMap;
+    int boxTextureID;
+    int metalTextureID;
+};
+struct RenderInfo {
+    int shaderProgram;
+    GLuint colorLocation;
+    GLuint enableTextureLocation;
+    GLuint worldMatrixLocation;
+
+    int enableTexture;
+    TextureId textures;
+};
+
+void renderDecor(RenderInfo renderInfo) {
+    int shaderProgram = renderInfo.shaderProgram;
+    GLuint colorLocation = renderInfo.colorLocation;
+    GLuint enableTextureLocation = renderInfo.enableTextureLocation;
+    GLuint worldMatrixLocation = renderInfo.worldMatrixLocation;
+    int enableTexture = renderInfo.enableTexture;
+    int depthMap = renderInfo.textures.depthMap;
+
+    // Draw ground
+
+    //draw grid
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
+    glUniform1i(enableTextureLocation, 0);
+    drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
+    // draw axis
+    drawAxis(worldMatrixLocation, colorLocation);
+    glUniform1i(enableTextureLocation, enableTexture);
+
+    //draw tiles
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
+    drawTileGrid(worldMatrixLocation, mat4(1.0f));
+}
+void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
+    int shaderProgram = renderInfo.shaderProgram;
+    GLuint colorLocation = renderInfo.colorLocation;
+    GLuint enableTextureLocation = renderInfo.enableTextureLocation;
+    GLuint worldMatrixLocation = renderInfo.worldMatrixLocation;
+    int enableTexture = renderInfo.enableTexture;
+    int depthMap = renderInfo.textures.depthMap;
+    int boxTextureID = renderInfo.textures.boxTextureID;
+    int metalTextureID = renderInfo.textures.metalTextureID;
+
+    //draw all models
+    //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+    glUniform3f(colorLocation, 0.2f, 0.2f, 1.0f);
+
+    glBindTexture(GL_TEXTURE_2D, boxTextureID);
+    CharModel::drawLetter(models);
+    glBindTexture(GL_TEXTURE_2D, metalTextureID);
+    CharModel::drawNumber(models);
+    //Sphere has no texture for now.
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glUniform1i(enableTextureLocation, 0);
+    CharModel::drawSphere(models);
+    glUniform1i(enableTextureLocation, enableTexture);
+}
+
 int main(int argc, char* argv[])
 {
     // Initialize GLFW and OpenGL version
@@ -3736,9 +3821,17 @@ int main(int argc, char* argv[])
     int shaderProgramTest = compileAndLinkShadersTest();
     int shaderProgramShadow = compileAndLinkShadersShadow();
 
-    // We can set the shader once, since we have only one
+    // We can set the shader configurations
+    //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
     glUseProgram(shaderProgram);
-    
+    //glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler"), 0);
+    //glUniform1i(glGetUniformLocation(shaderProgram, "shadowmap"), 1);
+
+    vector<int> depth = configureDepthMap();
+    int depthMapFBO = depth[0];
+    int depthMap = depth[1];
+    glUseProgram(shaderProgramTest);
+    glUniform1i(glGetUniformLocation(shaderProgramTest, "depthMap"), 0);
 
 
 
@@ -3754,6 +3847,9 @@ int main(int argc, char* argv[])
 
     GLuint enableTextureLocation = glGetUniformLocation(shaderProgram, "hasTexture");
     int enableTexture = 1;	//1 for on, 0 for off
+
+    // Used to set light position for shadow calculation in shader
+    GLuint lightSpaceMatrixLocation = glGetUniformLocation(shaderProgram, "lightSpaceMatrix");
 
     // Camera parameters for view transform
     const float initial_xpos = 0;
@@ -3816,13 +3912,6 @@ int main(int argc, char* argv[])
     int planeVAO = createPlaneVertexArrayObject();
     // For frame time
     float lastFrameTime = glfwGetTime();
-
-    //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
-    vector<int> depth = configureDepthMap();
-    int depthMapFBO = depth[0];
-    int depthMap = depth[1];
-    glUseProgram(shaderProgramTest);
-    glUniform1i(glGetUniformLocation(shaderProgramTest, "depthMap"), 0);
 
     //Previous key states to track
     //int lastMouseLeftState = GLFW_RELEASE;
@@ -3897,6 +3986,9 @@ int main(int argc, char* argv[])
         lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
         lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         lightSpaceMatrix = lightProjection * lightView;
+        //set lightSpaceMatrix in shader
+        glUseProgram(shaderProgram);
+        glUniformMatrix4fv(lightSpaceMatrixLocation, 1, GL_FALSE, &lightSpaceMatrix[0][0]);
         // render scene from light's point of view
         glUseProgram(shaderProgramShadow);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgramShadow, "lightSpaceMatrix"), 1, GL_FALSE, &lightSpaceMatrix[0][0]);
@@ -3946,23 +4038,30 @@ int main(int argc, char* argv[])
         // Draw geometry
         glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
 
-        // Draw ground
+        //bind shadow map
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        glActiveTexture(GL_TEXTURE0);
+
+
         GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
 
-        //draw grid
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
-        glUniform1i(enableTextureLocation, 0);
-        drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
-        // draw axis
-        drawAxis(worldMatrixLocation, colorLocation);
-        glUniform1i(enableTextureLocation, enableTexture);
+        //put store info, so can render easier for shadow map.
+        RenderInfo renderInfo;
+        renderInfo.shaderProgram = shaderProgram;
 
-        //draw tiles
-        glBindTexture(GL_TEXTURE_2D, depthMap);
-        glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
-        drawTileGrid(worldMatrixLocation, mat4(1.0f));
-        
+        renderInfo.colorLocation = colorLocation;
+        renderInfo.worldMatrixLocation = worldMatrixLocation;
+        renderInfo.enableTextureLocation = enableTextureLocation;
+
+        renderInfo.enableTexture = enableTexture;
+
+        renderInfo.textures.depthMap = depthMap;
+        renderInfo.textures.boxTextureID = boxTextureID;
+        renderInfo.textures.metalTextureID = metalTextureID;
+
+        //Draw ground
+        renderDecor(renderInfo);
         //draw models
         {
             //selection with keys.
@@ -4018,20 +4117,9 @@ int main(int argc, char* argv[])
                 prevModel->walkState.setState(2);
             }
 
-			//draw all models
-			//glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
-			glUniform3f(colorLocation, 0.2f, 0.2f, 1.0f);
-
-			glBindTexture(GL_TEXTURE_2D, boxTextureID);
-			CharModel::drawLetter(models);
-			glBindTexture(GL_TEXTURE_2D, metalTextureID);
-			CharModel::drawNumber(models);
-            //Sphere has no texture for now.
-            glBindTexture(GL_TEXTURE_2D, 0);
-            glUniform1i(enableTextureLocation, 0);
-            CharModel::drawSphere(models);
-            glUniform1i(enableTextureLocation, enableTexture);
             CharModel::update(models, dt);
+
+            renderModels(renderInfo, models);
 		}
 
 
