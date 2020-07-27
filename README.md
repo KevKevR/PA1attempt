@@ -1,8 +1,8 @@
-Programming Assignment 1 
+Programming Assignment 2
 ======
 for COMP371 CC, Concordia University Summer 2020
 with instructor Serguei A. Mokhov, 
-due by the end of July 12th, 2020.
+due by the end of July 27th, 2020.
 
 Team List
 ======
@@ -15,8 +15,8 @@ Team List
 Features and Functionality
 ======
 This program takes advantage of what OpenGL v3.1 and onwards offers to render colored 3D models with a movable perspective camera.
-The ground is shown with a 100x100 unit grid centered at the origin. Standard xyz axes are also centered at the origin, and are colored in rgb fashion. 
-Models representing each of the students are arbitrarily placed in each of the four corners and center positions. They are models of the following letter-number pairs: S3, N2, A9, N4, V9. All models were drawn with copies of a same, single unit cube object, applied with various transformation to stretch and position them in shapes of alphanumeric characters. Theses models are free to move in the XZ-plane individually through the **models controls** section below. Additional modifications are possible and found in said section. Note that some of these modification apply once per key press, while others are applied continuously as long as the valid key combination is held.
+The ground is shown with a 100x100 unit grid centered at the origin and it is illuminated by a point light source placed 30 units above it. The entire scene is rendered in a tiled texture and shadows. Standard xyz axes are also centered at the origin, and are colored in rgb fashion. 
+Models representing each of the students are arbitrarily placed in each of the four corners and center positions. They are models of the following letter-number pairs: S3, N2, A9, N4, V9. All models were drawn with copies of a same, single unit cube object, applied with various transformation to stretch and position them in shapes of alphanumeric characters. Each one is also paired with a single unit sphere object that covers the upper half of the models. The letters and numbers are rendered with textures, with the former having a box-lie texture and the latter shiny metal textures. These are free to move in the XZ-plane individually through the **models controls** section below. Additional modifications are possible and found in said section. Note that some of these modification apply once per key press, while others are applied continuously as long as the valid key combination is held.
 The view camera initially centers its focus onto the origin point (0, 0, 0). Additional camera and display properties can be found in the **Display/Camera** section. The camera moves in first person view tradition. Further details on how to move it are found in the **Camera Controls** section.
 Rendering mode can change between triangles, lines and points. Controls found in **Rendering Controls** section.
 
@@ -39,6 +39,7 @@ Model Controls
 - Number keys 1 through 5 to select one of the five models (assigned in this order: S3, N2, A9, N4, V9). 
 
 The following controls apply to the *selected model* only.
+- Spacebar to re-position the model at a random location on the grid.
 - WASD to move model in XZ plane.
 - a and d to incrementally rotate model about y-axis (5 degrees per press).
 - U and J to incrementally scale model to be bigger or smaller.
@@ -61,3 +62,7 @@ The models will be rendered according to the following scheme:
 - T    Triangles (like Fill/Surfaces)
 - L    Lines (like transparent wireframe)
 - P    Points (Vertices)
+
+The model and scenery textures and shadows can be turned on and off according to the following scheme:
+- X    Textures
+- B    Shadows
