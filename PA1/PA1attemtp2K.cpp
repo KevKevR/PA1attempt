@@ -3034,7 +3034,29 @@ const char* getFragmentShaderSourceTest2()
         //"    // get depth of current fragment from light's perspective"
         "    float currentDepth = projCoords.z;"
         //"    // check whether current frag pos is in shadow"
-        "    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;"
+        //"    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;"
+        //"float bias = 0.005;"
+        // calculate bias (based on depth map resolution and slope)
+        "    vec3 normal = normalize(fs_in.Normal);"
+        "    vec3 lightDir = normalize(lightPos - fs_in.FragPos);"
+        "    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);"
+        //"    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;"
+        //Percentage close filter
+        "    float shadow = 0.0f;"
+        "    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);"
+        "    for (int x = -1; x <= 1; ++x)"
+        "    {"
+        "        for (int y = -1; y <= 1; ++y)"
+        "        {"
+        "            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;"
+        "            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;"
+        "        }"
+        "    }"
+        "    shadow /= 9.0;"
+        ""
+        // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
+        "    if (projCoords.z > 1.0)"
+        "        shadow = 0.0;"
         ""
         "    return shadow;"
         "}"
@@ -4007,9 +4029,9 @@ int main(int argc, char* argv[])
     glUseProgram(shaderProgramTest);
     glUniform1i(glGetUniformLocation(shaderProgramTest, "depthMap"), 0);
 
-    glUseProgram(shaderProgramShadow);
-    glUniform1i(glGetUniformLocation(shaderProgramShadow, "diffuseTexture"), 0);
-    glUniform1i(glGetUniformLocation(shaderProgramShadow, "shadowmap"), 1);
+    glUseProgram(shaderProgramTest2);
+    glUniform1i(glGetUniformLocation(shaderProgramTest2, "shadowmap"), 0);
+    glUniform1i(glGetUniformLocation(shaderProgramTest2, "diffuseTexture"), 1);
 
 
     // Set light position vector in fragment shader to current light position value (done once)
@@ -4174,10 +4196,13 @@ int main(int argc, char* argv[])
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, brickTextureID);
+        glBindTexture(GL_TEXTURE_2D, brickTextureID); 
+        //avoid peter panning
+        //glCullFace(GL_FRONT);
         renderScene(shaderProgramShadow, planeVAO);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        //glCullFace(GL_BACK);
         ////
         //// reset viewport
         glViewport(0, 0, window_width, window_height);
@@ -4199,18 +4224,17 @@ int main(int argc, char* argv[])
         glUniform3fv(glGetUniformLocation(shaderProgramTest2, "lightPos"), 1, &lightPos[0]);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgramTest2, "lightSpaceMatrix"), 1, GL_FALSE, &lightSpaceMatrix[0][0]);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, cementTextureID);
-        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, brickTextureID);
         renderScene(shaderProgramTest2, planeVAO);
-        
 
         // render Depth map to quad for visual debugging
         // ---------------------------------------------
         glUseProgram(shaderProgramTest);
         glUniform1f(glGetUniformLocation(shaderProgramTest, "near_plane"), near_plane);
         glUniform1f(glGetUniformLocation(shaderProgramTest, "far_plane"), far_plane);
-        glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         //renderQuad();
 //        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
