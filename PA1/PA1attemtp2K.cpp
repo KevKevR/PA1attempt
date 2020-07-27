@@ -2579,6 +2579,10 @@ int createTexturedCubeVertexArrayObject()
     };
 
 
+    //fix change in way storing normal (should be same as position).
+    for (int i = 0; i < 44; i++) {
+        vertexArray[2*i + 1] = vertexArray[2 * i];
+    }
     //create instancing array for tile grid. 
     const int sideLength = 100;
     const float cellLength = 1.0f;
@@ -2838,13 +2842,13 @@ int createPlaneVertexArrayObject()
     // ------------------------------------------------------------------
     float planeVertices[] = {
         // positions            // normals         // texcoords
-         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-        -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
+         25.0f, 0.2f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+        -25.0f, 0.2f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+        -25.0f, 0.2f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
 
-         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-         25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 10.0f,
-        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f
+         25.0f, 0.2f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+         25.0f, 0.2f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 10.0f,
+        -25.0f, 0.2f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f
     };
     //for (int i = 0; i < 8 * 6; i++) {
     //    planeVertices[i] /= 2;
