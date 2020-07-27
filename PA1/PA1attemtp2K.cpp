@@ -2801,13 +2801,23 @@ int createPlaneVertexArrayObject()
     float planeVertices[] = {
         // positions            // normals         // texcoords
          25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-        -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
         -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+        -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
 
          25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-         25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 10.0f
+         25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 10.0f,
+        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f
     };
+    //for (int i = 0; i < 8 * 6; i++) {
+    //    planeVertices[i] /= 2;
+    //    switch (i % 8) {
+    //    case 1:
+    //        planeVertices[i] = 5.0f;
+    //        break;
+    //    }
+    //}
+
+
     // plane VAO
     unsigned int planeVBO;
     glGenVertexArrays(1, &planeVAO);
@@ -3103,6 +3113,8 @@ void renderCube()
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
 }
+
+float fakeTime = 0;
 //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
 // renders the 3D scene
 // --------------------
@@ -3128,6 +3140,15 @@ void renderScene(int shaderProgram, int planeVAO)
     model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
     model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
     model = glm::scale(model, glm::vec3(0.25));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &model[0][0]);
+    renderCube();
+
+    fakeTime += 0.01f;
+    float fakeCycle = 3.5f*sinf(fakeTime * 0.7f)* sinf(fakeTime * 0.7f);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(2.0f, -1.5f, 2.0));
+    model = glm::rotate(model, radians(45.0f + fakeTime*20),glm::vec3(2.0f, -1.5f + fakeCycle, 2.0));
+    model = glm::scale(model, glm::vec3(1.1f + fakeCycle));
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &model[0][0]);
     renderCube();
 }
@@ -3859,7 +3880,6 @@ int main(int argc, char* argv[])
         // Frame time calculation
         float dt = glfwGetTime() - lastFrameTime;
         lastFrameTime += dt;
-
         // Each frame, reset color of each pixel to glClearColor
         // @TODO 1 - Clear Depth Buffer Bit as well
         // ...
@@ -3887,6 +3907,11 @@ int main(int argc, char* argv[])
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, brickTextureID);
         renderScene(shaderProgramShadow, planeVAO);
+
+
+        glUseProgram(shaderProgramShadow);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         ////
         //// reset viewport
@@ -3934,7 +3959,7 @@ int main(int argc, char* argv[])
         glUniform1i(enableTextureLocation, enableTexture);
 
         //draw tiles
-        glBindTexture(GL_TEXTURE_2D, brickTextureID);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
         glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
         drawTileGrid(worldMatrixLocation, mat4(1.0f));
         
