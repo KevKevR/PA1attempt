@@ -4252,16 +4252,18 @@ int main(int argc, char* argv[])
 //    return 0;
 //}
 
-        GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
-  //      glUseProgram(shaderProgram);
-  //      glBindVertexArray(cubeVAOa);
-  //      // Draw geometry
-  //      glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
+        glUseProgram(shaderProgram);
+        glBindVertexArray(cubeVAOa);
+        // Draw geometry
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
 
-  //      //bind shadow map
-  //      glActiveTexture(GL_TEXTURE1);
-  //      glBindTexture(GL_TEXTURE_2D, depthMap);
-  //      glActiveTexture(GL_TEXTURE0);
+        //bind shadow map
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        glActiveTexture(GL_TEXTURE0);
+
+
+        GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
 
         //put store info, so can render easier for shadow map.
         RenderInfo renderInfo;
