@@ -2913,8 +2913,8 @@ const char* getFragmentShaderSourceTest()
     "void main()"
     "{"
     "    float depthValue = texture(depthMap, TexCoords).r;"
-    "    FragColor = vec4(vec3(LinearizeDepth(depthValue) / far_plane), 1.0);" // perspective
-    //"    FragColor = vec4(vec3(depthValue), 1.0);" // orthographic
+    ""    // "FragColor = vec4(vec3(LinearizeDepth(depthValue) / far_plane), 1.0);" // perspective
+    "    FragColor = vec4(vec3(depthValue), 1.0);" // orthographic
     "}";
 }
 int compileAndLinkShadersTest()
@@ -2942,6 +2942,153 @@ int compileAndLinkShadersTest()
     // fragment shader
     int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     const char* fragmentShaderSource = getFragmentShaderSourceTest();
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+
+    // check for shader compile errors
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+
+    // link shaders
+    int shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    // check for linking errors
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+    }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return shaderProgram;
+}
+//https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
+const char* getVertexShaderSourceTest2()
+{
+    return
+        "    #version 330 core\n"
+        "    layout(location = 0) in vec3 aPos;"
+        "layout(location = 1) in vec3 aNormal;"
+        "layout(location = 2) in vec2 aTexCoords;"
+        ""
+        "out vec2 TexCoords;"
+        ""
+        "out VS_OUT{"
+        "    vec3 FragPos;"
+        "    vec3 Normal;"
+        "    vec2 TexCoords;"
+        "    vec4 FragPosLightSpace;"
+        "} vs_out;"
+        ""
+        "uniform mat4 projection;"
+        "uniform mat4 view;"
+        "uniform mat4 model;"
+        "uniform mat4 lightSpaceMatrix;"
+        ""
+        "void main()"
+        "{"
+        "    vs_out.FragPos = vec3(model * vec4(aPos, 1.0));"
+        "    vs_out.Normal = transpose(inverse(mat3(model))) * aNormal;"
+        "    vs_out.TexCoords = aTexCoords;"
+        "    vs_out.FragPosLightSpace = lightSpaceMatrix * vec4(vs_out.FragPos, 1.0);"
+        "    gl_Position = projection * view * model * vec4(aPos, 1.0);"
+        "}";
+}
+//https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
+const char* getFragmentShaderSourceTest2()
+{
+    return
+        "    #version 330 core\n"
+        "    out vec4 FragColor;"
+        ""
+        "in VS_OUT{"
+        "    vec3 FragPos;"
+        "    vec3 Normal;"
+        "    vec2 TexCoords;"
+        "    vec4 FragPosLightSpace;"
+        "} fs_in;"
+        ""
+        "uniform sampler2D diffuseTexture;"
+        "uniform sampler2D shadowMap;"
+        ""
+        "uniform vec3 lightPos;"
+        "uniform vec3 viewPos;"
+        ""
+        "float ShadowCalculation(vec4 fragPosLightSpace)"
+        "{"
+        //"    // perform perspective divide"
+        "    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;"
+        //"    // transform to [0,1] range"
+        "    projCoords = projCoords * 0.5 + 0.5;"
+        //"    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)"
+        "    float closestDepth = texture(shadowMap, projCoords.xy).r;"
+        //"    // get depth of current fragment from light's perspective"
+        "    float currentDepth = projCoords.z;"
+        //"    // check whether current frag pos is in shadow"
+        "    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;"
+        ""
+        "    return shadow;"
+        "}"
+        ""
+        "void main()"
+        "{"
+        "    vec3 color = texture(diffuseTexture, fs_in.TexCoords).rgb;"
+        "    vec3 normal = normalize(fs_in.Normal);"
+        "    vec3 lightColor = vec3(0.3);"
+        //"    // ambient"
+        "    vec3 ambient = 0.3 * color;"
+        //"    // diffuse"
+        "    vec3 lightDir = normalize(lightPos - fs_in.FragPos);"
+        "    float diff = max(dot(lightDir, normal), 0.0);"
+        "    vec3 diffuse = diff * lightColor;"
+        //"    // specular"
+        "    vec3 viewDir = normalize(viewPos - fs_in.FragPos);"
+        "    vec3 reflectDir = reflect(-lightDir, normal);"
+        "    float spec = 0.0;"
+        "    vec3 halfwayDir = normalize(lightDir + viewDir);"
+        "    spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);"
+        "    vec3 specular = spec * lightColor;"
+        //"    // calculate shadow"
+        "    float shadow = ShadowCalculation(fs_in.FragPosLightSpace);"
+        "    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;"
+        ""
+        "    FragColor = vec4(lighting, 1.0);"
+        "}";
+}
+int compileAndLinkShadersTest2()
+{
+    // compile and link shader program
+    // return shader program id
+    // ------------------------------------
+
+    // vertex shader
+    int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    const char* vertexShaderSource = getVertexShaderSourceTest2();
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+
+    // check for shader compile errors
+    int success;
+    char infoLog[512];
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+
+    // fragment shader
+    int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    const char* fragmentShaderSource = getFragmentShaderSourceTest2();
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
 
@@ -3166,7 +3313,7 @@ void renderScene(int shaderProgram, int planeVAO)
     glm::mat4 model = glm::mat4(1.0f);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &model[0][0]);
     glBindVertexArray(planeVAO);
-    //glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     // cubes
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
@@ -3185,14 +3332,14 @@ void renderScene(int shaderProgram, int planeVAO)
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &model[0][0]);
     renderCube();
 
-    fakeTime += 0.01f;
-    float fakeCycle = 5.0f*sinf(fakeTime * 0.7f)* sinf(fakeTime * 0.7f);
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(2.0f, -1.5f, 2.0));
-    model = glm::rotate(model, radians(45.0f + fakeTime*20),glm::vec3(2.0f, -1.5f + fakeCycle, 2.0));
-    model = glm::scale(model, glm::vec3(1.1f + fakeCycle));
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &model[0][0]);
-    renderCube();
+    //fakeTime += 0.01f;
+    //float fakeCycle = 3.5f*sinf(fakeTime * 0.7f)* sinf(fakeTime * 0.7f);
+    //model = glm::mat4(1.0f);
+    //model = glm::translate(model, glm::vec3(2.0f, -1.5f, 2.0));
+    //model = glm::rotate(model, radians(45.0f + fakeTime*20),glm::vec3(2.0f, -1.5f + fakeCycle, 2.0));
+    //model = glm::scale(model, glm::vec3(1.1f + fakeCycle));
+    //glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &model[0][0]);
+    //renderCube();
 }
 //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
 // renderQuad() renders a 1x1 XY quad in NDC
@@ -3294,7 +3441,7 @@ GLuint loadTexture(const char* filename)
 //Function will create a grid centered at (0,Y,0) in (X,Y,Z).
 //Note: location of line object inside vertex array is hard-coded.
 void drawGrid(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix = mat4(1.0f)) {
-    const float sideLength = 200; //# of cells on side.
+    const float sideLength = 100; //# of cells on side.
     const float cellLength = 1; //length of side of a cell.
 
     //make the grid pop-out a bit from the tile grid
@@ -3389,15 +3536,6 @@ void drawAxis(GLuint worldMatrixLocation, GLuint colorLocation) {
     glUniform3f(colorLocation, 0.0f, 0.0f, 1.0f);
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
-    glm::mat4 model = glm::mat4(1.0f);
-    fakeTime += 0.01f;
-    float fakeCycle = 5.0f * sinf(fakeTime * 0.7f) * sinf(fakeTime * 0.7f);
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(2.0f, -1.5f, 2.0));
-    model = glm::rotate(model, radians(45.0f + fakeTime * 20), glm::vec3(2.0f, -1.5f + fakeCycle, 2.0));
-    model = glm::scale(model, glm::vec3(1.1f + fakeCycle));
-    glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &model[0][0]);
-    renderCube();
 }
 
 bool isShiftPressed(GLFWwindow* window) {
@@ -3854,6 +3992,7 @@ int main(int argc, char* argv[])
     // Compile and link shaders here ...
     int shaderProgram = compileAndLinkShaders();
     int shaderProgramTest = compileAndLinkShadersTest();
+    int shaderProgramTest2 = compileAndLinkShadersTest2();
     int shaderProgramShadow = compileAndLinkShadersShadow();
 
     // We can set the shader configurations
@@ -3868,6 +4007,9 @@ int main(int argc, char* argv[])
     glUseProgram(shaderProgramTest);
     glUniform1i(glGetUniformLocation(shaderProgramTest, "depthMap"), 0);
 
+    glUseProgram(shaderProgramShadow);
+    glUniform1i(glGetUniformLocation(shaderProgramShadow, "diffuseTexture"), 0);
+    glUniform1i(glGetUniformLocation(shaderProgramShadow, "shadowmap"), 1);
 
 
     // Set light position vector in fragment shader to current light position value (done once)
@@ -3933,9 +4075,9 @@ int main(int argc, char* argv[])
     glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
 
     // Set initial view matrix
-    //mat4 viewMatrix = lookAt(cameraPosition,  // eye
-    //                         cameraPosition + cameraLookAt,  // center
-    //                         cameraUp ); // up
+    mat4 viewMatrix = lookAt(cameraPosition,  // eye
+                             cameraPosition + cameraLookAt,  // center
+                             cameraUp ); // up
     GLuint viewMatrixLocation = glGetUniformLocation(shaderProgram, "viewMatrix");
     //glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
 
@@ -4035,16 +4177,34 @@ int main(int argc, char* argv[])
         glBindTexture(GL_TEXTURE_2D, brickTextureID);
         renderScene(shaderProgramShadow, planeVAO);
 
-
-        glUseProgram(shaderProgramShadow);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         ////
         //// reset viewport
         glViewport(0, 0, window_width, window_height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         //
+                // 2. render scene as normal using the generated depth/shadow map  
+        // --------------------------------------------------------------
+        glViewport(0, 0, window_width, window_height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glUseProgram(shaderProgramTest2);
+        //glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        //glm::mat4 view = camera.GetViewMatrix();
+        mat4 projection = projectionMatrix;
+        mat4 view = viewMatrix;
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgramTest2, "projection"), 1, GL_FALSE, &projection[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgramTest2, "view"), 1, GL_FALSE, &view[0][0]);
+        // set light uniforms
+        glUniform3fv(glGetUniformLocation(shaderProgramTest2, "viewPos"), 1, &cameraPosition[0]);
+        glUniform3fv(glGetUniformLocation(shaderProgramTest2, "lightPos"), 1, &lightPos[0]);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgramTest2, "lightSpaceMatrix"), 1, GL_FALSE, &lightSpaceMatrix[0][0]);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, cementTextureID);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        renderScene(shaderProgramTest2, planeVAO);
+        
+
         // render Depth map to quad for visual debugging
         // ---------------------------------------------
         glUseProgram(shaderProgramTest);
@@ -4068,18 +4228,16 @@ int main(int argc, char* argv[])
 //    return 0;
 //}
 
-        glUseProgram(shaderProgram);
-        glBindVertexArray(cubeVAOa);
-        // Draw geometry
-        glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
-
-        //bind shadow map
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
-        glActiveTexture(GL_TEXTURE0);
-
-
         GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
+  //      glUseProgram(shaderProgram);
+  //      glBindVertexArray(cubeVAOa);
+  //      // Draw geometry
+  //      glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
+
+  //      //bind shadow map
+  //      glActiveTexture(GL_TEXTURE1);
+  //      glBindTexture(GL_TEXTURE_2D, depthMap);
+  //      glActiveTexture(GL_TEXTURE0);
 
         //put store info, so can render easier for shadow map.
         RenderInfo renderInfo;
@@ -4316,7 +4474,7 @@ int main(int argc, char* argv[])
         // - In first person, camera lookat is set like below
         // - In third person, camera position is on a sphere looking towards center
 
-        mat4 viewMatrix = mat4(1.0);
+        //mat4 viewMatrix = mat4(1.0);
 
         if (cameraFirstPerson) {
             viewMatrix = lookAt(cameraPosition, cameraPosition + cameraLookAt, cameraUp);
