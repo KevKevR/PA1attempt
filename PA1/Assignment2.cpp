@@ -17,7 +17,7 @@
 #include <GL/glew.h>    // Include GLEW - OpenGL Extension Wrangler
 
 #include <GLFW/glfw3.h> // cross-platform interface for creating a graphical context,
-						// initializing OpenGL and binding inputs
+// initializing OpenGL and binding inputs
 
 #include <glm/glm.hpp>  // GLM is an optimized math library with syntax to similar to OpenGL Shading Language
 #include <glm/gtc/matrix_transform.hpp> // include this to create transformation matrices
@@ -264,7 +264,7 @@ public:
 	//Constructor
 	ModelV9(int shaderProgram) : CharModel(shaderProgram) {
 		const float model_heightScale = 5.0f; //<-make sure is same as constant in drawV9().
-		//initialize position with translate matrix
+											  //initialize position with translate matrix
 		initial_relativeTranslateMatrix =
 			translate(mat4(1.0f),
 				vec3(45.5,
@@ -303,21 +303,21 @@ private:
 		mat4 inertialWorldMatrix;   //model from an inertial view of reference, ie centered at origin.
 		mat4 worldMatrix;           //complete matrix after all transformations.
 
-		//convert angles to radians
+									//convert angles to radians
 		const float r_angle = abs(radians((float)angle));
 
 		//future calculations done early to determine modelPositioningMatrix for letter, and box measurements.
 		const float m9_apothem = ((heightScale + widthScale) / 4);
 		const float m9_centralAngle = radians(360.0f / corners);
 		const float m9_radius = m9_apothem / cos(m9_centralAngle / 2);
-		const float m9_base = 2 * m9_apothem * tan(m9_centralAngle / 2);
+		const float m9_base = 2 * m9_apothem * tanf(m9_centralAngle / 2);
 
 		//base of cube to scale by
-		const float mV_base = widthScale * cos(r_angle);
+		const float mV_base = widthScale * cosf(r_angle);
 		//heigtht of cube to scale by
-		const float mV_height = (heightScale - widthScale * cos(r_angle) * sin(r_angle)) / cos(r_angle);
+		const float mV_height = (heightScale - widthScale * cosf(r_angle) * sinf(r_angle)) / cosf(r_angle);
 		//absolute width of half of V
-		const float letterHalfWidth = mV_height * sin(r_angle) + mV_base * cos(r_angle);
+		const float letterHalfWidth = mV_height * sinf(r_angle) + mV_base * cosf(r_angle);
 
 		//full model measurement
 		const float m_height = heightScale;
@@ -363,9 +363,9 @@ private:
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 		//connect the bottom part of the V legs together
-		const float base = widthScale * cos(r_angle);
-		const float bottomHeight = base * sin(r_angle);
-		const float bottomBase = base * cos(r_angle) * 2;
+		const float base = widthScale * cosf(r_angle);
+		const float bottomHeight = base * sinf(r_angle);
+		const float bottomBase = base * cosf(r_angle) * 2;
 		inertialWorldMatrix =
 			//move into position relative to center of model.
 			modelPositioningMatrix
@@ -759,8 +759,7 @@ private:
 		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		
-
+		//drawBorder(7, 13.5f, 1, 1, relativeWorldMatrix, translate(mat4(1.0f), vec3(0.5, 3.5f, 0)));
 	}
 };
 class ModelN4 : public CharModel {
@@ -935,8 +934,8 @@ int createVertexBufferObject()
 {
 	// Cube model (used for models and axis)
 	vec3 vertexArray[] = {  // position
-		//cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
-		//left
+							//cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
+							//left
 		vec3(-0.5f,-0.5f,-0.5f), vec3(-0.5f,-0.5f, 0.5f),vec3(-0.5f, 0.5f, 0.5f),
 		vec3(-0.5f,-0.5f,-0.5f),vec3(-0.5f, 0.5f, 0.5f),vec3(-0.5f, 0.5f,-0.5f),
 		// far
@@ -956,7 +955,7 @@ int createVertexBufferObject()
 		vec3(0.5f, 0.5f, 0.5f), vec3(-0.5f, 0.5f,-0.5f), vec3(-0.5f, 0.5f, 0.5f),
 
 		//line (0,0,-0.5)to(0,0,0.5)
-		
+		vec3(0.0f, 0.0f, -0.5f),
 		vec3(0.0f, 0.0f, 0.5f),
 	};
 
@@ -1100,6 +1099,8 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
 	inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_4, 3));
 	inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_5, 4));
 
+
+
 	//default return value
 	GLchar selectedMode = previousModelIndex;
 
@@ -1124,7 +1125,7 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
 
 	selectedTransformation[3] = mat4(1.0f);     //signal to reset position and orientation if changed.
 
-	//allows map value to contain 2 variables.
+												//allows map value to contain 2 variables.
 	struct transformation {
 		mat4 matrix;
 		int type;
@@ -1135,50 +1136,66 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
 	float translateSpeed = transformSpeed;
 	float rotateSpeed = 5.0f;   //specifications
 	float scaleSpeed = transformSpeed / 12;
+	float shearSpeed = 0.1f;
 	if (isShiftPressed(window)) // capital case letters
 	{
 		//translate model if pressed
 		//vertical movement
 		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_W, {
 			translate(mat4(1.0f),
-				vec3(0,
-					0,
-					-translateSpeed)), 0 }));
+			vec3(0,
+			0,
+			-translateSpeed)), 0 }));
 		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_S, {
 			translate(mat4(1.0f),
-				vec3(0,
-					0,
-					translateSpeed)), 0 }));
+			vec3(0,
+			0,
+			translateSpeed)), 0 }));
 		//horizontal movement
 		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_D, {
 			translate(mat4(1.0f),
-				vec3(translateSpeed,
-					0,
-					0)), 0 }));
+			vec3(translateSpeed,
+			0,
+			0)), 0 }));
 		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_A, {
 			translate(mat4(1.0f),
-				vec3(-translateSpeed,
-					0,
-					0)), 0 }));
+			vec3(-translateSpeed,
+			0,
+			0)), 0 }));
 
 		//scale model if pressed
 		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_U, {
 			scale(mat4(1.0f),
-				vec3((1 + scaleSpeed), (1 + scaleSpeed), (1 + scaleSpeed))), 2 }));
+			vec3((1 + scaleSpeed), (1 + scaleSpeed), (1 + scaleSpeed))), 2 }));
 		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_J, {
 			scale(mat4(1.0f),
-				vec3(1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed))), 2 }));
+			vec3(1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed))), 2 }));
+		//shear model along x-axis if pressed
+		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_E, {
+			
+			mat4(1, 0, 0, 0,  // first column
+			shearSpeed, 1, 0, 0,  // second column
+			0, 0, 1, 0,  // third column
+			0, 0, translateSpeed, 1) // fourth column
+			, 2 }));
+
+		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_Q, {
+			mat4(1, 0, 0, 0,  // first column
+			-shearSpeed, 1, 0, 0,  // second column
+			0, 0, 1, 0,  // third column
+			0, 0, -translateSpeed, 1) // fourth column
+			, 2 }));
 	}
 	else {
 		//rotate model if pressed
 		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_A, {
 			rotate(mat4(1.0f),
-				radians(rotateSpeed),
-				vec3(0.0f, 1.0f, 0.0f)), 1 }));
+			radians(rotateSpeed),
+			vec3(0.0f, 1.0f, 0.0f)), 1 }));
 		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_D, {
 			rotate(mat4(1.0f),
-				radians(rotateSpeed),
-				vec3(0.0f, -1.0f, 0.0f)), 1 }));
+			radians(rotateSpeed),
+			vec3(0.0f, -1.0f, 0.0f)), 1 }));
 	}
 	//reset position and orientation if pressed
 	inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_HOME, {
@@ -1192,11 +1209,11 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
 		int previousState = GLFW_RELEASE;
 		map<int, KeyState>::iterator it = previousKeyStates.find(itr->first);
 		if (it != previousKeyStates.end()) {        //key is a tracked one
-			//toggling shift should not activate the key again.
-			//So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
+													//toggling shift should not activate the key again.
+													//So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
 			if ((it->second.needShiftPressed == isShiftPressed(window)) && it->second.prevWithShiftPressed) {
 				previousState = GLFW_PRESS;    //so update to actual
-				//glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
+											   //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
 			}
 			//else if (isShiftPressed(window) && !it->second.prevWithShiftPressed) {
 			//    previousState = GLFW_PRESS;
@@ -1279,7 +1296,7 @@ int main(int argc, char* argv[])
 	const float initial_xpos = 0;
 	const float initial_ypos = 5;
 	const float initial_zpos = 20;
-	const float initial_rpos = sqrt(pow(initial_xpos, 2) + pow(initial_zpos, 2));
+	const float initial_rpos = sqrt(powf(initial_xpos, 2) + powf(initial_zpos, 2));
 	const vec3 initial_cameraPosition(initial_xpos, initial_ypos, initial_zpos);
 	//const vec3 initial_cameraLookAt(0.0f, 0.0f, -1.0f);   //<-overridden by camera Horizontal/Vertical Angle anyways.
 	const vec3 initial_cameraUp(0.0f, 1.0f, 0.0f);
@@ -1290,8 +1307,8 @@ int main(int argc, char* argv[])
 
 
 	// Other camera parameters
-	const float initial_cameraHorizontalAngle = degrees(atan2(initial_zpos, -initial_xpos));
-	const float initial_cameraVerticalAngle = degrees(atan2(initial_ypos, initial_rpos));
+	const float initial_cameraHorizontalAngle = degrees(atan2f(initial_zpos, -initial_xpos));
+	const float initial_cameraVerticalAngle = degrees(atan2f(initial_ypos, initial_rpos));
 	const float initialFoV = 70.0f;
 
 	float cameraSpeed = 10.0f;
@@ -1314,9 +1331,9 @@ int main(int argc, char* argv[])
 		800.0f / 600.0f,  // aspect ratio
 		0.01f, 100.0f);   // near and far (near > 0)
 
-//glm::mat4 projectionMatrix = glm::ortho(-4.0f, 4.0f,    // left/right
-//    -3.0f, 3.0f,    // bottom/top
-//    -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
+						  //glm::mat4 projectionMatrix = glm::ortho(-4.0f, 4.0f,    // left/right
+						  //    -3.0f, 3.0f,    // bottom/top
+						  //    -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
 
 	GLuint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
 	glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
@@ -1491,12 +1508,11 @@ int main(int argc, char* argv[])
 		/*
 		if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) // move camera down
 		{
-			cameraFirstPerson = true;
+		cameraFirstPerson = true;
 		}
-
 		if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) // move camera down
 		{
-			cameraFirstPerson = false;
+		cameraFirstPerson = false;
 		}
 		*/
 
@@ -1541,7 +1557,7 @@ int main(int argc, char* argv[])
 		float theta = radians(cameraHorizontalAngle);
 		float phi = radians(cameraVerticalAngle);
 
-		cameraLookAt = vec3(cos(phi) * cos(theta), sin(phi), -cos(phi) * sin(theta));
+		cameraLookAt = vec3(cosf(phi) * cosf(theta), sinf(phi), -cosf(phi) * sinf(theta));
 		vec3 cameraSideVector = glm::cross(cameraLookAt, vec3(0.0f, 1.0f, 0.0f));
 
 		glm::normalize(cameraSideVector);
@@ -1619,10 +1635,9 @@ int main(int argc, char* argv[])
 		// ...
 		/*
 		if (lastMouseLeftState == GLFW_RELEASE && glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-			const float projectileSpeed = 25.0f;
-			projectileList.push_back(Projectile(cameraPosition, projectileSpeed * cameraLookAt, shaderProgram));
-
-			//glClearColor(0.5f, 0.5f, 0.0f, 1.0f);
+		const float projectileSpeed = 25.0f;
+		projectileList.push_back(Projectile(cameraPosition, projectileSpeed * cameraLookAt, shaderProgram));
+		//glClearColor(0.5f, 0.5f, 0.0f, 1.0f);
 		}
 		lastMouseLeftState = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
 		*/
@@ -1649,7 +1664,7 @@ int main(int argc, char* argv[])
 		// Press right mouse button -> pan left and right (yaw)
 		if (rightMouseButton)
 			cameraHorizontalAngle -= dx * cameraAngularSpeed * dt; // taken from Lab 3
-		// Press middle mouse button -> tilt up and down (pitch)
+																   // Press middle mouse button -> tilt up and down (pitch)
 		if (middleMouseButton)
 			cameraVerticalAngle -= dy * cameraAngularSpeed * dt; // taken from Lab 3
 
