@@ -36,7 +36,7 @@ GLuint loadTexture(const char* filename);
 const int numMainModels = 5;
 
 // Define (initial) window width and height
-int window_width = 1024, window_height = 768;
+int window_width = 1024, window_height = 1024;
 
 // Position of light source
 vec3 lightPos = vec3(0.0f, 30.0f, 0.0f);
@@ -3696,7 +3696,7 @@ int main(int argc, char* argv[])
 
     // We can set the shader once, since we have only one
     glUseProgram(shaderProgram);
-
+    
 
 
 
@@ -3770,8 +3770,8 @@ int main(int argc, char* argv[])
     vec3 instanceVec[100];
     instanceVec[0] = vec3(0, 0, 0);
     // Define and upload geometry to the GPU here ...
-    //int cubeVAO = createTexturedCubeVertexArrayObject();
     int planeVAO = createPlaneVertexArrayObject();
+    int cubeVAOa = createTexturedCubeVertexArrayObject();
     // For frame time
     float lastFrameTime = glfwGetTime();
 
@@ -3844,8 +3844,8 @@ int main(int argc, char* argv[])
         // ...
         const float speed = dt * 30;
         time += speed;
-        //glClearColor(0.4f * (1 + cosf(radians(1.3f * time))), 0.4f * (1 + cosf(radians(1.5f * time + 120))), 0.4f * (1 + cosf(radians(1.7f * time - 120))), 1.0f);
-        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(0.4f * (1 + cosf(radians(1.3f * time))), 0.4f * (1 + cosf(radians(1.5f * time + 120))), 0.4f * (1 + cosf(radians(1.7f * time - 120))), 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
         // 1. render depth of scene to texture (from light's perspective)
@@ -3859,19 +3859,19 @@ int main(int argc, char* argv[])
         // render scene from light's point of view
         glUseProgram(shaderProgramShadow);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgramShadow, "lightSpaceMatrix"), 1, GL_FALSE, &lightSpaceMatrix[0][0]);
-
+        ////
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-        glClear(GL_DEPTH_BUFFER_BIT);
+        //glClear(GL_DEPTH_BUFFER_BIT);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, brickTextureID);
-        renderScene(shaderProgramShadow, planeVAO);
+        //renderScene(shaderProgramShadow, planeVAO);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        // reset viewport
+        ////
+        //// reset viewport
         glViewport(0, 0, window_width, window_height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        //
         // render Depth map to quad for visual debugging
         // ---------------------------------------------
         glUseProgram(shaderProgramTest);
@@ -3879,7 +3879,7 @@ int main(int argc, char* argv[])
         glUniform1f(glGetUniformLocation(shaderProgramTest, "far_plane"), far_plane);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, depthMap);
-        renderQuad();
+        //renderQuad();
 
 //        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 //        // -------------------------------------------------------------------------------
@@ -3898,7 +3898,7 @@ int main(int argc, char* argv[])
 
         glUseProgram(shaderProgram);
         // Draw geometry
-        glBindBuffer(GL_ARRAY_BUFFER, cubeVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
 
         // Draw ground
         GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
