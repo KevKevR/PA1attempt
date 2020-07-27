@@ -518,7 +518,13 @@ protected:
         mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(scaler, scaler, scaler));
         mat4 mWorldMatrix = relativeWorldMatrix * sphereFollow() * worldMatrix;
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 38, 600);
+
+
+        //match these numbers to those passed to sphereVertices().
+        const int heightParts = 16;
+        const int ringParts = 20;
+        const int numVertices = (heightParts - 1) * ringParts * 2 * 2;
+        glDrawArrays(GL_TRIANGLE_STRIP, 44, numVertices);
     }
 
     GLuint worldMatrixLocation;
@@ -1253,9 +1259,10 @@ private:
         
 	}
 };
-vector<vec3> sphereVertices(const int heightParts, const int ringParts) {
+vector<vec3> sphereVertices(vec3 prevVertexArray[44 * 2],const int heightParts, const int ringParts) {
 
-    const int vertexArrNum = 38;
+    const int vertexArrNum = 44;
+    /*
     vec3 vertexArr[vertexArrNum * 2] = {
         //left
         vec3(-0.5f, -0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
@@ -1299,11 +1306,13 @@ vector<vec3> sphereVertices(const int heightParts, const int ringParts) {
         vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
         vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
         vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-
+    
         //line (0,0,-0.5)to(0,0,0.5)
         vec3(0.0f, 0.0f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
     };
+    */
+    vec3* vertexArr = prevVertexArray;
 
     //plan to compute sphere vertices by iterating along cylindrical coordinates -> convert to rectangular.
     //sphere radius, rho
@@ -1318,13 +1327,14 @@ vector<vec3> sphereVertices(const int heightParts, const int ringParts) {
 
 
     //# of vertices is 2 * ringParts per heightParts, ommitting the topmost.
-    //38*2 + (heightParts-1)*ringParts*2*2
+    //44*2 + (heightParts-1)*ringParts*2*2
     //const int numVertices = (heightParts - 1) * ringParts * 2;
 
     //vec3 sphereArray[numVertices] = {};
     vector<vec3> vecSphereArray(vertexArrNum * 2);
     
 
+    //prepend previous array
     for (int i = 0; i < vertexArrNum * 2 ; i++) {
         vecSphereArray[i] = vertexArr[i];
     }
@@ -1424,6 +1434,7 @@ int createTexturedCubeVertexArrayObject()
         vec3(-0.5f, 0.0f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
         vec3(-0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),
         
+        /*
         // 1261 Sphere vertices (from lab5) (44)
         // Note: Normals may be wrong, but there's too many to modify
         vec3(0.000000, 0.000000, -1.000000), vec3(0.000000, 0.000000, -1.000000),
@@ -2686,7 +2697,7 @@ int createTexturedCubeVertexArrayObject()
         vec3(0.342020, -0.000000, -0.939693), vec3(0.342020, -0.000000, -0.939693),
         vec3(0.171010, -0.030154, -0.984808), vec3(0.171010, -0.030154, -0.984808),
         vec3(0.173648, -0.000000, -0.984808), vec3(0.173648, -0.000000, -0.984808),
-        vec3(0.000000, 0.000000, -1.000000), vec3(0.000000, 0.000000, -1.000000)
+        vec3(0.000000, 0.000000, -1.000000), vec3(0.000000, 0.000000, -1.000000)*/
     };
 
 
@@ -2747,12 +2758,12 @@ int createTexturedCubeVertexArrayObject()
     glEnableVertexAttribArray(2);
 
 
-    const int vertexArrayNum = 38;
+    const int vertexArrayNum = 44;
     const int heightParts = 16;
-    const int ringParts = 20;
+    const int ringParts = 20; 
     //make sure the sphere draw function draws [(heightParts-1)*ringParts*2] figures.
     //https://stackoverflow.com/questions/4264304/how-to-return-an-array-from-a-function
-    vector<vec3> vertexArraySphere = sphereVertices(heightParts, ringParts);
+    vector<vec3> vertexArraySphere = sphereVertices(vertexArray, heightParts, ringParts);
 
     vec3 vertexArr2[vertexArrayNum *2 + (heightParts-1)*ringParts*2*2];
     //convert it to array
