@@ -10,6 +10,12 @@
 // due July 27th, 2020.
 //
 
+//TODO:
+// -make the shadow map render for our scene, not an example scene
+//  |- renderDecor and rendorModels were made to maybe make it easier. If not, just copy paste the contents back into main and delete renderInfo.
+// -when the shadow is figured out, can delete shader with "[...]Test()" method.
+// -re-position light back to (0, 30, 0).
+
 #include <iostream>
 #include <list>
 
@@ -2698,7 +2704,7 @@ const char* getFragmentShaderSource()
     "uniform vec3 viewPos;"
 	"uniform sampler2D textureSampler;" //texture properties
 	"uniform bool hasTexture;"
-    //"uniform sampler2D shadowMap;"  //shadow
+    "uniform sampler2D shadowMap;"  //shadow
 
     "vec3 lightColor = vec3(1.0, 1.0, 1.0);"    //light property
     "vec4 textureColor;"                        //texture property
@@ -2711,19 +2717,21 @@ const char* getFragmentShaderSource()
     "out vec4 FragColor;"   //output
 
     ////shadow calculation
-    //"float ShadowCalculation(vec4 fragPosLightSpace)"
-    //"{"
-    ////manual perspective divide (for perspective projection)
-    //"    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;"
-    ////range from [-1, 1] to [0, 1].
-    //"    projCoords = projCoords * 0.5 + 0.5;"
-    ////closest depth value
-    //"    float closestDepth = texture(shadowMap, projCoords.xy).r;"
-    ////current depth value
-    //"    float currentDepth = projCoords.z;"
-    ////is in shadow if not the closest depth.
-    //"    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;"
-    //"}"
+    "float ShadowCalculation(vec4 fragPosLightSpace)"
+    "{"
+    //manual perspective divide (for perspective projection)
+    "    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;"
+    //range from [-1, 1] to [0, 1].
+    "    projCoords = projCoords * 0.5 + 0.5;"
+    //closest depth value
+    "    float closestDepth = texture(shadowMap, projCoords.xy).r;"
+    //"    float closestDepth = 0;"
+    //current depth value
+    "    float currentDepth = projCoords.z;"
+    //is in shadow if not the closest depth.
+    "    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;"
+    "    return shadow;"
+    "}"
     "void main()"
     "{"
         //Texture
@@ -2751,8 +2759,11 @@ const char* getFragmentShaderSource()
         "   vec3 reflectDir = reflect(-lightDir, norm);"
         "   float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);"
         "   vec3 specular = specularStrength * spec * lightColor;"
-        // Final color output from phong model
-        "   vec4 result = vec4((ambient + diffuse + specular) * objectColor, 1.0f);"
+        // Final color output from phong model + shadow
+        "   float shadow = ShadowCalculation(fragPosLightSpace);"
+        //"   float shadow = 0;"
+        "   vec4 result = vec4( (ambient + (1-shadow) * (diffuse + specular)) * objectColor, 1.0f);"
+        //"   vec4 result = vec4((ambient + diffuse + specular) * objectColor, 1.0f);"
         "   FragColor = result * textureColor;"
     "}";
 }
@@ -4017,7 +4028,7 @@ int main(int argc, char* argv[])
         glUniform1f(glGetUniformLocation(shaderProgramTest, "far_plane"), far_plane);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, depthMap);
-        renderQuad();
+        //renderQuad();
 //        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 //        // -------------------------------------------------------------------------------
 //        glfwSwapBuffers(window);
@@ -4104,17 +4115,17 @@ int main(int argc, char* argv[])
             //checks whether the models move
             if (hasMovement) {
                 //start walking
-                selectedModel->walkState.setState(1);
+                //selectedModel->walkState.setState(1);
             }
             else if (prevHadMovement){
                 //stop walking
-                selectedModel->walkState.setState(2);
+                //selectedModel->walkState.setState(2);
             }
             prevHadMovement = hasMovement;
 
             //makes previous model stop walking
             if (prevModel != selectedModel && prevModel) {
-                prevModel->walkState.setState(2);
+                //prevModel->walkState.setState(2);
             }
 
             CharModel::update(models, dt);
