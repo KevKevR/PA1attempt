@@ -45,6 +45,7 @@ const int numMainModels = 5;
 int window_width = 1024, window_height = 1024;
 
 // Position of light source
+//vec3 lightPos = vec3(0.0f, 30.0f, 0.0f);
 vec3 lightPos = vec3(-2.0f, 4.0f, -1.0f);
 
 // Callback function for handling window resize and key input
@@ -2730,6 +2731,10 @@ const char* getFragmentShaderSource()
     "    float currentDepth = projCoords.z;"
     //is in shadow if not the closest depth.
     "    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;"
+    //"    shadow = currentDepth;"
+    "    if (projCoords.z > 1.0){"
+    "        shadow = 0.0;"
+    "    }"
     "    return shadow;"
     "}"
     "void main()"
@@ -2762,7 +2767,8 @@ const char* getFragmentShaderSource()
         // Final color output from phong model + shadow
         "   float shadow = ShadowCalculation(fragPosLightSpace);"
         //"   float shadow = 0;"
-        "   vec4 result = vec4( (ambient + (1-shadow) * (diffuse + specular)) * objectColor, 1.0f);"
+        //"   vec4 result = vec4( (ambient + (1-shadow) * (diffuse + specular)) * objectColor, 1.0f);"
+        "   vec4 result = vec4( (1-shadow) * (ambient + (diffuse + specular)) * objectColor + shadow * vec3(1.0f, 0.0f,0.0f), 1.0f);"
         //"   vec4 result = vec4((ambient + diffuse + specular) * objectColor, 1.0f);"
         "   FragColor = result * textureColor;"
     "}";
@@ -2907,8 +2913,8 @@ const char* getFragmentShaderSourceTest()
     "void main()"
     "{"
     "    float depthValue = texture(depthMap, TexCoords).r;"
-    ""    // "FragColor = vec4(vec3(LinearizeDepth(depthValue) / far_plane), 1.0);" // perspective
-    "    FragColor = vec4(vec3(depthValue), 1.0);" // orthographic
+    "    FragColor = vec4(vec3(LinearizeDepth(depthValue) / far_plane), 1.0);" // perspective
+    //"    FragColor = vec4(vec3(depthValue), 1.0);" // orthographic
     "}";
 }
 int compileAndLinkShadersTest()
@@ -3056,8 +3062,12 @@ vector<int> configureDepthMap() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     // attach depth texture as FBO's depth buffer
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
@@ -3156,7 +3166,7 @@ void renderScene(int shaderProgram, int planeVAO)
     glm::mat4 model = glm::mat4(1.0f);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &model[0][0]);
     glBindVertexArray(planeVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    //glDrawArrays(GL_TRIANGLES, 0, 6);
     // cubes
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
@@ -3176,7 +3186,7 @@ void renderScene(int shaderProgram, int planeVAO)
     renderCube();
 
     fakeTime += 0.01f;
-    float fakeCycle = 3.5f*sinf(fakeTime * 0.7f)* sinf(fakeTime * 0.7f);
+    float fakeCycle = 5.0f*sinf(fakeTime * 0.7f)* sinf(fakeTime * 0.7f);
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(2.0f, -1.5f, 2.0));
     model = glm::rotate(model, radians(45.0f + fakeTime*20),glm::vec3(2.0f, -1.5f + fakeCycle, 2.0));
@@ -3284,7 +3294,7 @@ GLuint loadTexture(const char* filename)
 //Function will create a grid centered at (0,Y,0) in (X,Y,Z).
 //Note: location of line object inside vertex array is hard-coded.
 void drawGrid(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix = mat4(1.0f)) {
-    const float sideLength = 100; //# of cells on side.
+    const float sideLength = 200; //# of cells on side.
     const float cellLength = 1; //length of side of a cell.
 
     //make the grid pop-out a bit from the tile grid
@@ -3379,6 +3389,15 @@ void drawAxis(GLuint worldMatrixLocation, GLuint colorLocation) {
     glUniform3f(colorLocation, 0.0f, 0.0f, 1.0f);
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
+    glm::mat4 model = glm::mat4(1.0f);
+    fakeTime += 0.01f;
+    float fakeCycle = 5.0f * sinf(fakeTime * 0.7f) * sinf(fakeTime * 0.7f);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(2.0f, -1.5f, 2.0));
+    model = glm::rotate(model, radians(45.0f + fakeTime * 20), glm::vec3(2.0f, -1.5f + fakeCycle, 2.0));
+    model = glm::scale(model, glm::vec3(1.1f + fakeCycle));
+    glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &model[0][0]);
+    renderCube();
 }
 
 bool isShiftPressed(GLFWwindow* window) {
@@ -3709,6 +3728,8 @@ struct RenderInfo {
     GLuint enableTextureLocation;
     GLuint worldMatrixLocation;
 
+    int cubeVAOa;
+
     int enableTexture;
     TextureId textures;
 };
@@ -3721,6 +3742,8 @@ void renderDecor(RenderInfo renderInfo) {
     int enableTexture = renderInfo.enableTexture;
     int depthMap = renderInfo.textures.depthMap;
 
+    int cubeVAOa = renderInfo.cubeVAOa;
+
     // Draw ground
 
     //draw grid
@@ -3730,6 +3753,7 @@ void renderDecor(RenderInfo renderInfo) {
     drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
     // draw axis
     drawAxis(worldMatrixLocation, colorLocation);
+    glBindVertexArray(cubeVAOa);
     glUniform1i(enableTextureLocation, enableTexture);
 
     //draw tiles
@@ -4069,7 +4093,9 @@ int main(int argc, char* argv[])
 
         renderInfo.textures.depthMap = depthMap;
         renderInfo.textures.boxTextureID = boxTextureID;
-        renderInfo.textures.metalTextureID = metalTextureID;
+        renderInfo.textures.metalTextureID = metalTextureID; 
+        
+        renderInfo.cubeVAOa = cubeVAOa;
 
         //Draw ground
         renderDecor(renderInfo);
