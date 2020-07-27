@@ -39,7 +39,7 @@ const int numMainModels = 5;
 int window_width = 1024, window_height = 1024;
 
 // Position of light source
-vec3 lightPos = vec3(0.0f, 30.0f, 0.0f);
+vec3 lightPos = vec3(-2.0f, 4.0f, -1.0f);
 
 // Callback function for handling window resize and key input
 void window_size_callback(GLFWwindow* window, int width, int height);
@@ -3147,6 +3147,23 @@ void renderQuad()
              1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
              1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
         };
+        for (int i = 0; i < 4 * 5; i++) {
+            switch (i % 5) {
+            case 0:
+            case 1:
+            case 2:
+                quadVertices[i] /= 2;
+                break;
+            }
+        }
+
+        //vec3 quadVertices[] = {
+        //    // positions        // texture Coords
+        //    0.5f*vec3(-1.0f,  1.0f, 0.0f), vec3(0.0f, 1.0f,0.0f),
+        //    0.5f * vec3(-1.0f, -1.0f, 0.0f), vec3(0.0f, 0.0f,0.0f),
+        //     0.5f * vec3(1.0f,  1.0f, 0.0f), vec3(1.0f, 1.0f,0.0f),
+        //     0.5f * vec3(1.0f, -1.0f, 0.0f), vec3(1.0f, 0.0f,0.0f)
+        //};
         // setup plane VAO
         glGenVertexArrays(1, &quadVAO);
         glGenBuffers(1, &quadVBO);
@@ -3157,6 +3174,10 @@ void renderQuad()
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        //glEnableVertexAttribArray(0);
+        //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vec3), (void*)0);
+        //glEnableVertexAttribArray(1);
+        //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(vec3), (void*)(sizeof(vec3)));
     }
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -3770,8 +3791,8 @@ int main(int argc, char* argv[])
     vec3 instanceVec[100];
     instanceVec[0] = vec3(0, 0, 0);
     // Define and upload geometry to the GPU here ...
-    int planeVAO = createPlaneVertexArrayObject();
     int cubeVAOa = createTexturedCubeVertexArrayObject();
+    int planeVAO = createPlaneVertexArrayObject();
     // For frame time
     float lastFrameTime = glfwGetTime();
 
@@ -3862,10 +3883,10 @@ int main(int argc, char* argv[])
         ////
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-        //glClear(GL_DEPTH_BUFFER_BIT);
+        glClear(GL_DEPTH_BUFFER_BIT);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, brickTextureID);
-        //renderScene(shaderProgramShadow, planeVAO);
+        renderScene(shaderProgramShadow, planeVAO);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         ////
         //// reset viewport
@@ -3879,8 +3900,7 @@ int main(int argc, char* argv[])
         glUniform1f(glGetUniformLocation(shaderProgramTest, "far_plane"), far_plane);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, depthMap);
-        //renderQuad();
-
+        renderQuad();
 //        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 //        // -------------------------------------------------------------------------------
 //        glfwSwapBuffers(window);
@@ -3897,6 +3917,7 @@ int main(int argc, char* argv[])
 //}
 
         glUseProgram(shaderProgram);
+        glBindVertexArray(cubeVAOa);
         // Draw geometry
         glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
 
