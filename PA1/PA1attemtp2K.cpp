@@ -3070,6 +3070,7 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
     const float translateSpeed = transformSpeed;
     const float rotateSpeed = 5.0f;   //specifications
     const float scaleSpeed = transformSpeed / 12;
+    const float shearSpeed = 0.1f;
     //TODO: code shearing into separate movement function (since the shearing itself is not in the user's control, only the movement)
     const float shearSpeed = transformSpeed * 3;        //temporary, will move to another method for movement
     // capital case letters only
@@ -3106,6 +3107,21 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
 		inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_J, {
 			scale(mat4(1.0f),
 			vec3(1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed), 1.0f / (1 + scaleSpeed))), 2 }));
+	    //shear model along x-axis if pressed
+		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_E, {
+			
+			mat4(1, 0, 0, 0,  // first column
+			shearSpeed, 1, 0, 0,  // second column
+			0, 0, 1, 0,  // third column
+			0, 0, translateSpeed, 1) // fourth column
+			, 2 }));
+
+		inputsToModelMatrix.insert(pair<int, transformation>(GLFW_KEY_Q, {
+			mat4(1, 0, 0, 0,  // first column
+			-shearSpeed, 1, 0, 0,  // second column
+			0, 0, 1, 0,  // third column
+			0, 0, -translateSpeed, 1) // fourth column
+			, 2 }));
 	}
     //lower case only
 	else {
