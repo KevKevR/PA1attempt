@@ -2849,6 +2849,7 @@ const char* getFragmentShaderSource()
 	"uniform sampler2D textureSampler;" //texture properties
 	"uniform bool hasTexture;"
     "uniform sampler2D shadowMap;"  //shadow
+    "uniform bool hasShadow;"
 
     "vec3 lightColor = vec3(1.0, 1.0, 1.0);"    //light property
     "vec4 textureColor;"                        //texture property
@@ -2860,24 +2861,65 @@ const char* getFragmentShaderSource()
 
     "out vec4 FragColor;"   //output
 
-    ////shadow calculation
+    //////shadow calculation
+    //"float ShadowCalculation(vec4 fragPosLightSpace)"
+    //"{"
+    ////manual perspective divide (for perspective projection)
+    //"    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;"
+    ////range from [-1, 1] to [0, 1].
+    //"    projCoords = projCoords * 0.5 + 0.5;"
+    ////closest depth value
+    //"    float closestDepth = texture(shadowMap, projCoords.xy).r;"
+    ////"    float closestDepth = 0;"
+    ////current depth value
+    //"    float currentDepth = projCoords.z;"
+    ////is in shadow if not the closest depth.
+    //"    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;"
+    ////"    shadow = currentDepth;"
+    //"    if (projCoords.z > 1.0){"
+    //"        shadow = 0.0;"
+    //"    }"
+    //"    return shadow;"
+    //"}"
     "float ShadowCalculation(vec4 fragPosLightSpace)"
     "{"
-    //manual perspective divide (for perspective projection)
+    "    float shadow = 0.0f;"
+        //manual perspective divide (for perspective projection)
     "    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;"
-    //range from [-1, 1] to [0, 1].
+        //range from [-1, 1] to [0, 1].
     "    projCoords = projCoords * 0.5 + 0.5;"
-    //closest depth value
-    "    float closestDepth = texture(shadowMap, projCoords.xy).r;"
-    //"    float closestDepth = 0;"
-    //current depth value
-    "    float currentDepth = projCoords.z;"
-    //is in shadow if not the closest depth.
-    "    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;"
-    //"    shadow = currentDepth;"
-    "    if (projCoords.z > 1.0){"
-    "        shadow = 0.0;"
+    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
+    //or if toggled off.
+    "    if (!hasShadow || projCoords.z > 1.0){"
+    "       shadow = 0.0f;"
     "    }"
+    "    else {"
+        //closest depth value
+    "       float closestDepth = texture(shadowMap, projCoords.xy).r;"
+        //current depth value
+    "       float currentDepth = projCoords.z;"
+        //is in shadow if not the closest depth.
+    //"    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;"
+    //"float bias = 0.005;"
+    // calculate bias (based on depth map resolution and slope)
+    "       vec3 normal = normalize(normalVec);"
+    "       vec3 lightDir = normalize(lightPos - fragPos);"
+    "       float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);"
+    //"    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;"
+    //Percentage close filter
+    "       vec2 texelSize = 1.0 / textureSize(shadowMap, 0);"
+    "       for (int x = -1; x <= 1; ++x)"
+    "       {"
+    "           for (int y = -1; y <= 1; ++y)"
+    "           {"
+    "               float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;"
+    "               shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;"
+    "           }"
+    "       }"
+    "       shadow /= 9.0;"
+    ""
+    "    }"
+    ""
     "    return shadow;"
     "}"
     "void main()"
@@ -3056,8 +3098,8 @@ const char* getFragmentShaderSourceTest()
     "void main()"
     "{"
     "    float depthValue = texture(depthMap, TexCoords).r;"
-    ""    // "FragColor = vec4(vec3(LinearizeDepth(depthValue) / far_plane), 1.0);" // perspective
-    "    FragColor = vec4(vec3(depthValue), 1.0);" // orthographic
+    "    FragColor = vec4(vec3(LinearizeDepth(depthValue) / far_plane), 1.0);" // perspective
+    //"    FragColor = vec4(vec3(depthValue), 1.0);" // orthographic
     "}";
 }
 int compileAndLinkShadersTest()
@@ -3962,7 +4004,9 @@ bool* customControl(GLFWwindow * window, map<int, KeyState> previousKeyStates) {
         {GLFW_KEY_HOME},
         {GLFW_KEY_HOME, true},
         //signal to toggle textures
-        {GLFW_KEY_X, true}
+        {GLFW_KEY_X, true},
+        //signal to toggle shadows
+        {GLFW_KEY_B, true}
     };
 
     //all below is automatic
@@ -4020,35 +4064,44 @@ void randomPosModel(CharModel* selectedModel) {
     selectedModel->setRelativeTranslateMatrix(randomRelativeTranslateMatrix);
 }
 
+//individual fields are id of textures.
 struct TextureId {
     int depthMap;
     int boxTextureID;
     int metalTextureID;
+    //etc
 };
+//has info on all settings to render.
 struct RenderInfo {
     int shaderProgram;
     GLuint colorLocation;
     GLuint enableTextureLocation;
+    GLuint enableShadowLocation;
     GLuint worldMatrixLocation;
 
     int cubeVAOa;
 
     int enableTexture;
+    int enableShadow;
     TextureId textures;
+
+    //etc
 };
 
 void renderDecor(RenderInfo renderInfo) {
     int shaderProgram = renderInfo.shaderProgram;
     GLuint colorLocation = renderInfo.colorLocation;
     GLuint enableTextureLocation = renderInfo.enableTextureLocation;
+    GLuint enableShadowLocation = renderInfo.enableShadowLocation;
     GLuint worldMatrixLocation = renderInfo.worldMatrixLocation;
     int enableTexture = renderInfo.enableTexture;
+    int enableShadow = renderInfo.enableShadow;
     int depthMap = renderInfo.textures.depthMap;
 
     int cubeVAOa = renderInfo.cubeVAOa;
 
     // Draw ground
-
+    glUniform1i(enableShadowLocation, enableShadow);
     //draw grid
     glBindTexture(GL_TEXTURE_2D, 0);
     glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
@@ -4187,9 +4240,12 @@ int main(int argc, char* argv[])
     // Used to overwrite color in the fragment shader
     GLuint colorLocation = glGetUniformLocation(shaderProgram, "objectColor");
 
+    //toggle texture location
     GLuint enableTextureLocation = glGetUniformLocation(shaderProgram, "hasTexture");
     int enableTexture = 1;	//1 for on, 0 for off
-
+    //toggle shadow location
+    GLuint enableShadowLocation = glGetUniformLocation(shaderProgram, "hasShadow");
+    int enableShadow = 1;//1 for on, 0 for off
     // Used to set light position for shadow calculation in shader
     GLuint lightSpaceMatrixLocation = glGetUniformLocation(shaderProgram, "lightSpaceMatrix");
 
@@ -4269,7 +4325,9 @@ int main(int argc, char* argv[])
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_Q, { GLFW_RELEASE , false }));
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_E, { GLFW_RELEASE , false }));
     //toggle textures
-	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_X, { GLFW_RELEASE , true }));
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_X, { GLFW_RELEASE , true }));
+    //toggle shadows
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_B, { GLFW_RELEASE , true }));
 
 	double lastMousePosX, lastMousePosY;
 	glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
@@ -4304,6 +4362,7 @@ int main(int argc, char* argv[])
     bool prevHadMovement = false;
 
     float time = 0;
+    GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
     // Entering Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -4341,7 +4400,27 @@ int main(int argc, char* argv[])
         glBindTexture(GL_TEXTURE_2D, brickTextureID); 
         //avoid peter panning
         //glCullFace(GL_FRONT);
+
+        //put store info, so can render easier for shadow map.
+        RenderInfo renderInfo;
+        renderInfo.shaderProgram = shaderProgramShadow;
+
+        renderInfo.colorLocation = colorLocation;
+        renderInfo.worldMatrixLocation = worldMatrixLocation;
+        renderInfo.enableTextureLocation = enableTextureLocation;
+        renderInfo.enableShadowLocation = enableShadowLocation;
+
+        renderInfo.enableTexture = enableTexture;
+        renderInfo.enableShadow = enableShadow;
+
+        renderInfo.textures.depthMap = depthMap;
+        renderInfo.textures.boxTextureID = boxTextureID;
+        renderInfo.textures.metalTextureID = metalTextureID;
+
+        renderInfo.cubeVAOa = cubeVAOa;
         renderScene(shaderProgramShadow, planeVAO);
+        renderDecor(renderInfo);
+        renderModels(renderInfo, models);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         //glCullFace(GL_BACK);
@@ -4378,7 +4457,7 @@ int main(int argc, char* argv[])
         glUniform1f(glGetUniformLocation(shaderProgramTest, "far_plane"), far_plane);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
-        //renderQuad();
+        renderQuad();
 //        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 //        // -------------------------------------------------------------------------------
 //        glfwSwapBuffers(window);
@@ -4405,23 +4484,8 @@ int main(int argc, char* argv[])
         glActiveTexture(GL_TEXTURE0);
 
 
-        GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
 
-        //put store info, so can render easier for shadow map.
-        RenderInfo renderInfo;
-        renderInfo.shaderProgram = shaderProgram;
-
-        renderInfo.colorLocation = colorLocation;
-        renderInfo.worldMatrixLocation = worldMatrixLocation;
-        renderInfo.enableTextureLocation = enableTextureLocation;
-
-        renderInfo.enableTexture = enableTexture;
-
-        renderInfo.textures.depthMap = depthMap;
-        renderInfo.textures.boxTextureID = boxTextureID;
-        renderInfo.textures.metalTextureID = metalTextureID; 
         
-        renderInfo.cubeVAOa = cubeVAOa;
 
         //Draw ground
         renderDecor(renderInfo);
@@ -4453,13 +4517,17 @@ int main(int argc, char* argv[])
             //X key has been pressed, so toggle textures.
             if (selectedSetting[2]) {
                 enableTexture = enableTexture * -1 + 1;
-                
-                
+
+
                 //manual toggle shear movement.
                 //ToDo: delete this comment.
                 //int temp = selectedModel->walkState.getState();
                 //temp = (temp ==1) ? 2: 1;
                 //selectedModel->walkState.setState(temp);
+            }
+            //B key has been pressed, so toggle shadows.
+            if (selectedSetting[3]) {
+                enableShadow = enableShadow * -1 + 1;
             }
             //Adjust selected model accordingly.
             selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
