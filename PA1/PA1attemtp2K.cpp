@@ -4081,7 +4081,7 @@ void randomPosModel(CharModel* selectedModel) {
 //individual fields are id of textures.
 struct TextureId {
     int depthMap;
-    int brickTextureID;
+    int tiledTextureID;
     int boxTextureID;
     int metalTextureID;
     //etc
@@ -4111,7 +4111,7 @@ void renderDecor(RenderInfo renderInfo) {
     GLuint worldMatrixLocation = renderInfo.worldMatrixLocation;
     int enableTexture = renderInfo.enableTexture;
     int enableShadow = renderInfo.enableShadow;
-    int brickTextureID = renderInfo.textures.brickTextureID;
+    int tiledTextureID = renderInfo.textures.tiledTextureID;
 
     int cubeVAOa = renderInfo.cubeVAOa;
 
@@ -4128,7 +4128,7 @@ void renderDecor(RenderInfo renderInfo) {
     glUniform1i(enableTextureLocation, enableTexture);
 
     //draw tiles
-    glBindTexture(GL_TEXTURE_2D, brickTextureID);
+    glBindTexture(GL_TEXTURE_2D, tiledTextureID);
     glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
     drawTileGrid(worldMatrixLocation, mat4(1.0f));
 }
@@ -4204,23 +4204,23 @@ int main(int argc, char* argv[])
 
     // Load Textures
 #if defined(PLATFORM_OSX)
-    GLuint brickTextureID = loadTexture("Textures/brick.jpg");
+    GLuint tiledTextureID = loadTexture("Textures/brick.jpg");
     GLuint cementTextureID = loadTexture("Textures/cement.jpg");
     GLuint metalTextureID = loadTexture("Textures/metal.jpg");
     GLuint boxTextureID = loadTexture("Textures/box.jpg");
 
 #else
-    //GLuint brickTextureID = loadTexture("../Assets/Textures/brick.jpg");
+    //GLuint tiledTextureID = loadTexture("../Assets/Textures/brick.jpg");
     //GLuint cementTextureID = loadTexture("../Assets/Textures/cement.jpg");
     //GLuint metalTextureID = loadTexture("../Assets/Textures/metal.jpg");
     //GLuint boxTextureID = loadTexture("../Assets/Textures/box.jpg");
     GLuint brickTextureID = loadTexture("Assets/Textures/brick.jpg");
+    GLuint tiledTextureID = loadTexture("Assets/Textures/tiled.jpg");
     GLuint cementTextureID = loadTexture("Assets/Textures/cement.jpg");
     GLuint metalTextureID = loadTexture("Assets/Textures/metal.jpg");
     GLuint boxTextureID = loadTexture("Assets/Textures/box.jpg");
 
 #endif
-
     // Grey background
     glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
 
@@ -4415,7 +4415,7 @@ int main(int argc, char* argv[])
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, brickTextureID); 
+        glBindTexture(GL_TEXTURE_2D, tiledTextureID); 
         //avoid peter panning
         //glCullFace(GL_FRONT);
 
@@ -4432,7 +4432,7 @@ int main(int argc, char* argv[])
         renderInfo.enableShadow = enableShadow;
 
         renderInfo.textures.depthMap = depthMap;
-        renderInfo.textures.brickTextureID = brickTextureID;
+        renderInfo.textures.tiledTextureID = tiledTextureID;
         renderInfo.textures.boxTextureID = boxTextureID;
         renderInfo.textures.metalTextureID = metalTextureID;
 
@@ -4487,7 +4487,7 @@ int main(int argc, char* argv[])
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, brickTextureID);
+        glBindTexture(GL_TEXTURE_2D, tiledTextureID);
         //renderScene(shaderProgramTest2, planeVAO);
 
         // render Depth map to quad for visual debugging
@@ -4524,7 +4524,7 @@ int main(int argc, char* argv[])
 
         //bind shadow map
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, brickTextureID);
+        glBindTexture(GL_TEXTURE_2D, tiledTextureID);
 
 
 
