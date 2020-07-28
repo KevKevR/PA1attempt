@@ -4580,17 +4580,17 @@ int main(int argc, char* argv[])
             //checks whether the models move
             if (hasMovement) {
                 //start walking
-                //selectedModel->walkState.setState(1);
+                selectedModel->walkState.setState(1);
             }
             else if (prevHadMovement){
                 //stop walking
-                //selectedModel->walkState.setState(2);
+                selectedModel->walkState.setState(2);
             }
             prevHadMovement = hasMovement;
 
             //makes previous model stop walking
             if (prevModel != selectedModel && prevModel) {
-                //prevModel->walkState.setState(2);
+                prevModel->walkState.setState(2);
             }
 
             renderModels(renderInfo, models);
