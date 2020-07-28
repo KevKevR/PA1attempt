@@ -65,4 +65,4 @@ The models will be rendered according to the following scheme:
 
 The model and scenery textures and shadows can be turned on and off according to the following scheme:
 - X    Textures
-- B    Shadows
+- B    Shadows (overlap with hbnm camera control when holding shift)
