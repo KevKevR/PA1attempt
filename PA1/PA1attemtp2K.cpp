@@ -11,10 +11,7 @@
 //
 
 //TODO:
-// -make the shadow map render for our scene, not an example scene
-//  |- renderDecor and rendorModels were made to maybe make it easier. If not, just copy paste the contents back into main and delete renderInfo.
 // -when the shadow is figured out, can delete shader with "[...]Test()" method.
-// -re-position light back to (0, 30, 0).
 
 #include <iostream>
 #include <list>
@@ -43,11 +40,12 @@ GLuint loadTexture(const char* filename);
 const int numMainModels = 5;
 
 // Define (initial) window width and height
-int window_width = 1024, window_height = 1024;
+int window_width = 1024, window_height = 768;
 
 // Position of light source
-//vec3 lightPos = vec3(0.0f, 30.0f, 0.0f);
-vec3 lightPos = vec3(-2.0f, 4.0f, -1.0f);
+//slightly offcenter, because the light doesn't like looking straight down.
+vec3 lightPos = vec3(0.0f, 30.0f, 0.001f);
+//vec3 lightPos = vec3(-2.0f, 4.0f, -1.0f);
 
 // Callback function for handling window resize and key input
 void window_size_callback(GLFWwindow* window, int width, int height);
@@ -294,6 +292,11 @@ public:
         //return position
         return walkState.getPosition();
     }
+    GLuint swapWorldMatrixLocation(GLuint wml) {
+        GLuint temp = worldMatrixLocation;
+        worldMatrixLocation = wml;
+        return temp;
+    }
 
     mat4 getRelativeTranslateMatrix() {
         return relativeTranslateMatrix;
@@ -413,6 +416,15 @@ public:
         }
         return positions;
     }
+    static GLuint swapWorldMatrixLocation(CharModel* arr[numMainModels], GLuint wml) {
+        GLuint temp = arr[0]->worldMatrixLocation;
+        for (int i = 0; i < numMainModels; i++) {
+            if (arr[i]) {
+                temp = arr[i]->swapWorldMatrixLocation(wml);
+            }
+        }
+        return temp;
+    }
     // Return initial y-position of model
     float getInitY() {return initY;}
     
@@ -522,7 +534,7 @@ protected:
 
         //match these numbers to those passed to sphereVertices().
         const int heightParts = 16;
-        const int ringParts = 20;
+        const int ringParts = 30;
         const int numVertices = (heightParts - 1) * ringParts * 2 * 2;
         glDrawArrays(GL_TRIANGLE_STRIP, 44, numVertices);
     }
@@ -2697,14 +2709,15 @@ int createTexturedCubeVertexArrayObject()
         vec3(0.342020, -0.000000, -0.939693), vec3(0.342020, -0.000000, -0.939693),
         vec3(0.171010, -0.030154, -0.984808), vec3(0.171010, -0.030154, -0.984808),
         vec3(0.173648, -0.000000, -0.984808), vec3(0.173648, -0.000000, -0.984808),
-        vec3(0.000000, 0.000000, -1.000000), vec3(0.000000, 0.000000, -1.000000)*/
+        vec3(0.000000, 0.000000, -1.000000), vec3(0.000000, 0.000000, -1.000000)
+        */
     };
 
 
-    //fix change in way storing normal (should be same as position).
-    for (int i = 0; i < 44; i++) {
-        vertexArray[2*i + 1] = vertexArray[2 * i];
-    }
+    ////fix change in way storing normal (should be same as position).
+    //for (int i = 0; i < 44; i++) {
+    //    vertexArray[2*i + 1] = vertexArray[2 * i];
+    //}
     //create instancing array for tile grid. 
     const int sideLength = 100;
     const float cellLength = 1.0f;
@@ -2759,8 +2772,8 @@ int createTexturedCubeVertexArrayObject()
 
 
     const int vertexArrayNum = 44;
-    const int heightParts = 16;
-    const int ringParts = 20; 
+    const int heightParts = 22;
+    const int ringParts = 30; 
     //make sure the sphere draw function draws [(heightParts-1)*ringParts*2] figures.
     //https://stackoverflow.com/questions/4264304/how-to-return-an-array-from-a-function
     vector<vec3> vertexArraySphere = sphereVertices(vertexArray, heightParts, ringParts);
@@ -2905,7 +2918,8 @@ const char* getFragmentShaderSource()
     "       vec3 normal = normalize(normalVec);"
     "       vec3 lightDir = normalize(lightPos - fragPos);"
     "       float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);"
-    //"    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;"
+    //"       shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;"
+    "       shadow = 0.0f;"
     //Percentage close filter
     "       vec2 texelSize = 1.0 / textureSize(shadowMap, 0);"
     "       for (int x = -1; x <= 1; ++x)"
@@ -2919,7 +2933,6 @@ const char* getFragmentShaderSource()
     "       shadow /= 9.0;"
     ""
     "    }"
-    ""
     "    return shadow;"
     "}"
     "void main()"
@@ -2952,8 +2965,8 @@ const char* getFragmentShaderSource()
         // Final color output from phong model + shadow
         "   float shadow = ShadowCalculation(fragPosLightSpace);"
         //"   float shadow = 0;"
-        //"   vec4 result = vec4( (ambient + (1-shadow) * (diffuse + specular)) * objectColor, 1.0f);"
-        "   vec4 result = vec4( (1-shadow) * (ambient + (diffuse + specular)) * objectColor + shadow * vec3(1.0f, 0.0f,0.0f), 1.0f);"
+        "   vec4 result = vec4( (ambient + (1-shadow) * (diffuse + specular)) * objectColor, 1.0f);"
+        //"   vec4 result = vec4(  (ambient + (1-shadow) *(diffuse + specular)) * objectColor + shadow * vec3(1.0f, 0.0f,0.0f), 1.0f);"
         //"   vec4 result = vec4((ambient + diffuse + specular) * objectColor, 1.0f);"
         "   FragColor = result * textureColor;"
     "}";
@@ -3023,13 +3036,13 @@ int createPlaneVertexArrayObject()
     // ------------------------------------------------------------------
     float planeVertices[] = {
         // positions            // normals         // texcoords
-         25.0f, 0.2f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-        -25.0f, 0.2f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-        -25.0f, 0.2f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
+         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+        -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
 
-         25.0f, 0.2f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-         25.0f, 0.2f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 10.0f,
-        -25.0f, 0.2f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f
+         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+         25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 10.0f,
+        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f
     };
     //for (int i = 0; i < 8 * 6; i++) {
     //    planeVertices[i] /= 2;
@@ -3266,7 +3279,8 @@ const char* getFragmentShaderSourceTest2()
         "    vec3 specular = spec * lightColor;"
         //"    // calculate shadow"
         "    float shadow = ShadowCalculation(fs_in.FragPosLightSpace);"
-        "    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;"
+        //"    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;"
+        "   vec3 lighting = vec3( (ambient + (1-shadow) * (diffuse + specular)) * color + shadow * vec3(1.0f, 0.0f,0.0f));"
         ""
         "    FragColor = vec4(lighting, 1.0);"
         "}";
@@ -3510,7 +3524,7 @@ void renderCube()
     glBindVertexArray(0);
 }
 
-float fakeTime = 0;
+//float fakeTime = 0;
 //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
 // renders the 3D scene
 // --------------------
@@ -3700,7 +3714,7 @@ void drawTileGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.
     const float sideLength = 100; //# of cells on side.
     const float cellLength = 1; //length of side of a cell.
     const int numCells = (int)pow(sideLength,2);
-    const float height = 0;     //y-position of grid.
+    const float height = 0.0f;     //y-position of grid.
 
     mat4 tileWorldMatrix;
     mat4 worldMatrix; 
@@ -4067,6 +4081,7 @@ void randomPosModel(CharModel* selectedModel) {
 //individual fields are id of textures.
 struct TextureId {
     int depthMap;
+    int brickTextureID;
     int boxTextureID;
     int metalTextureID;
     //etc
@@ -4096,7 +4111,7 @@ void renderDecor(RenderInfo renderInfo) {
     GLuint worldMatrixLocation = renderInfo.worldMatrixLocation;
     int enableTexture = renderInfo.enableTexture;
     int enableShadow = renderInfo.enableShadow;
-    int depthMap = renderInfo.textures.depthMap;
+    int brickTextureID = renderInfo.textures.brickTextureID;
 
     int cubeVAOa = renderInfo.cubeVAOa;
 
@@ -4113,7 +4128,7 @@ void renderDecor(RenderInfo renderInfo) {
     glUniform1i(enableTextureLocation, enableTexture);
 
     //draw tiles
-    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glBindTexture(GL_TEXTURE_2D, brickTextureID);
     glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
     drawTileGrid(worldMatrixLocation, mat4(1.0f));
 }
@@ -4123,14 +4138,13 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
     GLuint enableTextureLocation = renderInfo.enableTextureLocation;
     GLuint worldMatrixLocation = renderInfo.worldMatrixLocation;
     int enableTexture = renderInfo.enableTexture;
-    int depthMap = renderInfo.textures.depthMap;
     int boxTextureID = renderInfo.textures.boxTextureID;
     int metalTextureID = renderInfo.textures.metalTextureID;
 
     //draw all models
+    GLuint temp = CharModel::swapWorldMatrixLocation(models, worldMatrixLocation);
     //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
     glUniform3f(colorLocation, 0.2f, 0.2f, 1.0f);
-
     glBindTexture(GL_TEXTURE_2D, boxTextureID);
     CharModel::drawLetter(models);
     glBindTexture(GL_TEXTURE_2D, metalTextureID);
@@ -4140,6 +4154,9 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
     glUniform1i(enableTextureLocation, 0);
     CharModel::drawSphere(models);
     glUniform1i(enableTextureLocation, enableTexture);
+
+    //swap back
+    CharModel::swapWorldMatrixLocation(models, temp);
 }
 
 int main(int argc, char* argv[])
@@ -4159,7 +4176,7 @@ int main(int argc, char* argv[])
 #endif
 
     // Create Window and rendering context using GLFW, resolution is 800x600
-    GLFWwindow* window = glfwCreateWindow(window_width, window_height, "COMP 371 - A1 - Team 4", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(window_width, window_height, "COMP 371 - A2 - Team 4", NULL, NULL);
     if (window == NULL)
     {
         std::cerr << "Failed to create GLFW window" << std::endl;
@@ -4216,8 +4233,8 @@ int main(int argc, char* argv[])
     // We can set the shader configurations
     //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
     glUseProgram(shaderProgram);
-    //glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler"), 0);
-    //glUniform1i(glGetUniformLocation(shaderProgram, "shadowmap"), 1);
+    glUniform1i(glGetUniformLocation(shaderProgram, "shadowmap"), 0);
+    glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler"), 1);
 
     vector<int> depth = configureDepthMap();
     int depthMapFBO = depth[0];
@@ -4361,8 +4378,9 @@ int main(int argc, char* argv[])
     //previous frame, if valid input to model.
     bool prevHadMovement = false;
 
-    float time = 0;
+    //float time = 0;
     GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
+    GLuint shadowWorldMatrixLocation = glGetUniformLocation(shaderProgramShadow, "model");
     // Entering Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -4372,9 +4390,9 @@ int main(int argc, char* argv[])
         // Each frame, reset color of each pixel to glClearColor
         // @TODO 1 - Clear Depth Buffer Bit as well
         // ...
-        const float speed = dt * 30;
-        time += speed;
-        glClearColor(0.4f * (1 + cosf(radians(1.3f * time))), 0.4f * (1 + cosf(radians(1.5f * time + 120))), 0.4f * (1 + cosf(radians(1.7f * time - 120))), 1.0f);
+        //const float speed = dt * 30;
+        //time += speed;
+        //glClearColor(0.4f * (1 + cosf(radians(1.3f * time))), 0.4f * (1 + cosf(radians(1.5f * time + 120))), 0.4f * (1 + cosf(radians(1.7f * time - 120))), 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
@@ -4382,8 +4400,8 @@ int main(int argc, char* argv[])
        // --------------------------------------------------------------
         glm::mat4 lightProjection, lightView;
         glm::mat4 lightSpaceMatrix;
-        float near_plane = 1.0f, far_plane = 7.5f;
-        lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+        float near_plane = 0.0f, far_plane = 35.0f;
+        lightProjection = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, near_plane, far_plane);
         lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         lightSpaceMatrix = lightProjection * lightView;
         //set lightSpaceMatrix in shader
@@ -4406,7 +4424,7 @@ int main(int argc, char* argv[])
         renderInfo.shaderProgram = shaderProgramShadow;
 
         renderInfo.colorLocation = colorLocation;
-        renderInfo.worldMatrixLocation = worldMatrixLocation;
+        renderInfo.worldMatrixLocation = shadowWorldMatrixLocation;
         renderInfo.enableTextureLocation = enableTextureLocation;
         renderInfo.enableShadowLocation = enableShadowLocation;
 
@@ -4414,14 +4432,36 @@ int main(int argc, char* argv[])
         renderInfo.enableShadow = enableShadow;
 
         renderInfo.textures.depthMap = depthMap;
+        renderInfo.textures.brickTextureID = brickTextureID;
         renderInfo.textures.boxTextureID = boxTextureID;
         renderInfo.textures.metalTextureID = metalTextureID;
 
         renderInfo.cubeVAOa = cubeVAOa;
-        renderScene(shaderProgramShadow, planeVAO);
+        //renderScene(shaderProgramShadow, cubeVAOa);
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
         renderDecor(renderInfo);
         renderModels(renderInfo, models);
-
+        //{
+        //    // Draw sphere
+        //    //attach the sphere to the model with a point lower/higher than its center.
+        //    const float yHover = 5.0f;
+        //    const float xOffset = 15;
+        //    const float yOffset = 0 + yHover;
+        //    const float scaler = 5.5f;
+        //    //mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(-scaler, -scaler, -scaler));
+        //    mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(scaler, scaler, scaler));
+        //    mat4 mWorldMatrix =  worldMatrix;
+        //    glUniformMatrix4fv(shadowWorldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+        //    //match these numbers to those passed to sphereVertices().
+        //    const int heightParts = 16;
+        //    const int ringParts = 30;
+        //    const int numVertices = (heightParts - 1) * ringParts * 2 * 2;
+        //    glDrawArrays(GL_TRIANGLE_STRIP, 44, numVertices);
+        //    //CharModel::drawLetter(models);
+        //    //CharModel::drawNumber(models);
+        //    //Sphere has no texture for now.
+        //    //CharModel::drawSphere(models);
+        //}
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         //glCullFace(GL_BACK);
         ////
@@ -4448,7 +4488,7 @@ int main(int argc, char* argv[])
         glBindTexture(GL_TEXTURE_2D, depthMap);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, brickTextureID);
-        renderScene(shaderProgramTest2, planeVAO);
+        //renderScene(shaderProgramTest2, planeVAO);
 
         // render Depth map to quad for visual debugging
         // ---------------------------------------------
@@ -4457,7 +4497,7 @@ int main(int argc, char* argv[])
         glUniform1f(glGetUniformLocation(shaderProgramTest, "far_plane"), far_plane);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
-        renderQuad();
+        //renderQuad();
 //        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 //        // -------------------------------------------------------------------------------
 //        glfwSwapBuffers(window);
@@ -4474,17 +4514,22 @@ int main(int argc, char* argv[])
 //}
 
         glUseProgram(shaderProgram);
+        glUniform3fv(glGetUniformLocation(shaderProgram, "lightPos"), 1, &lightPos[0]);
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "lightSpaceMatrix"), 1, GL_FALSE, &lightSpaceMatrix[0][0]);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
         glBindVertexArray(cubeVAOa);
         // Draw geometry
         glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
 
         //bind shadow map
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
-        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, brickTextureID);
 
 
 
+        renderInfo.shaderProgram = shaderProgram;
+        renderInfo.worldMatrixLocation = worldMatrixLocation;
         
 
         //Draw ground
@@ -4548,9 +4593,9 @@ int main(int argc, char* argv[])
                 //prevModel->walkState.setState(2);
             }
 
+            renderModels(renderInfo, models);
             CharModel::update(models, dt);
 
-            renderModels(renderInfo, models);
 		}
 
 
