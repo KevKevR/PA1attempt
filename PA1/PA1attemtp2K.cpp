@@ -28,6 +28,8 @@
 #include <map> 
 #include <vector>
 
+#include <string>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include <vector>
@@ -38,6 +40,11 @@ using namespace std;
 GLuint loadTexture(const char* filename);
 
 const int numMainModels = 5;
+
+// Timer variables
+int hours = 0, minutes = 0, seconds = 0, previousSeconds = -1;
+float timePause = 0, timeResume = 0, totalTimePaused = 0, timeReset = 0, currentTime;
+bool paused = false;
 
 // Define (initial) window width and height
 int window_width = 1024, window_height = 768;
@@ -50,6 +57,11 @@ vec3 lightPos = vec3(0.0f, 30.0f, 0.001f);
 // Callback function for handling window resize and key input
 void window_size_callback(GLFWwindow* window, int width, int height);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+
+// Define timer-related functions
+void displayClock(); // Print timer in console TODO: delete or adapt it so it shows on UI with opengl
+void adjustTimer(); // TODO: May need to return the output string instead
+void resetTimer();
 
 // Forward declare CharModel class in order to declare a pointer to selected model to manipulate
 class CharModel;
@@ -4385,7 +4397,8 @@ int main(int argc, char* argv[])
     while (!glfwWindowShouldClose(window))
     {
         // Frame time calculation
-        float dt = glfwGetTime() - lastFrameTime;
+        currentTime = glfwGetTime();
+        float dt = currentTime - lastFrameTime;
         lastFrameTime += dt;
         // Each frame, reset color of each pixel to glClearColor
         // @TODO 1 - Clear Depth Buffer Bit as well
@@ -4395,6 +4408,20 @@ int main(int argc, char* argv[])
         //glClearColor(0.4f * (1 + cosf(radians(1.3f * time))), 0.4f * (1 + cosf(radians(1.5f * time + 120))), 0.4f * (1 + cosf(radians(1.7f * time - 120))), 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // Handle timer TODO: May need to change where the code is written
+        // TODO: Remove this if statement because this methods needs to be called at every frame in openGL
+        if (seconds != previousSeconds)
+            displayClock();
+        if (!paused)
+        {
+            previousSeconds = seconds; // TODO: Only used for console printing so can be deleted later on
+            // Computes seconds elapsed since the last minute
+            seconds = (int) (currentTime - timeReset - totalTimePaused) - (hours * 60 * 60 + minutes * 60);
+            // Increment minutes and hours as needed
+            adjustTimer();
+        }
+        
+        
         //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
         // 1. render depth of scene to texture (from light's perspective)
        // --------------------------------------------------------------
@@ -4818,9 +4845,92 @@ void window_size_callback(GLFWwindow* window, int width, int height)
 }
 
 // Key callback method (to not constantly poll some key inputs)
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
     // Spacebar will translate a selected model to a random position
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
         randomPosModel(selectedModel);
+    
+    // Temporary controls for timer
+    if (key == GLFW_KEY_9 && action == GLFW_PRESS)
+    {
+        // pause/resume timer
+        paused = !paused;
+        if (paused)
+            // Store time at which timer is paused
+            timePause = currentTime;
+        else
+        {
+            // Store time at which timer is resumed
+            timeResume = currentTime;
+            // Add to cumulated time for which the time is paused
+            totalTimePaused += timeResume - timePause;
+        }
+            
+    }
+    if (key == GLFW_KEY_0 && action == GLFW_PRESS)
+        resetTimer(); // reset timer
+}
+
+// TODO: Adapt to UI with 2D text rendering (or just return the string)
+// Print timer in console in format "Timer:  HH : MM : SS"
+void displayClock()
+{
+    string timerOutput = "Timer:  ";
+    
+    if (hours < 10)
+        timerOutput += "0" + to_string(hours);
+    else
+        timerOutput += to_string(hours);
+    
+    timerOutput += " : ";
+    
+    if (minutes < 10)
+        timerOutput += "0" + to_string(minutes);
+    else
+        timerOutput += to_string(minutes);
+    
+    timerOutput += " : ";
+    
+    if (seconds < 10)
+        timerOutput += "0" + to_string(seconds);
+    else
+        timerOutput += to_string(seconds);
+    
+    cout << timerOutput << endl;
+    //cout << glfwGetTime() << endl;
+}
+
+// Reset seconds and minutes variables when they reach 60
+void adjustTimer()
+{
+    // if seconds reaches 60
+    if (seconds == 60)
+    {
+        // increment minutes
+        minutes++;
+        // if minutes reaches 60
+        if (minutes == 60)
+        {
+            // increment hours
+            hours++;
+            minutes = 0;
+        }
+        seconds = 0;
+    }
+}
+
+// Reset timer to inital time
+void resetTimer()
+{
+    // Reset time variables
+    hours = 0;
+    minutes = 0;
+    seconds = 0;
+    // Store time at which the time was reset
+    timeReset = currentTime;
+    // Handle pause functionalitites for resetting
+    totalTimePaused = 0;
+    if (paused)
+        timePause = timeReset;
 }
