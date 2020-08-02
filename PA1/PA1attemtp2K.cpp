@@ -31,6 +31,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include <vector>
+#include <deque>
 
 using namespace glm;
 using namespace std;
@@ -535,8 +536,8 @@ protected:
         //match these numbers to those passed to sphereVertices().
         const int heightParts = 22;
         const int ringParts = 30;
-        const int numVertices = (heightParts - 1) * ringParts * 2;
-        glDrawArrays(GL_TRIANGLE_STRIP, 44, numVertices);
+        const int numVertices = (heightParts - 1) * ringParts * 2*3;
+        glDrawArrays(GL_TRIANGLES, 44, numVertices);
     }
 
     GLuint worldMatrixLocation;
@@ -1352,6 +1353,9 @@ vector<vec3> sphereVertices(vec3 prevVertexArray[44 * 2],const int heightParts, 
     }
 
 
+    deque<vec3> prevvec(0);
+    deque<vec3>::iterator it;
+    deque<vec3>::reverse_iterator rit;
     /// attempt 3
     //for every height part
     for (int i = 0; i < heightParts - 1; i++) {
@@ -1376,9 +1380,40 @@ vector<vec3> sphereVertices(vec3 prevVertexArray[44 * 2],const int heightParts, 
                 float z = r * sinf(theta);
                 //every height will have ringParts# * 2 of elements
 
-                vecSphereArray.push_back(vec3(x, y, z));
-                vecSphereArray.push_back(vec3(x, y, z));
+                //keep previous 2 vectors
+                prevvec.push_front(vec3(x, y, z));
+                if (prevvec.size() > 2) {
+
+                    //normal is centroid of triangle
+                    //http://mathforum.org/library/drmath/view/54899.html
+                    vec3 normal = vec3(0);
+                    for (it = prevvec.begin(); it != prevvec.end(); it++) {
+                        normal +=*it;
+                    }
+                    normal /= 3.0f;
+                    
+                    //place in right order
+                    if (k == 0) {                    
+                        for (rit = prevvec.rbegin(); rit != prevvec.rend(); rit++) {
+                            //position
+                            vecSphereArray.push_back(*rit);
+                            //normal
+                            vecSphereArray.push_back(normal);
+                        }
+                    }
+                    else {
+                        for (it = prevvec.begin(); it != prevvec.end(); it++) {
+                            //position
+                            vecSphereArray.push_back(*it);
+                            //normal
+                            vecSphereArray.push_back(normal);
+                        }
+                    }
+                    //remove old previous vector.
+                    prevvec.pop_back();
+                }
             }
+
         }
     }
 
@@ -2778,7 +2813,7 @@ int createTexturedCubeVertexArrayObject()
     //https://stackoverflow.com/questions/4264304/how-to-return-an-array-from-a-function
     vector<vec3> vertexArraySphere = sphereVertices(vertexArray, heightParts, ringParts);
 
-    vec3 vertexArr2[vertexArrayNum *2 + (heightParts-1)*ringParts*2*2];
+    vec3 vertexArr2[vertexArrayNum *2 + (heightParts-1)*ringParts*2*2*3];
     //convert it to array
     for (int i = 0; i < vertexArraySphere.size(); i++) {
         vertexArr2[i] = vertexArraySphere[i];
