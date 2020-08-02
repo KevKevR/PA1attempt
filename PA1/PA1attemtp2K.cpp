@@ -38,6 +38,7 @@ using namespace std;
 GLuint loadTexture(const char* filename);
 
 const int numMainModels = 5;
+const int numAttachedModelsPerMain = 2;
 
 // Define (initial) window width and height
 int window_width = 1024, window_height = 768;
@@ -281,6 +282,10 @@ public:
         scaleMatrix *= mh.scaleMatrix;
         return *this;
     }
+
+    mat4 trs() {
+        return translateMatrix * rotateMatrix * scaleMatrix;
+    }
 };
 
 class CharModel {
@@ -305,7 +310,7 @@ public:
 
         //attached models
         cumulativeTRS = MatricesHolder();
-        attachedModels = nullptr;
+        *attachedModels = nullptr;
         numAttachedModels = 0;
     }
 
@@ -333,9 +338,13 @@ public:
         return temp;
     }
 
-    void setAttachedModels(CharModel* attM, int num) {
-        attachedModels = attM;
+
+    void setAttachedModels(CharModel* attM[numAttachedModelsPerMain], int num) {
         numAttachedModels = num;
+
+        for (int i = 0; i < num; i++) {
+            attachedModels[i] = attM[i];
+        }
     }
 
     void updateAttachedCumulativeTRS(){
@@ -343,7 +352,7 @@ public:
         MatricesHolder tempMH = cumulativeTRS;
         tempMH.addMatrices(MatricesHolder(getRelativeTranslateMatrix(), getRelativeRotateMatrix(), getRelativeScaleMatrix()));
         for (int i = 0; i < numAttachedModels; i++) {
-            attachedModels[i].cumulativeTRS = MatricesHolder(tempMH);
+            attachedModels[i]->cumulativeTRS = MatricesHolder(tempMH);
         }
     }
     void drawAttachedModels(int part) {
@@ -353,7 +362,7 @@ public:
             //Letter
         {
             for (int i = 0; i < numAttachedModels; i++) {
-                attachedModels[i].drawLetter();
+                attachedModels[i]->drawLetter();
             }
             break;
         }
@@ -361,7 +370,7 @@ public:
             //Number
         {
             for (int i = 0; i < numAttachedModels; i++) {
-                attachedModels[i].drawNumber();
+                attachedModels[i]->drawNumber();
             }
             break;
         }
@@ -369,7 +378,7 @@ public:
             //Sphere
         {
             for (int i = 0; i < numAttachedModels; i++) {
-                attachedModels[i].drawSphere();
+                attachedModels[i]->drawSphere();
             }
             break;
         }
@@ -379,7 +388,7 @@ public:
 
 
     mat4 getRelativeTranslateMatrix() {
-        return relativeTranslateMatrix;
+        return relativeTranslateMatrix * cumulativeTRS.translateMatrix;
     }
     void setRelativeTranslateMatrix(mat4 relTWM) {
         relativeTranslateMatrix = relTWM;
@@ -389,7 +398,7 @@ public:
     }
 
     mat4 getRelativeRotateMatrix() {
-        return relativeRotateMatrix;
+        return relativeRotateMatrix * cumulativeTRS.rotateMatrix;
     }
     void setRelativeRotateMatrix(mat4 relRWM) {
         relativeRotateMatrix = relRWM;
@@ -418,11 +427,11 @@ public:
             0, 0, minScale, 0,
             0, 0, 0, 1);
 
-        return diagonal/* * follow*/;
+        return diagonal * cumulativeTRS.scaleMatrix/* * follow*/;
     }
     mat4 getRelativeScaleMatrix() {
         mat4 motion = walkMotion(walkState.getPosition());
-        return relativeScaleMatrix * motion;
+        return relativeScaleMatrix * cumulativeTRS.scaleMatrix * motion;
     }
     void setRelativeScaleMatrix(mat4 relSWM) {
         relativeScaleMatrix = relSWM;
@@ -469,7 +478,8 @@ public:
 	static void drawLetter(CharModel* arr[numMainModels]) {
 		for (int i = 0; i < numMainModels; i++) {
 			if (arr[i]) {
-				arr[i]->drawLetter();
+                arr[i]->drawLetter();
+                arr[i]->drawAttachedModels(0);
 			}
 		}
 	}
@@ -477,6 +487,7 @@ public:
         for (int i = 0; i < numMainModels; i++) {
             if (arr[i]) {
                 arr[i]->drawNumber();
+                arr[i]->drawAttachedModels(1);
             }
         }
     }
@@ -484,9 +495,11 @@ public:
         for (int i = 0; i < numMainModels; i++) {
             if (arr[i]) {
                 arr[i]->drawSphere();
+                arr[i]->drawAttachedModels(2);
             }
         }
     }
+    //walking
     static vector<int> update(CharModel* arr[numMainModels], float dt) {
         vector<int> positions(numMainModels);
         for (int i = 0; i < numMainModels; i++) {
@@ -496,6 +509,15 @@ public:
         }
         return positions;
     }
+    //attached models
+    static void updateAttachedCumulativeTRS(CharModel* arr[numMainModels]) {
+        for (int i = 0; i < numMainModels; i++) {
+            if (arr[i]) {
+                arr[i]->updateAttachedCumulativeTRS();
+            }
+        }
+    }
+
     static GLuint swapWorldMatrixLocation(CharModel* arr[numMainModels], GLuint wml) {
         GLuint temp = arr[0]->worldMatrixLocation;
         for (int i = 0; i < numMainModels; i++) {
@@ -509,6 +531,14 @@ public:
     float getInitY() {return initY;}
     
 protected:
+    //attached models
+    static void drawAttachedModels(CharModel* arr[numMainModels], int part) {
+        for (int i = 0; i < numMainModels; i++) {
+            if (arr[i]) {
+                arr[i]->drawAttachedModels(part);
+            }
+        }
+    }
     SphereOffset sphereOffset;
     //shear motion when walking
     mat4 walkMotion(float position) {
@@ -627,7 +657,7 @@ protected:
     float initY;                            // Initial y-position in initial translate matrix (note: value assigned to child constructor)
 
     MatricesHolder cumulativeTRS;
-    CharModel* attachedModels;
+    CharModel* attachedModels[numAttachedModelsPerMain];
     int numAttachedModels;
 private:
     mat4 relativeTranslateMatrix;   //Stored translate matrix
@@ -4231,6 +4261,7 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
     glUniform3f(colorLocation, 0.2f, 0.2f, 1.0f);
     glBindTexture(GL_TEXTURE_2D, boxTextureID);
     CharModel::drawLetter(models);
+
     glBindTexture(GL_TEXTURE_2D, metalTextureID);
     CharModel::drawNumber(models);
     //Sphere has no texture for now.
@@ -4459,6 +4490,11 @@ int main(int argc, char* argv[])
     models[3] = &n4;
     models[4] = &v9;
 
+    ModelN2 n2a(shaderProgram);
+    ModelA9 a9a(shaderProgram);
+    CharModel* attachedToS3[numAttachedModelsPerMain] = { &n2a, &a9a };
+    s3.setAttachedModels(attachedToS3, numAttachedModelsPerMain);
+
     //previous frame, if valid input to model.
     bool prevHadMovement = false;
 
@@ -4678,8 +4714,9 @@ int main(int argc, char* argv[])
             }
 
             renderModels(renderInfo, models);
+            //update
             CharModel::update(models, dt);
-
+            CharModel::updateAttachedCumulativeTRS(models);
 		}
 
 
