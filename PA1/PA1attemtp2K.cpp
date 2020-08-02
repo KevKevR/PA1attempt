@@ -252,6 +252,36 @@ private:
     //stop position
     float stopWalkPosition;
 };
+//holds TRS matrices
+class MatricesHolder {
+public:
+    mat4 translateMatrix;   //Stored translate matrix
+    mat4 rotateMatrix;      //Stored rotate matrix
+    mat4 scaleMatrix;       //Stored scale matrix
+
+    MatricesHolder() {
+        translateMatrix = mat4(1.0f);
+        rotateMatrix = mat4(1.0f);
+        scaleMatrix = mat4(1.0f);
+    }
+    MatricesHolder(const MatricesHolder &copy) {
+        translateMatrix = copy.translateMatrix;
+        rotateMatrix = copy.rotateMatrix;
+        scaleMatrix = copy.scaleMatrix;
+    }
+    MatricesHolder(mat4 t, mat4 r, mat4 s) {
+        translateMatrix = t;
+        rotateMatrix = r;
+        scaleMatrix = s;
+    }
+
+    MatricesHolder addMatrices(MatricesHolder mh) {
+        translateMatrix *= mh.translateMatrix;
+        rotateMatrix *= mh.rotateMatrix;
+        scaleMatrix *= mh.scaleMatrix;
+        return *this;
+    }
+};
 
 class CharModel {
 public:
@@ -269,9 +299,14 @@ public:
         initY = 0;
 
 
-
+        //walking
         walkState = WalkCycle(1);
         sphereOffset = { 0,0 };
+
+        //attached models
+        cumulativeTRS = MatricesHolder();
+        attachedModels = nullptr;
+        numAttachedModels = 0;
     }
 
     //let other class handle walking.
@@ -297,6 +332,51 @@ public:
         worldMatrixLocation = wml;
         return temp;
     }
+
+    void setAttachedModels(CharModel* attM, int num) {
+        attachedModels = attM;
+        numAttachedModels = num;
+    }
+
+    void updateAttachedCumulativeTRS(){
+        //set cumulative matrices to attached models.
+        MatricesHolder tempMH = cumulativeTRS;
+        tempMH.addMatrices(MatricesHolder(getRelativeTranslateMatrix(), getRelativeRotateMatrix(), getRelativeScaleMatrix()));
+        for (int i = 0; i < numAttachedModels; i++) {
+            attachedModels[i].cumulativeTRS = MatricesHolder(tempMH);
+        }
+    }
+    void drawAttachedModels(int part) {
+        //draw a part of every attached model
+        switch (part) {
+        case 0:
+            //Letter
+        {
+            for (int i = 0; i < numAttachedModels; i++) {
+                attachedModels[i].drawLetter();
+            }
+            break;
+        }
+        case 1:
+            //Number
+        {
+            for (int i = 0; i < numAttachedModels; i++) {
+                attachedModels[i].drawNumber();
+            }
+            break;
+        }
+        case 2:
+            //Sphere
+        {
+            for (int i = 0; i < numAttachedModels; i++) {
+                attachedModels[i].drawSphere();
+            }
+            break;
+        }
+        //etc
+        }
+    }
+
 
     mat4 getRelativeTranslateMatrix() {
         return relativeTranslateMatrix;
@@ -533,7 +613,7 @@ protected:
 
 
         //match these numbers to those passed to sphereVertices().
-        const int heightParts = 16;
+        const int heightParts = 22;
         const int ringParts = 30;
         const int numVertices = (heightParts - 1) * ringParts * 2 * 2;
         glDrawArrays(GL_TRIANGLE_STRIP, 44, numVertices);
@@ -545,6 +625,10 @@ protected:
     mat4 initial_relativeRotateMatrix;      //Initial rotate matrix, value to take when reset.
     mat4 initial_relativeScaleMatrix;       //Initial scale matrix, value to take when reset.
     float initY;                            // Initial y-position in initial translate matrix (note: value assigned to child constructor)
+
+    MatricesHolder cumulativeTRS;
+    CharModel* attachedModels;
+    int numAttachedModels;
 private:
     mat4 relativeTranslateMatrix;   //Stored translate matrix
     mat4 relativeRotateMatrix;      //Stored rotate matrix
@@ -2847,7 +2931,7 @@ const char* getVertexShaderSource()
         "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix;"
         "   gl_Position = modelViewProjection * vec4(aPos + instanceVec, 1.0);"
 		"   vertexUV = aUV;"
-        "   fragPos = vec3(worldMatrix * vec4(aPos, 1.0));"
+        "   fragPos = vec3(worldMatrix * vec4(aPos+ instanceVec, 1.0));"
         //fragPos from light's view
         "   fragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);"
         "}";
