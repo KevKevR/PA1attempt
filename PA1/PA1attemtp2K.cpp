@@ -533,9 +533,9 @@ protected:
 
 
         //match these numbers to those passed to sphereVertices().
-        const int heightParts = 16;
+        const int heightParts = 22;
         const int ringParts = 30;
-        const int numVertices = (heightParts - 1) * ringParts * 2 * 2;
+        const int numVertices = (heightParts - 1) * ringParts * 2;
         glDrawArrays(GL_TRIANGLE_STRIP, 44, numVertices);
     }
 
@@ -2847,7 +2847,7 @@ const char* getVertexShaderSource()
         "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix;"
         "   gl_Position = modelViewProjection * vec4(aPos + instanceVec, 1.0);"
 		"   vertexUV = aUV;"
-        "   fragPos = vec3(worldMatrix * vec4(aPos, 1.0));"
+        "   fragPos = vec3(worldMatrix * vec4(aPos + instanceVec, 1.0));"
         //fragPos from light's view
         "   fragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);"
         "}";
