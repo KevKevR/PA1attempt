@@ -4492,8 +4492,11 @@ int main(int argc, char* argv[])
 
     ModelN2 n2a(shaderProgram);
     ModelA9 a9a(shaderProgram);
+    ModelS3 s3a(shaderProgram);
     CharModel* attachedToS3[numAttachedModelsPerMain] = { &n2a, &a9a };
+    CharModel* attachedToN2[numAttachedModelsPerMain] = { &a9a, &s3a };
     s3.setAttachedModels(attachedToS3, numAttachedModelsPerMain);
+    n2.setAttachedModels(attachedToN2, numAttachedModelsPerMain);
 
     //previous frame, if valid input to model.
     bool prevHadMovement = false;
