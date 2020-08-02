@@ -2948,11 +2948,11 @@ const char* getFragmentShaderSource()
     "       float currentDepth = projCoords.z;"
         //is in shadow if not the closest depth.
     //"    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;"
-    //"float bias = 0.005;"
+    "float bias = 0.05;"
     // calculate bias (based on depth map resolution and slope)
     "       vec3 normal = normalize(normalVec);"
     "       vec3 lightDir = normalize(lightPos - fragPos);"
-    "       float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);"
+    //"       float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);"
     //"       shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;"
     "       shadow = 0.0f;"
     //Percentage close filter
@@ -4435,8 +4435,8 @@ int main(int argc, char* argv[])
        // --------------------------------------------------------------
         glm::mat4 lightProjection, lightView;
         glm::mat4 lightSpaceMatrix;
-        float near_plane = 0.0f, far_plane = 35.0f;
-        lightProjection = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, near_plane, far_plane);
+        float near_plane = -40.0f, far_plane = 35.0f;
+        lightProjection = glm::ortho(-80.0f, 80.0f, -80.0f, 80.0f, near_plane, far_plane);
         lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         lightSpaceMatrix = lightProjection * lightView;
         //set lightSpaceMatrix in shader
