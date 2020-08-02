@@ -254,29 +254,29 @@ private:
     float stopWalkPosition;
 };
 //holds TRS matrices
-class MatricesHolder {
+class TRSMatricesHolder {
 public:
     mat4 translateMatrix;   //Stored translate matrix
     mat4 rotateMatrix;      //Stored rotate matrix
     mat4 scaleMatrix;       //Stored scale matrix
 
-    MatricesHolder() {
+    TRSMatricesHolder() {
         translateMatrix = mat4(1.0f);
         rotateMatrix = mat4(1.0f);
         scaleMatrix = mat4(1.0f);
     }
-    MatricesHolder(const MatricesHolder &copy) {
+    TRSMatricesHolder(const TRSMatricesHolder &copy) {
         translateMatrix = copy.translateMatrix;
         rotateMatrix = copy.rotateMatrix;
         scaleMatrix = copy.scaleMatrix;
     }
-    MatricesHolder(mat4 t, mat4 r, mat4 s) {
+    TRSMatricesHolder(mat4 t, mat4 r, mat4 s) {
         translateMatrix = t;
         rotateMatrix = r;
         scaleMatrix = s;
     }
 
-    MatricesHolder addMatrices(MatricesHolder mh) {
+    TRSMatricesHolder addMatrices(TRSMatricesHolder mh) {
         translateMatrix *= mh.translateMatrix;
         rotateMatrix *= mh.rotateMatrix;
         scaleMatrix *= mh.scaleMatrix;
@@ -309,7 +309,7 @@ public:
         sphereOffset = { 0,0 };
 
         //attached models
-        cumulativeTRS = MatricesHolder();
+        cumulativeTRS = TRSMatricesHolder();
         *attachedModels = nullptr;
         numAttachedModels = 0;
     }
@@ -349,10 +349,10 @@ public:
 
     void updateAttachedCumulativeTRS(){
         //set cumulative matrices to attached models.
-        MatricesHolder tempMH = cumulativeTRS;
-        tempMH.addMatrices(MatricesHolder(getRelativeTranslateMatrix(), getRelativeRotateMatrix(), getRelativeScaleMatrix()));
+        TRSMatricesHolder tempMH = cumulativeTRS;
+        tempMH.addMatrices(TRSMatricesHolder(getRelativeTranslateMatrix(), getRelativeRotateMatrix(), getRelativeScaleMatrix()));
         for (int i = 0; i < numAttachedModels; i++) {
-            attachedModels[i]->cumulativeTRS = MatricesHolder(tempMH);
+            attachedModels[i]->cumulativeTRS = TRSMatricesHolder(tempMH);
         }
     }
     void drawAttachedModels(int part) {
@@ -656,7 +656,7 @@ protected:
     mat4 initial_relativeScaleMatrix;       //Initial scale matrix, value to take when reset.
     float initY;                            // Initial y-position in initial translate matrix (note: value assigned to child constructor)
 
-    MatricesHolder cumulativeTRS;
+    TRSMatricesHolder cumulativeTRS;
     CharModel* attachedModels[numAttachedModelsPerMain];
     int numAttachedModels;
 private:
