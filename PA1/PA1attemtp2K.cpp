@@ -310,7 +310,7 @@ public:
 
         //attached models
         cumulativeTRS = TRSMatricesHolder();
-        *attachedModels = nullptr;
+        //*attachedModels = nullptr;
         numAttachedModels = 0;
     }
 
@@ -339,12 +339,8 @@ public:
     }
 
 
-    void setAttachedModels(CharModel* attM[numAttachedModelsPerMain], int num) {
-        numAttachedModels = num;
-
-        for (int i = 0; i < num; i++) {
-            attachedModels[i] = attM[i];
-        }
+    void setAttachedModels(vector<CharModel*> attM) {
+        attachedModels = attM;
     }
     void resetCumulativeTRS() {
         cumulativeTRS = TRSMatricesHolder();
@@ -354,37 +350,47 @@ public:
         cumulativeTRS.addMatrices(trs);
     }
     void updateAttachedCumulativeTRS(){
+        vector<CharModel*>::iterator it;
         //set cumulative matrices to attached models.
         TRSMatricesHolder tempMH = cumulativeTRS;
         tempMH.addMatrices(TRSMatricesHolder(getRelativeTranslateMatrix(), getRelativeRotateMatrix(), getRelativeScaleMatrix()));
-        for (int i = 0; i < numAttachedModels; i++) {
-            attachedModels[i]->accumulateTRS(tempMH);
+        for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
+            if (*it) {
+                (*it)->accumulateTRS(tempMH);
+            }
         }
     }
     void drawAttachedModels(int part) {
+        vector<CharModel*>::iterator it;
         //draw a part of every attached model
         switch (part) {
         case 0:
             //Letter
         {
-            for (int i = 0; i < numAttachedModels; i++) {
-                attachedModels[i]->drawLetter();
+            for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
+                if (*it) {
+                    (*it)->drawLetter();
+                }
             }
             break;
         }
         case 1:
             //Number
         {
-            for (int i = 0; i < numAttachedModels; i++) {
-                attachedModels[i]->drawNumber();
+            for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
+                if (*it) {
+                    (*it)->drawNumber();
+                }
             }
             break;
         }
         case 2:
             //Sphere
         {
-            for (int i = 0; i < numAttachedModels; i++) {
-                attachedModels[i]->drawSphere();
+            for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
+                if (*it) {
+                    (*it)->drawSphere();
+                }
             }
             break;
         }
@@ -561,8 +567,11 @@ protected:
         }
     }
     void resetAttachedCumulativeTRS() {
-        for (int i = 0; i < numAttachedModels; i++) {
-            attachedModels[i]->resetCumulativeTRS();
+        vector<CharModel*>::iterator it;
+        for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
+            if (*it) {
+                (*it)->resetCumulativeTRS();
+            }
         }
     }
 
@@ -684,7 +693,7 @@ protected:
     float initY;                            // Initial y-position in initial translate matrix (note: value assigned to child constructor)
 
     TRSMatricesHolder cumulativeTRS;
-    CharModel* attachedModels[numAttachedModelsPerMain];
+   vector<CharModel*> attachedModels;
     int numAttachedModels;
 private:
     mat4 relativeTranslateMatrix;   //Stored translate matrix
@@ -4505,7 +4514,7 @@ int main(int argc, char* argv[])
     //CharModel* models[numMainModels];
     vector<CharModel*> vModels;
     // v v work-around to get the shadow map of the parts.
-    //CharModel* modelsAndParts[numMainModels * (1 + numAttachedModelsPerMain)];
+    //vector<CharModel*> modelsAndParts;
     int modelIndex = 0;
 
 
@@ -4532,31 +4541,42 @@ int main(int argc, char* argv[])
     ModelN2 n2a(shaderProgram);
     ModelA9 a9a(shaderProgram);
     ModelS3 s3a(shaderProgram);
-    CharModel* attachedToS3[numAttachedModelsPerMain] = { &n2a, &a9a };
-    CharModel* attachedToN2[numAttachedModelsPerMain] = { &a9a, &s3a };
-    s3.setAttachedModels(attachedToS3, numAttachedModelsPerMain);
-    n2.setAttachedModels(attachedToN2, numAttachedModelsPerMain);
-
-    //CharModel* temp[1];
+    vector<CharModel*> attachedToS3;
+    attachedToS3.push_back(&n2a);
+    attachedToS3.push_back(&a9a);
+    vector<CharModel*> attachedToN2;
+    attachedToN2.push_back(&a9a);
+    attachedToN2.push_back(&s3a);
+    s3.setAttachedModels(attachedToS3);
+    n2.setAttachedModels(attachedToN2);
+    //modelsAndParts = vModels;
+    //vector<CharModel*> temp(1);
     //for (int i = 0; i < numMainModels; i++) {
-    //    CharModel* temp[numAttachedModelsPerMain];
+    //    vector<CharModel*> temp;
+    //    vector<CharModel*>::iterator it;
     //    switch (i) {
     //    case 0:
-    //        for (int i = 0; i < numAttachedModelsPerMain; i++) {
-    //            temp[i]= attachedToS3[i];
-    //        }
+    //        temp = attachedToS3;
     //        break;
     //    case 1:
-    //        for (int i = 0; i < numAttachedModelsPerMain; i++) {
-    //            temp[i] = attachedToN2[i];
-    //        }
+    //        temp = attachedToN2;
     //        break;
     //    }
     //    //base
-    //    modelsAndParts[i * (numAttachedModelsPerMain + 1)] = models[i];
+    //    modelsAndParts.push_back(vModels[i]);
     //    //parts
     //    for (int j = 0; j < numAttachedModelsPerMain; j++) {
-    //        modelsAndParts[i * (numAttachedModelsPerMain+1) + (j+1)] = temp[j];
+    //        modelsAndParts.push_back(temp[j]);
+    //    }
+    //    int j = 0;
+    //    for (it = temp.begin(); it != temp.end(); it++, j++) {
+    //        if (j % numAttachedModelsPerMain == 0) {
+    //            modelsAndParts.push_back(vModels[j/(numAttachedModelsPerMain+1)]);
+    //            j++;
+    //        }
+    //        if (*it) {
+    //            modelsAndParts.push_back(*it);
+    //        }
     //    }
     //}
 
