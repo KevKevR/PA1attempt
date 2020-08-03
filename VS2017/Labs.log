@@ -1,0 +1,23 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(391,5): warning MSB8028: The intermediate directory (C:\Users\manue\Desktop\Manuel\COMP 371\Assignment3_4\Lab01\Lab_Framework\VS2017\/../Build/Debug/) contains files shared from another project (Labs.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  Assignment 3.cpp
+c:\users\manue\desktop\manuel\comp 371\assignment3_4\lab01\lab_framework\source\assignment 3.cpp(184): warning C4244: 'initializing': conversion from 'genFIType' to 'int', possible loss of data
+          with
+          [
+              genFIType=float
+          ]
+c:\users\manue\desktop\manuel\comp 371\assignment3_4\lab01\lab_framework\source\assignment 3.cpp(188): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\manue\desktop\manuel\comp 371\assignment3_4\lab01\lab_framework\source\assignment 3.cpp(414): warning C4244: '=': conversion from 'float' to '_Ty', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+c:\users\manue\desktop\manuel\comp 371\assignment3_4\lab01\lab_framework\source\assignment 3.cpp(482): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\manue\desktop\manuel\comp 371\assignment3_4\lab01\lab_framework\source\assignment 3.cpp(482): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\manue\desktop\manuel\comp 371\assignment3_4\lab01\lab_framework\source\assignment 3.cpp(482): warning C4244: 'initializing': conversion from 'float' to 'const int', possible loss of data
+c:\users\manue\desktop\manuel\comp 371\assignment3_4\lab01\lab_framework\source\assignment 3.cpp(3317): warning C4018: '<': signed/unsigned mismatch
+c:\users\manue\desktop\manuel\comp 371\assignment3_4\lab01\lab_framework\source\assignment 3.cpp(4863): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\manue\desktop\manuel\comp 371\assignment3_4\lab01\lab_framework\source\assignment 3.cpp(4968): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\manue\desktop\manuel\comp 371\assignment3_4\lab01\lab_framework\source\assignment 3.cpp(5372): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
+c:\users\manue\desktop\manuel\comp 371\assignment3_4\lab01\lab_framework\source\assignment 3.cpp(5375): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
+c:\users\manue\desktop\manuel\comp 371\assignment3_4\lab01\lab_framework\source\assignment 3.cpp(5378): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
+  Labs.vcxproj -> C:\Users\manue\Desktop\Manuel\COMP 371\Assignment3_4\Lab01\Lab_Framework\VS2017\/../Bin/Assignment 3-Debug.exe
