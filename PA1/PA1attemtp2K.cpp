@@ -481,61 +481,68 @@ public:
     }
 
 	//Class method to draws all passed models. (issues when unloaded models).
-	static void drawLetter(CharModel* arr[numMainModels]) {
-		for (int i = 0; i < numMainModels; i++) {
-			if (arr[i]) {
-                arr[i]->drawLetter();
-                arr[i]->drawAttachedModels(0);
-			}
-		}
+	static void drawLetter(vector<CharModel*> arr) {
+        vector<CharModel*>::iterator it;
+        for (it = arr.begin(); it != arr.end(); it++) {
+            if (*it) {
+                (*it)->drawLetter();
+                (*it)->drawAttachedModels(0);
+            }
+        }
 	}
-    static void drawNumber(CharModel* arr[numMainModels]) {
-        for (int i = 0; i < numMainModels; i++) {
-            if (arr[i]) {
-                arr[i]->drawNumber();
-                arr[i]->drawAttachedModels(1);
+    static void drawNumber(vector<CharModel*> arr) {
+        vector<CharModel*>::iterator it;
+        for (it = arr.begin(); it != arr.end(); it++) {
+            if (*it) {
+                (*it)->drawNumber();
+                (*it)->drawAttachedModels(1);
             }
         }
     }
-    static void drawSphere(CharModel* arr[numMainModels]) {
-        for (int i = 0; i < numMainModels; i++) {
-            if (arr[i]) {
-                arr[i]->drawSphere();
-                arr[i]->drawAttachedModels(2);
+    static void drawSphere(vector<CharModel*> arr) {
+        vector<CharModel*>::iterator it;
+        for (it = arr.begin(); it != arr.end(); it++) {
+            if (*it) {
+                (*it)->drawSphere();
+                (*it)->drawAttachedModels(2);
             }
         }
     }
     //walking
-    static vector<int> update(CharModel* arr[numMainModels], float dt) {
-        vector<int> positions(numMainModels);
-        for (int i = 0; i < numMainModels; i++) {
-            if (arr[i]) {
-                positions[i] = arr[i]->updateWalkProgress(dt);
+    static vector<int> update(vector<CharModel*> arr, float dt) {
+        vector<CharModel*>::iterator it;
+        vector<int> positions;
+        for (it = arr.begin(); it != arr.end(); it++) {
+            if (*it) {
+                positions.push_back((*it)->updateWalkProgress(dt));
             }
-        }
+        } 
         return positions;
     }
     //attached models
-    static void updateAttachedCumulativeTRS(CharModel* arr[numMainModels]) {
-        for (int i = 0; i < numMainModels; i++) {
-            if (arr[i]) {
-                arr[i]->updateAttachedCumulativeTRS();
+    static void updateAttachedCumulativeTRS(vector<CharModel*> arr) {
+        vector<CharModel*>::iterator it;
+        for (it = arr.begin(); it != arr.end(); it++) {
+            if (*it) {
+                (*it)->updateAttachedCumulativeTRS();
             }
         }
     }
-    static void resetCumulativeTRS(CharModel* arr[numMainModels]) {
-        for (int i = 0; i < numMainModels; i++) {
-            if (arr[i]) {
-                arr[i]->resetCumulativeTRS();
+    static void resetCumulativeTRS(vector<CharModel*> arr) {
+        vector<CharModel*>::iterator it;
+        for (it = arr.begin(); it != arr.end(); it++) {
+            if (*it) {
+                (*it)->resetCumulativeTRS();
             }
         }
     }
 
-    static GLuint swapWorldMatrixLocation(CharModel* arr[numMainModels], GLuint wml) {
+    static GLuint swapWorldMatrixLocation(vector<CharModel*> arr, GLuint wml) {
+        vector<CharModel*>::iterator it;
         GLuint temp = arr[0]->worldMatrixLocation;
-        for (int i = 0; i < numMainModels; i++) {
-            if (arr[i]) {
-                temp = arr[i]->swapWorldMatrixLocation(wml);
+        for (it = arr.begin(); it != arr.end(); it++) {
+            if (*it) {
+                temp = (*it)->swapWorldMatrixLocation(wml);
             }
         }
         return temp;
@@ -545,10 +552,11 @@ public:
     
 protected:
     //attached models
-    static void drawAttachedModels(CharModel* arr[numMainModels], int part) {
-        for (int i = 0; i < numMainModels; i++) {
-            if (arr[i]) {
-                arr[i]->drawAttachedModels(part);
+    static void drawAttachedModels(vector<CharModel*> arr, int part) {
+        vector<CharModel*>::iterator it;
+        for (it = arr.begin(); it != arr.end(); it++) {
+            if (*it) {
+                (*it)->drawAttachedModels(part);
             }
         }
     }
@@ -4265,7 +4273,7 @@ void renderDecor(RenderInfo renderInfo) {
     glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
     drawTileGrid(worldMatrixLocation, mat4(1.0f));
 }
-void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
+void renderModels(RenderInfo renderInfo, vector<CharModel*> models) {
     int shaderProgram = renderInfo.shaderProgram;
     GLuint colorLocation = renderInfo.colorLocation;
     GLuint enableTextureLocation = renderInfo.enableTextureLocation;
@@ -4470,8 +4478,8 @@ int main(int argc, char* argv[])
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_A, { GLFW_RELEASE , false }));
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_D, { GLFW_RELEASE , false }));
     //model scalings
-    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_U, { GLFW_RELEASE , true }));
-    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_J, { GLFW_RELEASE , true }));
+    //previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_U, { GLFW_RELEASE , true }));
+    //previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_J, { GLFW_RELEASE , true }));
     //shear model (temporary)
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_Q, { GLFW_RELEASE , false }));
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_E, { GLFW_RELEASE , false }));
@@ -4494,21 +4502,33 @@ int main(int argc, char* argv[])
 
     //Models
     //CharModel* selectedModel;
-    CharModel* models[numMainModels];
+    //CharModel* models[numMainModels];
+    vector<CharModel*> vModels;
+    // v v work-around to get the shadow map of the parts.
+    //CharModel* modelsAndParts[numMainModels * (1 + numAttachedModelsPerMain)];
     int modelIndex = 0;
 
+
+    //base
     ModelV9 v9(shaderProgram);
     ModelS3 s3(shaderProgram);
     ModelA9 a9(shaderProgram);
     ModelN2 n2(shaderProgram);
     ModelN4 n4(shaderProgram);
 
-    models[0] = &s3;
-    models[1] = &n2;
-    models[2] = &a9;
-    models[3] = &n4;
-    models[4] = &v9;
+    //models[0] = &s3;
+    //models[1] = &n2;
+    //models[2] = &a9;
+    //models[3] = &n4;
+    //models[4] = &v9;
 
+    vModels.push_back(&s3);
+    vModels.push_back(&n2);
+    vModels.push_back(&a9);
+    vModels.push_back(&n4);
+    vModels.push_back(&v9);
+
+    //parts
     ModelN2 n2a(shaderProgram);
     ModelA9 a9a(shaderProgram);
     ModelS3 s3a(shaderProgram);
@@ -4516,6 +4536,30 @@ int main(int argc, char* argv[])
     CharModel* attachedToN2[numAttachedModelsPerMain] = { &a9a, &s3a };
     s3.setAttachedModels(attachedToS3, numAttachedModelsPerMain);
     n2.setAttachedModels(attachedToN2, numAttachedModelsPerMain);
+
+    //CharModel* temp[1];
+    //for (int i = 0; i < numMainModels; i++) {
+    //    CharModel* temp[numAttachedModelsPerMain];
+    //    switch (i) {
+    //    case 0:
+    //        for (int i = 0; i < numAttachedModelsPerMain; i++) {
+    //            temp[i]= attachedToS3[i];
+    //        }
+    //        break;
+    //    case 1:
+    //        for (int i = 0; i < numAttachedModelsPerMain; i++) {
+    //            temp[i] = attachedToN2[i];
+    //        }
+    //        break;
+    //    }
+    //    //base
+    //    modelsAndParts[i * (numAttachedModelsPerMain + 1)] = models[i];
+    //    //parts
+    //    for (int j = 0; j < numAttachedModelsPerMain; j++) {
+    //        modelsAndParts[i * (numAttachedModelsPerMain+1) + (j+1)] = temp[j];
+    //    }
+    //}
+
 
     //previous frame, if valid input to model.
     bool prevHadMovement = false;
@@ -4574,7 +4618,7 @@ int main(int argc, char* argv[])
         renderInfo.enableShadow = enableShadow;
 
         renderInfo.textures.depthMap = depthMap;
-        renderInfo.textures.tiledTextureID = tiledTextureID;
+        renderInfo.textures.tiledTextureID = depthMap;
         renderInfo.textures.boxTextureID = boxTextureID;
         renderInfo.textures.metalTextureID = metalTextureID;
 
@@ -4582,7 +4626,8 @@ int main(int argc, char* argv[])
         //renderScene(shaderProgramShadow, cubeVAOa);
         glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
         renderDecor(renderInfo);
-        renderModels(renderInfo, models);
+        renderModels(renderInfo, vModels);
+
         //{
         //    // Draw sphere
         //    //attach the sphere to the model with a point lower/higher than its center.
@@ -4613,6 +4658,8 @@ int main(int argc, char* argv[])
         //
                 // 2. render scene as normal using the generated depth/shadow map  
         // --------------------------------------------------------------
+
+        glBindVertexArray(planeVAO);
         glViewport(0, 0, window_width, window_height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(shaderProgramTest2);
@@ -4682,7 +4729,7 @@ int main(int argc, char* argv[])
             drawControl(window);
             modelIndex = selectModelControl(window, modelIndex);
             CharModel* prevModel = selectedModel;
-            selectedModel = models[modelIndex];
+            selectedModel = vModels[modelIndex];
             //Control model key presses.
             mat4* relativeWorldMatrix = modelControl(window, dt, previousKeyStates);
             bool hasMovement = checkModelMovement(window, previousKeyStates);
@@ -4734,12 +4781,11 @@ int main(int argc, char* argv[])
             if (prevModel != selectedModel && prevModel) {
                 prevModel->walkState.setState(2);
             }
-
-            renderModels(renderInfo, models);
+            renderModels(renderInfo, vModels);
             //update
-            CharModel::update(models, dt);
-            CharModel::resetCumulativeTRS(models);
-            CharModel::updateAttachedCumulativeTRS(models);
+            CharModel::update(vModels, dt);
+            CharModel::resetCumulativeTRS(vModels);
+            CharModel::updateAttachedCumulativeTRS(vModels);
 		}
 
 
