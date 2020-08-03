@@ -4514,7 +4514,7 @@ int main(int argc, char* argv[])
     //CharModel* models[numMainModels];
     vector<CharModel*> vModels;
     // v v work-around to get the shadow map of the parts.
-    //vector<CharModel*> modelsAndParts;
+    vector<CharModel*> modelsAndParts;
     int modelIndex = 0;
 
 
@@ -4549,36 +4549,37 @@ int main(int argc, char* argv[])
     attachedToN2.push_back(&s3a);
     s3.setAttachedModels(attachedToS3);
     n2.setAttachedModels(attachedToN2);
+
+
+    //workaround to get the shadow map to include the parts.
     //modelsAndParts = vModels;
-    //vector<CharModel*> temp(1);
-    //for (int i = 0; i < numMainModels; i++) {
-    //    vector<CharModel*> temp;
-    //    vector<CharModel*>::iterator it;
-    //    switch (i) {
-    //    case 0:
-    //        temp = attachedToS3;
-    //        break;
-    //    case 1:
-    //        temp = attachedToN2;
-    //        break;
-    //    }
-    //    //base
-    //    modelsAndParts.push_back(vModels[i]);
-    //    //parts
-    //    for (int j = 0; j < numAttachedModelsPerMain; j++) {
-    //        modelsAndParts.push_back(temp[j]);
-    //    }
-    //    int j = 0;
-    //    for (it = temp.begin(); it != temp.end(); it++, j++) {
-    //        if (j % numAttachedModelsPerMain == 0) {
-    //            modelsAndParts.push_back(vModels[j/(numAttachedModelsPerMain+1)]);
-    //            j++;
-    //        }
-    //        if (*it) {
-    //            modelsAndParts.push_back(*it);
-    //        }
-    //    }
-    //}
+    //modelsAndParts.push_back(&n2a);
+    //modelsAndParts.push_back(&a9a);
+    //modelsAndParts.push_back(&s3a);
+    for (int i = 0; i < numMainModels; i++) {
+        vector<CharModel*> temp;
+        vector<CharModel*>::iterator it;
+        switch (i) {
+        case 0:
+            temp = attachedToS3;
+            break;
+        case 1:
+            temp = attachedToN2;
+            break;
+        }
+        int j = 0;
+        for (it = temp.begin(); it != temp.end(); it++, j++) {
+            //base
+            if (j % numAttachedModelsPerMain == 0) {
+                modelsAndParts.push_back(vModels[j/(numAttachedModelsPerMain+1)]);
+                j++;
+            }
+            //parts
+            if (*it) {
+                modelsAndParts.push_back(*it);
+            }
+        }
+    }
 
 
     //previous frame, if valid input to model.
@@ -4638,7 +4639,7 @@ int main(int argc, char* argv[])
         renderInfo.enableShadow = enableShadow;
 
         renderInfo.textures.depthMap = depthMap;
-        renderInfo.textures.tiledTextureID = depthMap;
+        renderInfo.textures.tiledTextureID = tiledTextureID;
         renderInfo.textures.boxTextureID = boxTextureID;
         renderInfo.textures.metalTextureID = metalTextureID;
 
@@ -4646,7 +4647,7 @@ int main(int argc, char* argv[])
         //renderScene(shaderProgramShadow, cubeVAOa);
         glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
         renderDecor(renderInfo);
-        renderModels(renderInfo, vModels);
+        renderModels(renderInfo, modelsAndParts);
 
         //{
         //    // Draw sphere
