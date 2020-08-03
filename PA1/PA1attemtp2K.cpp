@@ -3287,7 +3287,8 @@ int main(int argc, char* argv[])
 
 
     //workaround to get the shadow map to include the parts.
-    //modelsAndParts = vModels;
+    //base
+    modelsAndParts = vModels;
     //modelsAndParts.push_back(&n2a);
     //modelsAndParts.push_back(&a9a);
     //modelsAndParts.push_back(&s3a);
@@ -3302,13 +3303,7 @@ int main(int argc, char* argv[])
             temp = attachedToN2;
             break;
         }
-        int j = 0;
-        for (it = temp.begin(); it != temp.end(); it++, j++) {
-            //base
-            if (j % numAttachedModelsPerMain == 0) {
-                modelsAndParts.push_back(vModels[j/(numAttachedModelsPerMain+1)]);
-                j++;
-            }
+        for (it = temp.begin(); it != temp.end(); it++) {
             //parts
             if (*it) {
                 modelsAndParts.push_back(*it);
