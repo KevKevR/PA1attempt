@@ -346,13 +346,19 @@ public:
             attachedModels[i] = attM[i];
         }
     }
-
+    void resetCumulativeTRS() {
+        cumulativeTRS = TRSMatricesHolder();
+        resetAttachedCumulativeTRS();
+    }
+    void accumulateTRS(TRSMatricesHolder trs) {
+        cumulativeTRS.addMatrices(trs);
+    }
     void updateAttachedCumulativeTRS(){
         //set cumulative matrices to attached models.
         TRSMatricesHolder tempMH = cumulativeTRS;
         tempMH.addMatrices(TRSMatricesHolder(getRelativeTranslateMatrix(), getRelativeRotateMatrix(), getRelativeScaleMatrix()));
         for (int i = 0; i < numAttachedModels; i++) {
-            attachedModels[i]->cumulativeTRS = TRSMatricesHolder(tempMH);
+            attachedModels[i]->accumulateTRS(tempMH);
         }
     }
     void drawAttachedModels(int part) {
@@ -517,6 +523,13 @@ public:
             }
         }
     }
+    static void resetCumulativeTRS(CharModel* arr[numMainModels]) {
+        for (int i = 0; i < numMainModels; i++) {
+            if (arr[i]) {
+                arr[i]->resetCumulativeTRS();
+            }
+        }
+    }
 
     static GLuint swapWorldMatrixLocation(CharModel* arr[numMainModels], GLuint wml) {
         GLuint temp = arr[0]->worldMatrixLocation;
@@ -539,6 +552,12 @@ protected:
             }
         }
     }
+    void resetAttachedCumulativeTRS() {
+        for (int i = 0; i < numAttachedModels; i++) {
+            attachedModels[i]->resetCumulativeTRS();
+        }
+    }
+
     SphereOffset sphereOffset;
     //shear motion when walking
     mat4 walkMotion(float position) {
@@ -4719,6 +4738,7 @@ int main(int argc, char* argv[])
             renderModels(renderInfo, models);
             //update
             CharModel::update(models, dt);
+            CharModel::resetCumulativeTRS(models);
             CharModel::updateAttachedCumulativeTRS(models);
 		}
 
