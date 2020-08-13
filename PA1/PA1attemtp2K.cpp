@@ -37,7 +37,7 @@ using namespace std;
 
 GLuint loadTexture(const char* filename);
 
-const int numMainModels = 5;
+const int numMainModels = 6;
 const int numAttachedModelsPerMain = 2;
 
 // Define (initial) window width and height
@@ -290,19 +290,12 @@ public:
 
 class CharModel {
 public:
-    CharModel(int shaderProgram) {
+    CharModel(int shaderProgram, TRSMatricesHolder init_relTRSMatrices = TRSMatricesHolder()) {
+        init(init_relTRSMatrices);
         worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
         colorLocation = glGetUniformLocation(shaderProgram, "objectColor");
 
-        initial_relativeTranslateMatrix = mat4(1.0f);
-        initial_relativeRotateMatrix = mat4(1.0f);
-        initial_relativeScaleMatrix = mat4(1.0f);
-
-        relativeTranslateMatrix = mat4(1.0f);
-        relativeRotateMatrix = mat4(1.0f);
-        relativeScaleMatrix = mat4(1.0f);
         initY = 0;
-
 
         //walking
         walkState = WalkCycle(1);
@@ -357,6 +350,7 @@ public:
         for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
             if (*it) {
                 (*it)->accumulateTRS(tempMH);
+                (*it)->updateAttachedCumulativeTRS();
             }
         }
     }
@@ -370,6 +364,7 @@ public:
             for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
                 if (*it) {
                     (*it)->drawLetter();
+                    (*it)->drawAttachedModels(part);
                 }
             }
             break;
@@ -380,6 +375,7 @@ public:
             for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
                 if (*it) {
                     (*it)->drawNumber();
+                    (*it)->drawAttachedModels(part);
                 }
             }
             break;
@@ -390,6 +386,18 @@ public:
             for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
                 if (*it) {
                     (*it)->drawSphere();
+                    (*it)->drawAttachedModels(part);
+                }
+            }
+            break;
+        }
+        case 3:
+            //draw
+        {
+            for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
+                if (*it) {
+                    (*it)->draw();
+                    (*it)->drawAttachedModels(part);
                 }
             }
             break;
@@ -470,6 +478,9 @@ public:
         return cumulativeTRS.trs() * getRelativeTranslateMatrix() * getRelativeRotateMatrix() * getRelativeUndeformedScaleMatrix();
     }
 
+    virtual void draw() {
+        //implement in derived class please.
+    }
 	virtual void drawLetter() {
 		//implement in derived class please.
 	}
@@ -487,12 +498,21 @@ public:
     }
 
 	//Class method to draws all passed models. (issues when unloaded models).
-	static void drawLetter(vector<CharModel*> arr) {
+    static void drawLetter(vector<CharModel*> arr) {
         vector<CharModel*>::iterator it;
         for (it = arr.begin(); it != arr.end(); it++) {
             if (*it) {
                 (*it)->drawLetter();
                 (*it)->drawAttachedModels(0);
+            }
+        }
+    }
+    static void draw(vector<CharModel*> arr) {
+        vector<CharModel*>::iterator it;
+        for (it = arr.begin(); it != arr.end(); it++) {
+            if (*it) {
+                (*it)->draw();
+                (*it)->drawAttachedModels(3);
             }
         }
 	}
@@ -557,6 +577,16 @@ public:
     float getInitY() {return initY;}
     
 protected:
+    //initializes some values.
+    void init(TRSMatricesHolder ini_relTRSMatrices) {
+        initial_relativeTranslateMatrix = ini_relTRSMatrices.translateMatrix;
+        initial_relativeRotateMatrix = ini_relTRSMatrices.rotateMatrix;
+        initial_relativeScaleMatrix = ini_relTRSMatrices.scaleMatrix;
+
+        relativeTranslateMatrix = initial_relativeTranslateMatrix;
+        relativeRotateMatrix = initial_relativeRotateMatrix;
+        relativeScaleMatrix = initial_relativeScaleMatrix;
+    }
     //attached models
     static void drawAttachedModels(vector<CharModel*> arr, int part) {
         vector<CharModel*>::iterator it;
@@ -699,6 +729,35 @@ private:
     mat4 relativeTranslateMatrix;   //Stored translate matrix
     mat4 relativeRotateMatrix;      //Stored rotate matrix
     mat4 relativeScaleMatrix;       //Stored scale matrix
+};
+class ModelBox :public CharModel {
+public:
+    ModelBox(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder(), mat4 modelOffset = mat4(1.0f))
+        : CharModel(shaderProgram, ini_relTRSMatrices), cubeOffset(modelOffset){}
+    void applyOffset(mat4 offset) {
+        cubeOffset = offset * cubeOffset;
+    }
+    void draw() {
+        //pass arguments stored in parent class.
+        glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
+        drawCube(worldMatrixLocation, colorLocation, getRelativeWorldMatrix() * cubeOffset);
+    }
+protected:
+    void drawCube(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+        //code goes here
+        mat4 mWorldMatrix;
+        mat4 translationMatrix, scalingMatrix;
+        mat4 worldMatrix;
+
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+        scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(3.0f, 3.0f, 3.0f));
+        worldMatrix = translationMatrix * scalingMatrix;
+        mWorldMatrix = relativeWorldMatrix * worldMatrix;
+        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+private:
+    mat4 cubeOffset;
 };
 
 class ModelV9 : public CharModel {
@@ -2742,6 +2801,8 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
     inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_3, 2));
     inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_4, 3));
     inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_5, 4));
+    inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_6, 5));
+    inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_7, 6));
 
     //default return value
     GLchar selectedMode = previousModelIndex;
@@ -3039,6 +3100,7 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models) {
     glBindTexture(GL_TEXTURE_2D, 0);
     glUniform1i(enableTextureLocation, 0);
     CharModel::drawSphere(models);
+    CharModel::draw(models);
     glUniform1i(enableTextureLocation, enableTexture);
 
     //swap back
@@ -3244,6 +3306,29 @@ int main(int argc, char* argv[])
     glEnable(GL_DEPTH_TEST);
 
 
+    //configure initialized positions for boxes
+
+    //vector<TRSMatricesHolder> init_T(0);
+    vector<mat4> init_T(0);
+    vector<mat4>::iterator init_T_itr;
+    const float boxSideLength = 3.0f;
+    const int boxPerSide = 3;
+    // indexes 0 to 3 is back bottom row
+    // indexes 0 to 9 is back wall
+    for (int i = 0; i < boxPerSide; i++) {
+        for (int j = 0; j < boxPerSide; j++) {
+            for (int k = 0; k < boxPerSide; k++) {
+                mat4 tempInit_T = translate(mat4(1.0f),
+                    vec3(-(boxSideLength * (boxPerSide - 1) / 2) + k * boxSideLength,
+                        -(boxSideLength * (boxPerSide - 1) / 2) + j * boxSideLength,
+                        -(boxSideLength * (boxPerSide - 1) / 2) + i * boxSideLength));
+                //TRSMatricesHolder tempinit_TRS = TRSMatricesHolder(tempInit_T, mat4(1.0f), mat4(1.0f));
+                //init_T.push_back(tempinit_TRS);
+                init_T.push_back(tempInit_T);
+            }
+        }
+    }
+
     //Models
     //CharModel* selectedModel;
     //CharModel* models[numMainModels];
@@ -3254,6 +3339,15 @@ int main(int argc, char* argv[])
 
 
     //base
+    //                                                              [x,      y,      z]
+    ModelBox boxCore     (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 1]);
+    ModelBox boxTop      (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 1]);
+    ModelBox boxBot      (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 1]);
+    ModelBox boxPort     (shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 1 + 9 * 1]);
+    ModelBox boxStarboard(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 1 + 9 * 1]);
+    ModelBox boxFront    (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 2]);
+    ModelBox boxBack     (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 0]);
+
     ModelV9 v9(shaderProgram);
     ModelS3 s3(shaderProgram);
     ModelA9 a9(shaderProgram);
@@ -3266,6 +3360,13 @@ int main(int argc, char* argv[])
     //models[3] = &n4;
     //models[4] = &v9;
 
+    //vModels.push_back(&boxFront);
+    //vModels.push_back(&boxBack);
+    //vModels.push_back(&boxPort);
+    //vModels.push_back(&boxStarboard);
+    //vModels.push_back(&boxTop);
+    //vModels.push_back(&boxBot);
+    vModels.push_back(&boxCore);
     vModels.push_back(&s3);
     vModels.push_back(&n2);
     vModels.push_back(&a9);
@@ -3285,7 +3386,125 @@ int main(int argc, char* argv[])
     s3.setAttachedModels(attachedToS3);
     n2.setAttachedModels(attachedToN2);
 
+    
+    //for some reason, keeps sending the same object reference.
+    //for (init_T_itr = init_T.begin(); init_T_itr != init_T.end(); init_T_itr++) {
+    //    TRSMatricesHolder tempTMatrix = TRSMatricesHolder(*init_T_itr, mat4(1.0f), mat4(1.0f));
+    //    ModelBox tempBox = ModelBox(shaderProgram, tempTMatrix);
+    //    attachedToBox.push_back(&tempBox);
+    //}
+    //do it manually instead
+    //                                                    [x,      y,      z]
+    ModelBox C1(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 0 + 9 * 0]);
+    ModelBox C2(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 0]);
+    ModelBox C3(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 0 + 9 * 0]);
+    ModelBox C4(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 1 + 9 * 0]);
+    //ModelBox C5(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 0]);
+    ModelBox C6(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 1 + 9 * 0]);
+    ModelBox C7(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 2 + 9 * 0]);
+    ModelBox C8(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 0]);
+    ModelBox C9(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 2 + 9 * 0]);
 
+    ModelBox B1(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 0 + 9 * 1]);
+    //ModelBox B2(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 1]);
+    ModelBox B3(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 0 + 9 * 1]);
+    //ModelBox B4(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 1 + 9 * 1]);
+    //ModelBox B5(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 1]);
+    //ModelBox B6(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 1 + 9 * 1]);
+    ModelBox B7(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 2 + 9 * 1]);
+    //ModelBox B8(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 1]);
+    ModelBox B9(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 2 + 9 * 1]);
+
+    ModelBox A1(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 0 + 9 * 2]);
+    ModelBox A2(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 2]);
+    ModelBox A3(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 0 + 9 * 2]);
+    ModelBox A4(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 1 + 9 * 2]);
+    //ModelBox A5(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 2]);
+    ModelBox A6(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 1 + 9 * 2]);
+    ModelBox A7(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 2 + 9 * 2]);
+    ModelBox A8(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 2]);
+    ModelBox A9(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 2 + 9 * 2]);
+
+    vector<CharModel*> attachedToFront(0);
+    attachedToFront.push_back(&A1);
+    attachedToFront.push_back(&A2);
+    attachedToFront.push_back(&A3);
+    attachedToFront.push_back(&A4);
+    //attachedToFront.push_back(&A5);
+    attachedToFront.push_back(&A6);
+    attachedToFront.push_back(&A7);
+    attachedToFront.push_back(&A8);
+    attachedToFront.push_back(&A9);
+    vector<CharModel*> attachedToBack(0);
+    attachedToBack.push_back(&C1);
+    attachedToBack.push_back(&C2);
+    attachedToBack.push_back(&C3);
+    attachedToBack.push_back(&C4);
+    //attachedToBack.push_back(&C5);
+    attachedToBack.push_back(&C6);
+    attachedToBack.push_back(&C7);
+    attachedToBack.push_back(&C8);
+    attachedToBack.push_back(&C9);
+    vector<CharModel*> attachedToPort(0);
+    attachedToPort.push_back(&C3);
+    attachedToPort.push_back(&B3);
+    attachedToPort.push_back(&A3);
+    attachedToPort.push_back(&C6);
+    //attachedToPort.push_back(&B6);
+    attachedToPort.push_back(&A6);
+    attachedToPort.push_back(&C9);
+    attachedToPort.push_back(&B9);
+    attachedToPort.push_back(&A9);
+    vector<CharModel*> attachedToStarboard(0);
+    attachedToStarboard.push_back(&C1);
+    attachedToStarboard.push_back(&B1);
+    attachedToStarboard.push_back(&A1);
+    attachedToStarboard.push_back(&C4);
+    //attachedToStarboard.push_back(&B4);
+    attachedToStarboard.push_back(&A4);
+    attachedToStarboard.push_back(&C7);
+    attachedToStarboard.push_back(&B7);
+    attachedToStarboard.push_back(&A7);
+    vector<CharModel*> attachedToTop(0);
+    attachedToTop.push_back(&C7);
+    attachedToTop.push_back(&C8);
+    attachedToTop.push_back(&C9);
+    attachedToTop.push_back(&B7);
+    //attachedToTop.push_back(&B8);
+    attachedToTop.push_back(&B9);
+    attachedToTop.push_back(&A7);
+    attachedToTop.push_back(&A8);
+    attachedToTop.push_back(&A9);
+    vector<CharModel*> attachedToBot(0);
+    attachedToBot.push_back(&C1);
+    attachedToBot.push_back(&C2);
+    attachedToBot.push_back(&C3);
+    attachedToBot.push_back(&B1);
+    //attachedToBot.push_back(&B2);
+    attachedToBot.push_back(&B3);
+    attachedToBot.push_back(&A1);
+    attachedToBot.push_back(&A2);
+    attachedToBot.push_back(&A3);
+
+
+    vector<CharModel*> attachedToCore(0);
+    attachedToCore.push_back(&boxFront);
+    attachedToCore.push_back(&boxBack);
+    attachedToCore.push_back(&boxTop);
+    attachedToCore.push_back(&boxBot);
+    attachedToCore.push_back(&boxPort);
+    attachedToCore.push_back(&boxStarboard);
+
+
+    boxFront.setAttachedModels(attachedToFront);
+    boxBack.setAttachedModels(attachedToBack);
+    boxTop.setAttachedModels(attachedToTop);
+    boxBot.setAttachedModels(attachedToBot);
+    boxPort.setAttachedModels(attachedToPort);
+    boxStarboard.setAttachedModels(attachedToStarboard);
+
+    boxCore.setAttachedModels(attachedToCore);
+    //boxBot.setAttachedModels(attachedToBack);
     //workaround to get the shadow map to include the parts.
     //base
     modelsAndParts = vModels;
