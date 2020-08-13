@@ -1,0 +1,23 @@
+﻿  PA3 - TextureTest.cpp
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(184): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(188): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(485): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(553): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(553): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(553): warning C4244: 'initializing': conversion from 'float' to 'const int', possible loss of data
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(3458): warning C4018: '<': signed/unsigned mismatch
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(3584): warning C4018: '<': signed/unsigned mismatch
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(3710): warning C4018: '<': signed/unsigned mismatch
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(3836): warning C4018: '<': signed/unsigned mismatch
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(3961): warning C4018: '<': signed/unsigned mismatch
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(4087): warning C4018: '<': signed/unsigned mismatch
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(4213): warning C4018: '<': signed/unsigned mismatch
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(5982): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(6087): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(6973): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(6976): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
+g:\quiz2_40130107\lab_framework\source\pa3 - texturetest.cpp(6979): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
+LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
+glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32s.lib(glew.obj)' or at 'G:\Quiz2_40130107\Lab_Framework\Bin\vc120.pdb'; linking object as if no debug info
+  Labs.vcxproj -> G:\Quiz2_40130107\Lab_Framework\VS2017\/../Bin/Labs-Debug.exe
