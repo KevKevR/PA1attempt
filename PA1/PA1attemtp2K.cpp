@@ -3340,13 +3340,38 @@ int main(int argc, char* argv[])
 
     //base
     //                                                              [x,      y,      z]
-    ModelBox boxCore     (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 1]);
-    ModelBox boxTop      (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 1]);
-    ModelBox boxBot      (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 1]);
-    ModelBox boxPort     (shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 1 + 9 * 1]);
-    ModelBox boxStarboard(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 1 + 9 * 1]);
-    ModelBox boxFront    (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 2]);
-    ModelBox boxBack     (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 0]);
+    //ModelBox boxCore     (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 1]);
+    //ModelBox boxTop      (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 1]);
+    //ModelBox boxBot      (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 1]);
+    //ModelBox boxPort     (shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 1 + 9 * 1]);
+    //ModelBox boxStarboard(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 1 + 9 * 1]);
+    //ModelBox boxFront    (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 2]);
+    //ModelBox boxBack     (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 0]);
+    
+    TRSMatricesHolder tempinit_TRS = TRSMatricesHolder();
+    tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 1];
+    CharModel boxCore     (shaderProgram, tempinit_TRS);
+    tempinit_TRS.translateMatrix = init_T[1 + 3 * 2 + 9 * 1];
+    CharModel boxTop      (shaderProgram, tempinit_TRS);
+    tempinit_TRS.translateMatrix = init_T[1 + 3 * 0 + 9 * 1];
+    CharModel boxBot      (shaderProgram, tempinit_TRS);
+    tempinit_TRS.translateMatrix = init_T[2 + 3 * 1 + 9 * 1];
+    CharModel boxPort     (shaderProgram, tempinit_TRS);
+    tempinit_TRS.translateMatrix = init_T[0 + 3 * 1 + 9 * 1];
+    CharModel boxStarboard(shaderProgram, tempinit_TRS);
+    tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 2];
+    CharModel boxFront    (shaderProgram, tempinit_TRS);
+    tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 0];
+    CharModel boxBack     (shaderProgram, tempinit_TRS);
+
+    ////                                         [x,      y,      z]
+    //CharModel boxCore     (shaderProgram, init_T[1 + 3 * 1 + 9 * 1]);
+    //CharModel boxTop      (shaderProgram, init_T[1 + 3 * 2 + 9 * 1]);
+    //CharModel boxBot      (shaderProgram, init_T[1 + 3 * 0 + 9 * 1]);
+    //CharModel boxPort     (shaderProgram, init_T[2 + 3 * 1 + 9 * 1]);
+    //CharModel boxStarboard(shaderProgram, init_T[0 + 3 * 1 + 9 * 1]);
+    //CharModel boxFront    (shaderProgram, init_T[1 + 3 * 1 + 9 * 2]);
+    //CharModel boxBack     (shaderProgram, init_T[1 + 3 * 1 + 9 * 0]);
 
     ModelV9 v9(shaderProgram);
     ModelS3 s3(shaderProgram);
@@ -3399,27 +3424,27 @@ int main(int argc, char* argv[])
     ModelBox C2(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 0]);
     ModelBox C3(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 0 + 9 * 0]);
     ModelBox C4(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 1 + 9 * 0]);
-    //ModelBox C5(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 0]);
+    ModelBox C5(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 0]);
     ModelBox C6(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 1 + 9 * 0]);
     ModelBox C7(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 2 + 9 * 0]);
     ModelBox C8(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 0]);
     ModelBox C9(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 2 + 9 * 0]);
 
     ModelBox B1(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 0 + 9 * 1]);
-    //ModelBox B2(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 1]);
+    ModelBox B2(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 1]);
     ModelBox B3(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 0 + 9 * 1]);
-    //ModelBox B4(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 1 + 9 * 1]);
-    //ModelBox B5(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 1]);
-    //ModelBox B6(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 1 + 9 * 1]);
+    ModelBox B4(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 1 + 9 * 1]);
+    ModelBox B5(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 1]);
+    ModelBox B6(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 1 + 9 * 1]);
     ModelBox B7(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 2 + 9 * 1]);
-    //ModelBox B8(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 1]);
+    ModelBox B8(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 1]);
     ModelBox B9(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 2 + 9 * 1]);
 
     ModelBox A1(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 0 + 9 * 2]);
     ModelBox A2(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 2]);
     ModelBox A3(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 0 + 9 * 2]);
     ModelBox A4(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 1 + 9 * 2]);
-    //ModelBox A5(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 2]);
+    ModelBox A5(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 2]);
     ModelBox A6(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 1 + 9 * 2]);
     ModelBox A7(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 2 + 9 * 2]);
     ModelBox A8(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 2]);
@@ -3430,7 +3455,7 @@ int main(int argc, char* argv[])
     attachedToFront.push_back(&A2);
     attachedToFront.push_back(&A3);
     attachedToFront.push_back(&A4);
-    //attachedToFront.push_back(&A5);
+    attachedToFront.push_back(&A5);
     attachedToFront.push_back(&A6);
     attachedToFront.push_back(&A7);
     attachedToFront.push_back(&A8);
@@ -3440,7 +3465,7 @@ int main(int argc, char* argv[])
     attachedToBack.push_back(&C2);
     attachedToBack.push_back(&C3);
     attachedToBack.push_back(&C4);
-    //attachedToBack.push_back(&C5);
+    attachedToBack.push_back(&C5);
     attachedToBack.push_back(&C6);
     attachedToBack.push_back(&C7);
     attachedToBack.push_back(&C8);
@@ -3450,7 +3475,7 @@ int main(int argc, char* argv[])
     attachedToPort.push_back(&B3);
     attachedToPort.push_back(&A3);
     attachedToPort.push_back(&C6);
-    //attachedToPort.push_back(&B6);
+    attachedToPort.push_back(&B6);
     attachedToPort.push_back(&A6);
     attachedToPort.push_back(&C9);
     attachedToPort.push_back(&B9);
@@ -3460,7 +3485,7 @@ int main(int argc, char* argv[])
     attachedToStarboard.push_back(&B1);
     attachedToStarboard.push_back(&A1);
     attachedToStarboard.push_back(&C4);
-    //attachedToStarboard.push_back(&B4);
+    attachedToStarboard.push_back(&B4);
     attachedToStarboard.push_back(&A4);
     attachedToStarboard.push_back(&C7);
     attachedToStarboard.push_back(&B7);
@@ -3470,7 +3495,7 @@ int main(int argc, char* argv[])
     attachedToTop.push_back(&C8);
     attachedToTop.push_back(&C9);
     attachedToTop.push_back(&B7);
-    //attachedToTop.push_back(&B8);
+    attachedToTop.push_back(&B8);
     attachedToTop.push_back(&B9);
     attachedToTop.push_back(&A7);
     attachedToTop.push_back(&A8);
@@ -3480,7 +3505,7 @@ int main(int argc, char* argv[])
     attachedToBot.push_back(&C2);
     attachedToBot.push_back(&C3);
     attachedToBot.push_back(&B1);
-    //attachedToBot.push_back(&B2);
+    attachedToBot.push_back(&B2);
     attachedToBot.push_back(&B3);
     attachedToBot.push_back(&A1);
     attachedToBot.push_back(&A2);
@@ -3488,13 +3513,42 @@ int main(int argc, char* argv[])
 
 
     vector<CharModel*> attachedToCore(0);
-    attachedToCore.push_back(&boxFront);
-    attachedToCore.push_back(&boxBack);
-    attachedToCore.push_back(&boxTop);
-    attachedToCore.push_back(&boxBot);
-    attachedToCore.push_back(&boxPort);
-    attachedToCore.push_back(&boxStarboard);
+    //attachedToCore.push_back(&boxFront);
+    //attachedToCore.push_back(&boxBack);
+    //attachedToCore.push_back(&boxTop);
+    //attachedToCore.push_back(&boxBot);
+    //attachedToCore.push_back(&boxPort);
+    //attachedToCore.push_back(&boxStarboard);
 
+    attachedToCore.push_back(&C1);
+    attachedToCore.push_back(&C2);
+    attachedToCore.push_back(&C3);
+    attachedToCore.push_back(&C4);
+    attachedToCore.push_back(&C5);
+    attachedToCore.push_back(&C6);
+    attachedToCore.push_back(&C7);
+    attachedToCore.push_back(&C8);
+    attachedToCore.push_back(&C9);
+
+    attachedToCore.push_back(&B1);
+    attachedToCore.push_back(&B2);
+    attachedToCore.push_back(&B3);
+    attachedToCore.push_back(&B4);
+    attachedToCore.push_back(&B5);
+    attachedToCore.push_back(&B6);
+    attachedToCore.push_back(&B7);
+    attachedToCore.push_back(&B8);
+    attachedToCore.push_back(&B9);
+
+    attachedToCore.push_back(&A1);
+    attachedToCore.push_back(&A2);
+    attachedToCore.push_back(&A3);
+    attachedToCore.push_back(&A4);
+    attachedToCore.push_back(&A5);
+    attachedToCore.push_back(&A6);
+    attachedToCore.push_back(&A7);
+    attachedToCore.push_back(&A8);
+    attachedToCore.push_back(&A9);
 
     boxFront.setAttachedModels(attachedToFront);
     boxBack.setAttachedModels(attachedToBack);
