@@ -42,7 +42,8 @@ GLuint loadTexture(const char* filename);
 const int numMainModels = 5;
 
 // Timer variables
-int hours = 0, minutes = 0, seconds = 0, previousSeconds = -1;
+// TODO: Delete previousDecimals
+int hours = 0, minutes = 0, seconds = 0, decimals = 0, previousDecimals = -1;
 float timePause = 0, timeResume = 0, totalTimePaused = 0, timeReset = 0, currentTime;
 bool paused = false;
 
@@ -60,7 +61,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 // Define timer-related functions
 void displayClock(); // Print timer in console TODO: delete or adapt it so it shows on UI with opengl
-void adjustTimer(); // TODO: May need to return the output string instead
+void adjustTimer();
+void handlePauseTimer();
 void resetTimer();
 
 // Forward declare CharModel class in order to declare a pointer to selected model to manipulate
@@ -4409,14 +4411,14 @@ int main(int argc, char* argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Handle timer TODO: May need to change where the code is written
-        // TODO: Remove this if statement because this methods needs to be called at every frame in openGL
-        if (seconds != previousSeconds)
-            displayClock();
+        displayClock();
+        previousDecimals = decimals; // TODO: Only used for console printing so can be deleted later on
         if (!paused)
         {
-            previousSeconds = seconds; // TODO: Only used for console printing so can be deleted later on
-            // Computes seconds elapsed since the last minute
-            seconds = (int) (currentTime - timeReset - totalTimePaused) - (hours * 60 * 60 + minutes * 60);
+            // Computes seconds and decimals elapsed since the last minute
+            float elapsed = (currentTime - timeReset - totalTimePaused) - (hours * 60 * 60 + minutes * 60);
+            seconds = (int) elapsed;
+            decimals = (int) ((elapsed - seconds) * 100);
             // Increment minutes and hours as needed
             adjustTimer();
         }
@@ -4852,60 +4854,59 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         randomPosModel(selectedModel);
     
     // Temporary controls for timer
-    if (key == GLFW_KEY_9 && action == GLFW_PRESS)
-    {
-        // pause/resume timer
-        paused = !paused;
-        if (paused)
-            // Store time at which timer is paused
-            timePause = currentTime;
-        else
-        {
-            // Store time at which timer is resumed
-            timeResume = currentTime;
-            // Add to cumulated time for which the time is paused
-            totalTimePaused += timeResume - timePause;
-        }
-            
+    if (key == GLFW_KEY_9 && action == GLFW_PRESS) {
+        paused = !paused; // pause/resume timer
+        handlePauseTimer();
     }
     if (key == GLFW_KEY_0 && action == GLFW_PRESS)
         resetTimer(); // reset timer
 }
 
-// TODO: Adapt to UI with 2D text rendering (or just return the string)
-// Print timer in console in format "Timer:  HH : MM : SS"
+// TODO: Change implementation of this function (a.k.a change this method)
+// Print timer in console in format "Timer:  HH : MM : SS.DD" (temp)
 void displayClock()
 {
-    string timerOutput = "Timer:  ";
     
-    if (hours < 10)
-        timerOutput += "0" + to_string(hours);
-    else
-        timerOutput += to_string(hours);
+    if (decimals != previousDecimals) {
+        string timerOutput = "Timer:  ";
     
-    timerOutput += " : ";
+        // Note: When drawing, extract digits from each time variables
+        if (hours < 10)
+            timerOutput += "0" + to_string(hours);
+        else
+            timerOutput += to_string(hours);
     
-    if (minutes < 10)
-        timerOutput += "0" + to_string(minutes);
-    else
-        timerOutput += to_string(minutes);
+        timerOutput += " : ";
     
-    timerOutput += " : ";
+        if (minutes < 10)
+            timerOutput += "0" + to_string(minutes);
+        else
+            timerOutput += to_string(minutes);
     
-    if (seconds < 10)
-        timerOutput += "0" + to_string(seconds);
-    else
-        timerOutput += to_string(seconds);
+        timerOutput += " : ";
     
-    cout << timerOutput << endl;
-    //cout << glfwGetTime() << endl;
+        if (seconds < 10)
+            timerOutput += "0" + to_string(seconds);
+        else
+            timerOutput += to_string(seconds);
+        
+        timerOutput += ".";
+        
+        if (decimals < 10)
+            timerOutput += "0" + to_string(decimals);
+        else
+            timerOutput += to_string(decimals);
+    
+        cout << timerOutput << endl;
+        //cout << glfwGetTime() << endl;
+    }
 }
 
 // Reset seconds and minutes variables when they reach 60
 void adjustTimer()
 {
     // if seconds reaches 60
-    if (seconds == 60)
+    if (seconds >= 60)
     {
         // increment minutes
         minutes++;
@@ -4916,7 +4917,22 @@ void adjustTimer()
             hours++;
             minutes = 0;
         }
-        seconds = 0;
+        seconds -= 60;
+    }
+}
+
+// Handle pause/resume timer events
+void handlePauseTimer()
+{
+    if (paused)
+        // Store time at which timer is paused
+        timePause = currentTime;
+    else
+    {
+        // Store time at which timer is resumed
+        timeResume = currentTime;
+        // Add to cumulated time for which the time is paused
+        totalTimePaused += timeResume - timePause;
     }
 }
 
@@ -4927,6 +4943,7 @@ void resetTimer()
     hours = 0;
     minutes = 0;
     seconds = 0;
+    decimals = 0;
     // Store time at which the time was reset
     timeReset = currentTime;
     // Handle pause functionalitites for resetting
