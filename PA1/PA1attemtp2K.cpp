@@ -38,7 +38,7 @@ using namespace std;
 GLuint loadTexture(const char* filename);
 
 const int numMainModels = 6;
-const int numAttachedModelsPerMain = 2;
+const int numAttachedModelsPerMain = 6;
 
 // Define (initial) window width and height
 int window_width = 1024, window_height = 768;
@@ -233,12 +233,12 @@ public:
     }
 
     //return position
-    float getPosition() {
+    virtual float getPosition() {
         //position between [-1, 1].
         //return currentPosition * 2;
         return sinf(radians(180.0f * (currentPosition * 2)));
     }
-private:
+protected:
     //walkState
     // 0: stop.
     // 1: walking, periodic movement.
@@ -252,6 +252,17 @@ private:
     float currentPosition;
     //stop position
     float stopWalkPosition;
+};
+//derive to replace getPosition and reuse rest
+class RotateCycle : public WalkCycle{
+public:
+    RotateCycle(float tPerState = 1) : WalkCycle(tPerState) {}
+
+    float getPosition() {
+        //sigmoid function
+        //https://stackoverflow.com/questions/10732027/fast-sigmoid-algorithm
+        return currentPosition / (1 + fabsf(currentPosition));
+    }
 };
 //holds TRS matrices
 class TRSMatricesHolder {
@@ -298,17 +309,17 @@ public:
         initY = 0;
 
         //walking
-        walkState = WalkCycle(1);
+        walkState = WalkCycle(1.0f);
         sphereOffset = { 0,0 };
 
         //attached models
         cumulativeTRS = TRSMatricesHolder();
         //*attachedModels = nullptr;
         numAttachedModels = 0;
+
+        //modeMotion = true;
     }
 
-    //let other class handle walking.
-    WalkCycle walkState;
     float updateWalkProgress(float dt, int st = -1, float tState = -1) {
         //increment time
         walkState.stepForward(dt);
@@ -331,7 +342,14 @@ public:
         return temp;
     }
 
+    //lazy getter
+    WalkCycle* getCycle() {
+        return &walkState;
+    }
 
+    vector<CharModel*> getAttachedModels() {
+        return attachedModels;
+    }
     void setAttachedModels(vector<CharModel*> attM) {
         attachedModels = attM;
     }
@@ -408,7 +426,8 @@ public:
 
 
     mat4 getRelativeTranslateMatrix() {
-        return relativeTranslateMatrix;
+        mat4 motion = getMotion(walkState.getPosition()).translateMatrix;
+        return relativeTranslateMatrix * motion;
     }
     void setRelativeTranslateMatrix(mat4 relTWM) {
         relativeTranslateMatrix = relTWM;
@@ -418,7 +437,8 @@ public:
     }
 
     mat4 getRelativeRotateMatrix() {
-        return relativeRotateMatrix;
+        mat4 motion = getMotion(walkState.getPosition()).rotateMatrix;
+        return relativeRotateMatrix * motion;
     }
     void setRelativeRotateMatrix(mat4 relRWM) {
         relativeRotateMatrix = relRWM;
@@ -429,7 +449,7 @@ public:
 
     //return scale matrix without shear elements
     mat4 getRelativeUndeformedScaleMatrix() {
-        //mat4 motion = walkMotion(walkState.getPosition());
+        //mat4 motion = getMotion(walkState.getPosition());
         mat4 scale = relativeScaleMatrix/* * motion*/;
 
         //float heightOffset = sphereOffset.yOffset;
@@ -450,7 +470,7 @@ public:
         return diagonal/* * follow*/;
     }
     mat4 getRelativeScaleMatrix() {
-        mat4 motion = walkMotion(walkState.getPosition());
+        mat4 motion = getMotion(walkState.getPosition()).scaleMatrix;
         return relativeScaleMatrix * motion;
     }
     void setRelativeScaleMatrix(mat4 relSWM) {
@@ -478,6 +498,12 @@ public:
         return cumulativeTRS.trs() * getRelativeTranslateMatrix() * getRelativeRotateMatrix() * getRelativeUndeformedScaleMatrix();
     }
 
+    virtual void next() {
+        //implement in derived class please.
+    }
+    virtual void prev() {
+        //implement in derived class please.
+    }
     virtual void draw() {
         //implement in derived class please.
     }
@@ -491,7 +517,16 @@ public:
     virtual void drawSphere() {
         //implement in derived class please.
     }
-
+    virtual void reset() {
+        resetInitialRelativeMatrices();
+        getCycle()->setState(0);
+        vector<CharModel*>::iterator it;
+        for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
+            if (*it) {
+                (*it)->reset();
+            }
+        }
+    }
     //reverts TRS matrices back to initial settings.
     void resetInitialRelativeMatrices() {
         setRelativeWorldMatrix(initial_relativeTranslateMatrix, initial_relativeRotateMatrix, initial_relativeScaleMatrix);
@@ -575,7 +610,9 @@ public:
     }
     // Return initial y-position of model
     float getInitY() {return initY;}
-    
+
+    //let other class handle walking.
+    WalkCycle walkState;
 protected:
     //initializes some values.
     void init(TRSMatricesHolder ini_relTRSMatrices) {
@@ -605,9 +642,13 @@ protected:
         }
     }
 
-    SphereOffset sphereOffset;
+    //gives motion
+    virtual TRSMatricesHolder getMotion(float position) {
+        //return modeMotion ? walkMotion(position) : rotateMotion(position);
+        return walkMotion(position);
+    }
     //shear motion when walking
-    mat4 walkMotion(float position) {
+    TRSMatricesHolder walkMotion(float position) {
         const float amplitude = 4;
         //const float position = walkState.getPosition();
 
@@ -618,8 +659,26 @@ protected:
             amplitude * position, 1 + sqrt(amplitude) * powf(position, 2), 0, 0,  // second column
             0, 0, 1, 0,  // third column
             0, 0, 0, 1); // fourth column
-        return motion;
+        TRSMatricesHolder(tempT);
+        tempT.scaleMatrix = motion;
+        return tempT;
     }
+    ////rotation
+    //TRSMatricesHolder rotateMotion(float position) {
+    //    //position should be between 0 to 1.
+    //    const float amplitude = 4;
+    //    const float rotationAngle = 90.0f;
+    //    //const float position = walkState.getPosition();
+
+    //    //shear side-to-side + vertical scaling.
+    //    mat4 motion =
+    //        rotate(mat4(1.0f),
+    //            radians(90.0f) * position,
+    //            vec3(0.0f, 0.0f, -1.0f));
+    //    TRSMatricesHolder(tempR);
+    //    tempR.rotateMatrix = motion;
+    //    return tempR;
+    //}
     //mat4 followWalkMotion(mat4 motion) {
     //    float sideMovement = motion[1].x;
     //    float verticalMovement = motion[1].y;
@@ -630,15 +689,17 @@ protected:
     //    return follow;
     //}
     mat4 sphereFollow() {
-        mat4 motion = walkMotion(walkState.getPosition());
+        //untested besides scale component
+        TRSMatricesHolder motion = getMotion(walkState.getPosition());
 
         float heightOffset = sphereOffset.yOffset;
-        float sideMovement = motion[1].x * heightOffset;
-        float verticalMovement = (motion[1].y - 1) * heightOffset;
-        mat4 follow = translate(mat4(1.0f),
+        float sideMovement = motion.scaleMatrix[1].x * heightOffset;
+        float verticalMovement = (motion.scaleMatrix[1].y - 1) * heightOffset;
+        mat4 follow = motion.translateMatrix * translate(mat4(1.0f),
             vec3(sideMovement,
                 verticalMovement,
-                0));
+                0))
+            * motion.rotateMatrix;
         return follow;
     }
 
@@ -714,6 +775,7 @@ protected:
         const int numVertices = (heightParts - 1) * ringParts * 2;
         glDrawArrays(GL_TRIANGLE_STRIP, 44, numVertices);
     }
+    //bool modeMotion;
 
     GLuint worldMatrixLocation;
     GLuint colorLocation;
@@ -722,6 +784,7 @@ protected:
     mat4 initial_relativeScaleMatrix;       //Initial scale matrix, value to take when reset.
     float initY;                            // Initial y-position in initial translate matrix (note: value assigned to child constructor)
 
+    SphereOffset sphereOffset;
     TRSMatricesHolder cumulativeTRS;
     vector<CharModel*> attachedModels;
     int numAttachedModels;
@@ -733,7 +796,15 @@ private:
 class ModelBox :public CharModel {
 public:
     ModelBox(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder(), mat4 modelOffset = mat4(1.0f))
-        : CharModel(shaderProgram, ini_relTRSMatrices), cubeOffset(modelOffset){}
+        : CharModel(shaderProgram, ini_relTRSMatrices), cubeOffset(modelOffset){
+        
+        //replace motion with rotation
+        // or could use own attribute instead.
+        walkState = RotateCycle(10.0f);
+
+        //angle to rotate towards.
+        targetAngle = 0;
+    }
     void applyOffset(mat4 offset) {
         cubeOffset = offset * cubeOffset;
     }
@@ -742,7 +813,37 @@ public:
         glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
         drawCube(worldMatrixLocation, colorLocation, getRelativeWorldMatrix() * cubeOffset);
     }
+    void next() {
+        targetAngle += 90.0f;
+    }
+    void prev() {
+        targetAngle -= 90.0f;
+    }
+    void reset() {
+        CharModel::reset();
+        targetAngle = 0;
+    }
+
 protected:
+    TRSMatricesHolder getMotion(float position) {
+        return rotateMotion(position);
+    }
+    TRSMatricesHolder rotateMotion(float position) {
+        //position should be between 0 to 1.
+        const float amplitude = 4;
+        const float rotationAngle = targetAngle;
+        //const float position = walkState.getPosition();
+    
+        //shear side-to-side + vertical scaling.
+        mat4 motion =
+            rotate(mat4(1.0f),
+                radians(rotationAngle) * position,
+                vec3(0.0f, 0.0f, -1.0f));
+        TRSMatricesHolder(tempR);
+        tempR.rotateMatrix = motion;
+        return tempR;
+    }
+
     void drawCube(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
         //code goes here
         mat4 mWorldMatrix;
@@ -756,6 +857,8 @@ protected:
         glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
+
+    float targetAngle;
 private:
     mat4 cubeOffset;
 };
@@ -2708,6 +2811,34 @@ bool isShiftPressed(GLFWwindow* window) {
     return glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
 }
 
+int returnPreviousKeyState(GLFWwindow* window, int key, map<int, KeyState> previousKeyStates) {
+    ////////////////
+       //get previous key state if tracked, otherwise default release (true).
+       //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
+       //default released if not tracked
+    int previousState = GLFW_RELEASE;
+    map<int, KeyState>::iterator it = previousKeyStates.find(key);
+    if (it != previousKeyStates.end()) {        //key is a tracked one
+        //toggling shift should not activate the key again.
+        //So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
+        if ((it->second.needShiftPressed == isShiftPressed(window)) && it->second.prevWithShiftPressed) {
+            previousState = GLFW_PRESS;    //so update to actual
+            //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
+        }
+        //else if (isShiftPressed(window) && !it->second.prevWithShiftPressed) {
+        //    previousState = GLFW_PRESS;
+        //    glClearColor(0.4f, 1, 0.0f, 1.0f);
+        //} 
+        else {
+            //otherwise, update to actual previous key.
+            previousState = it->second.keyState;
+            //glClearColor(1.0f, 0.3f, 0.0f, 1.0f);
+        }
+
+    }
+    ////////////////
+    return previousState;
+}
 bool checkModelMovement(GLFWwindow* window, map<int, KeyState> previousKeyStates) {
     vector<GLuint> inputs;
     vector<GLuint>::iterator itr;
@@ -2735,27 +2866,7 @@ bool checkModelMovement(GLFWwindow* window, map<int, KeyState> previousKeyStates
 
     //iterate through all keys that could be pressed.
     for ( itr = inputs.begin(); itr != inputs.end(); ++itr) {
-        ////////////////
-        //get previous key state if tracked, otherwise default release (true).
-        //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
-        //default released if not tracked
-        int previousState = GLFW_RELEASE;
-        map<int, KeyState>::iterator it = previousKeyStates.find(*itr);
-        if (it != previousKeyStates.end()) {        //key is a tracked one
-            //toggling shift should not activate the key again.
-            //So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
-            if ((it->second.needShiftPressed == isShiftPressed(window)) && it->second.prevWithShiftPressed) {
-                previousState = GLFW_PRESS;    //so update to actual
-                //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
-            }
-            else {
-                //otherwise, update to actual previous key.
-                previousState = it->second.keyState;
-                //glClearColor(1.0f, 0.3f, 0.0f, 1.0f);
-            }
-
-        }
-        ////////////////
+        int previousState = returnPreviousKeyState(window, *itr, previousKeyStates);
 
         //enter block if valid key is pressed for movement.
         if (glfwGetKey(window, *itr) == GLFW_PRESS && previousState == GLFW_RELEASE)
@@ -2911,31 +3022,7 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
 
     //iterate through all keys that could be pressed.
     for (itr = inputsToModelMatrix.begin(); itr != inputsToModelMatrix.end(); ++itr) {
-        ////////////////
-        //get previous key state if tracked, otherwise default release (true).
-        //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
-        //default released if not tracked
-        int previousState = GLFW_RELEASE;
-        map<int, KeyState>::iterator it = previousKeyStates.find(itr->first);
-        if (it != previousKeyStates.end()) {        //key is a tracked one
-            //toggling shift should not activate the key again.
-            //So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
-            if ((it->second.needShiftPressed == isShiftPressed(window)) && it->second.prevWithShiftPressed) {
-                previousState = GLFW_PRESS;    //so update to actual
-                //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
-            }
-            //else if (isShiftPressed(window) && !it->second.prevWithShiftPressed) {
-            //    previousState = GLFW_PRESS;
-            //    glClearColor(0.4f, 1, 0.0f, 1.0f);
-            //} 
-            else {
-                //otherwise, update to actual previous key.
-                previousState = it->second.keyState;    
-                //glClearColor(1.0f, 0.3f, 0.0f, 1.0f);
-            }
-
-        }
-        ////////////////
+        int previousState = returnPreviousKeyState(window, itr->first, previousKeyStates);
 
         if (glfwGetKey(window, itr->first) == GLFW_PRESS && previousState == GLFW_RELEASE) // select model. Apply once for keys that are tracked.
         {
@@ -2944,6 +3031,31 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
         }
     }
     return selectedTransformation;
+}
+//function will return a partIndex increment on correct key presses.
+int partModelControl(GLFWwindow* window, int prevPartIndex, map<int, KeyState> previousKeyStates) {
+
+    map<int, int> inputsToModelIndex;
+    map<int, int>::iterator itr;
+    inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_F, -1));
+    inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_G, 1));
+
+    int indexIncrement = 0;
+    //iterate through all keys that could be pressed.
+    for (itr = inputsToModelIndex.begin(); itr != inputsToModelIndex.end(); ++itr) {
+        int keyState = glfwGetKey(window, itr->first);
+        int previousState = returnPreviousKeyState(window, itr->first, previousKeyStates);
+        if (keyState == GLFW_PRESS && previousState == GLFW_RELEASE) // increment/decrement partIndex
+        {
+            indexIncrement += itr->second;
+        }
+    }
+
+    //positive modulo 
+    //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
+    const float mod = numAttachedModelsPerMain;
+    const int newPartIndex = fmodf(mod + fmodf(prevPartIndex + indexIncrement, mod), mod);
+    return newPartIndex;
 }
 //retrieve bool on whether a setting should be applied or not, based on key press.
 bool* customControl(GLFWwindow * window, map<int, KeyState> previousKeyStates) {
@@ -2967,7 +3079,17 @@ bool* customControl(GLFWwindow * window, map<int, KeyState> previousKeyStates) {
         //signal to toggle textures
         {GLFW_KEY_X, true},
         //signal to toggle shadows
-        {GLFW_KEY_B, true}
+        {GLFW_KEY_B, true},
+        //signal to go to next mode
+        {GLFW_KEY_C},
+        {GLFW_KEY_C, true},
+        //signal to go to previous mode
+        {GLFW_KEY_V},
+        {GLFW_KEY_V, true},
+        //signal toggle lights  //not implemented
+        {GLFW_KEY_L, true},
+        //signal toggle skybox  //not implemented
+        {GLFW_KEY_O, true},
     };
 
     //all below is automatic
@@ -2984,26 +3106,8 @@ bool* customControl(GLFWwindow * window, map<int, KeyState> previousKeyStates) {
 
     //for every key tied to a setting, check if it is pressed.
     for (int i = 0; i < numKeys; i++) {
-        ////////////////
-        //get previous key state if tracked, otherwise default release (true).
-        //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
-        //default released if not tracked
-        int previousState = GLFW_RELEASE;
-        map<int, KeyState>::iterator it = previousKeyStates.find(keyControl[i].key);
-        if (it != previousKeyStates.end()) {        //key is a tracked one
-            //toggling shift should not activate the key again.
-            //So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
-            if (it->second.needShiftPressed == shiftPressed && it->second.prevWithShiftPressed) {
-                previousState = GLFW_PRESS;    //so update to actual
-                //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
-            }
-            else {
-                //otherwise, update to actual previous key.
-                previousState = it->second.keyState;
-                //glClearColor(1.0f, 0.3f, 0.0f, 1.0f);
-            }
-        }
-        ////////////////
+        int previousState = returnPreviousKeyState(window, keyControl[i].key, previousKeyStates);
+
         if (glfwGetKey(window, keyControl[i].key) == GLFW_PRESS 
             && previousState == GLFW_RELEASE 
             && keyControl[i].shiftKey == shiftPressed) // key action. Apply once for keys that are tracked.
@@ -3293,6 +3397,16 @@ int main(int argc, char* argv[])
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_X, { GLFW_RELEASE , true }));
     //toggle shadows
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_B, { GLFW_RELEASE , true }));
+    //select part
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_F, { GLFW_RELEASE , false }));
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_G, { GLFW_RELEASE , false }));
+    //select part mode
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_C, { GLFW_RELEASE , false }));
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_V, { GLFW_RELEASE , false }));
+    //toggle lights
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_L, { GLFW_RELEASE , true }));
+    //toggle skybox
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_O, { GLFW_RELEASE , true }));
 
 	double lastMousePosX, lastMousePosY;
 	glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
@@ -3336,6 +3450,7 @@ int main(int argc, char* argv[])
     // v v work-around to get the shadow map of the parts.
     vector<CharModel*> modelsAndParts;
     int modelIndex = 0;
+    int partIndex = 0;
 
 
     //base
@@ -3752,6 +3867,7 @@ int main(int argc, char* argv[])
             //selection with keys.
             drawControl(window);
             modelIndex = selectModelControl(window, modelIndex);
+            partIndex = partModelControl(window, partIndex, previousKeyStates);
             CharModel* prevModel = selectedModel;
             selectedModel = vModels[modelIndex];
             //Control model key presses.
@@ -3761,9 +3877,9 @@ int main(int argc, char* argv[])
             //Home key has been pressed, so reset world matrices.
             if (selectedSetting[0] || selectedSetting[1]) {
                 //reset TRS matrices
-                selectedModel->resetInitialRelativeMatrices();
+                selectedModel->reset();
                 //reset walk state.
-                selectedModel->walkState.setState(0);
+                selectedModel->getCycle()->setState(0);
                 //reset camera too.
                 cameraPosition = initial_cameraPosition;
                 //cameraLookAt = initial_cameraLookAt;
@@ -3787,27 +3903,41 @@ int main(int argc, char* argv[])
             if (selectedSetting[3]) {
                 enableShadow = enableShadow * -1 + 1;
             }
+            //g pressed, so go to next mode
+            if (selectedSetting[4] || selectedSetting[5]) {
+                //make selected part model display next mode
+                selectedModel->getAttachedModels()[partIndex]->next();
+                selectedModel->getAttachedModels()[partIndex]->getCycle()->setState(1);
+                //selectedModel->getAttachedModels()[partIndex]->addRelativeWorldMatrix(translate(mat4(1.0f), vec3(dt * 100, 0.0f,0.0f)), relativeWorldMatrix[1], relativeWorldMatrix[2]);
+
+            }
+            //f pressed, so go to prev mode
+            if (selectedSetting[6] || selectedSetting[7]) {
+                //make selected part model display previous mode
+                selectedModel->getAttachedModels()[partIndex]->prev();
+            }
             //Adjust selected model accordingly.
             selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
 
             //checks whether the models move
             if (hasMovement) {
                 //start walking
-                selectedModel->walkState.setState(1);
+                selectedModel->getCycle()->setState(1);
             }
             else if (prevHadMovement){
                 //stop walking
-                selectedModel->walkState.setState(2);
+                selectedModel->getCycle()->setState(2);
             }
             prevHadMovement = hasMovement;
 
             //makes previous model stop walking
             if (prevModel != selectedModel && prevModel) {
-                prevModel->walkState.setState(2);
+                prevModel->getCycle()->setState(2);
             }
             renderModels(renderInfo, vModels);
             //update
             CharModel::update(vModels, dt);
+            CharModel::update(attachedToCore, dt);
             CharModel::resetCumulativeTRS(vModels);
             CharModel::updateAttachedCumulativeTRS(vModels);
 		}
