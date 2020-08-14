@@ -167,6 +167,7 @@ public:
         currentPosition = 0;
         stopWalkPosition = 0;
     }
+
     //increment time step
     void stepForward(float dt) {
         //speed controlled with timePerState.
@@ -174,39 +175,20 @@ public:
         case 1:
         {
             //walking, periodic movement from -0.5 to 0.5.
-            //set direction to -1 or 1;
-            const int direction = 1;
-            currentPosition += dt / timePerState * direction;
+            walk(dt);
             break;
         }
         case 2:
         {
             //return to 0.
-            int towardsCenter = sign(currentPosition);
-            if (fabsf(currentPosition) < 0.25f) {
-                towardsCenter *= -1;
-            }
-            currentPosition += copysignf(dt / timePerState, towardsCenter);
-
-            //stop when returned to position 0.
-            if (signbit(currentPosition) != signbit(stopWalkPosition)) {
-                currentPosition = 0;
-                setState(0);
-            }
-
-            //stop when returned to position 0. timer in case.
-            timeInState += dt;
-            if (timeInState >= timePerState) {
-                currentPosition = 0;
-                setState(0);
-            }
+            returnFromWalk(dt);
             break;
         }
         case 0:
         default:
         {
             //stop
-            currentPosition = 0;
+            stop(dt);
             break;
         }
         }
@@ -239,6 +221,38 @@ public:
         return sinf(radians(180.0f * (currentPosition * 2)));
     }
 protected:
+    /*virtual*/ void walk(float dt) {
+        //walking, periodic movement from -0.5 to 0.5.
+        //set direction to -1 or 1;
+        const int direction = 1;
+        currentPosition += dt / timePerState * direction;
+    }
+    /*virtual*/ void returnFromWalk(float dt) {
+        //return to 0.
+        int towardsCenter = sign(currentPosition);
+        if (fabsf(currentPosition) < 0.25f) {
+            towardsCenter *= -1;
+        }
+        currentPosition += copysignf(dt / timePerState, towardsCenter);
+
+        //stop when returned to position 0.
+        if (signbit(currentPosition) != signbit(stopWalkPosition)) {
+            stop(dt);
+            setState(0);
+        }
+
+        //stop when returned to position 0. timer in case.
+        timeInState += dt;
+        if (timeInState >= timePerState) {
+            stop(dt);
+            setState(0);
+        }
+    }
+    /*virtual*/ void stop(float dt) {
+        //stop
+        currentPosition = 0;
+    }
+
     //walkState
     // 0: stop.
     // 1: walking, periodic movement.
@@ -259,9 +273,15 @@ public:
     RotateCycle(float tPerState = 1) : WalkCycle(tPerState) {}
 
     float getPosition() {
-        //sigmoid function
+        //sigmoid function, modify it to restrict output into [0, 1] range, when input is from [-0.5, 0.5].
         //https://stackoverflow.com/questions/10732027/fast-sigmoid-algorithm
-        return currentPosition / (1 + fabsf(currentPosition));
+        //return (currentPosition / (1 + fabsf(currentPosition)));
+
+    //positive modulo 
+    //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
+        const float mod = 1;
+        const float pos = fmodf(mod + fmodf(currentPosition, mod), mod);
+        return pos;
     }
 };
 //holds TRS matrices
@@ -322,19 +342,19 @@ public:
 
     float updateWalkProgress(float dt, int st = -1, float tState = -1) {
         //increment time
-        walkState.stepForward(dt);
+        getCycle()->stepForward(dt);
 
         //update walkState if set to do so.
         if (!(st < 0)) {
-            walkState.setState(st);
+            getCycle()->setState(st);
         }
         //update time per walkState if set to do so.
         if (!(tState < 0)) {
-            walkState.setTimePerState(tState);
+            getCycle()->setTimePerState(tState);
         }
 
         //return position
-        return walkState.getPosition();
+        return getCycle()->getPosition();
     }
     GLuint swapWorldMatrixLocation(GLuint wml) {
         GLuint temp = worldMatrixLocation;
@@ -343,7 +363,7 @@ public:
     }
 
     //lazy getter
-    WalkCycle* getCycle() {
+    virtual WalkCycle* getCycle() {
         return &walkState;
     }
 
@@ -426,7 +446,7 @@ public:
 
 
     mat4 getRelativeTranslateMatrix() {
-        mat4 motion = getMotion(walkState.getPosition()).translateMatrix;
+        mat4 motion = getMotion(getCycle()->getPosition()).translateMatrix;
         return relativeTranslateMatrix * motion;
     }
     void setRelativeTranslateMatrix(mat4 relTWM) {
@@ -437,7 +457,7 @@ public:
     }
 
     mat4 getRelativeRotateMatrix() {
-        mat4 motion = getMotion(walkState.getPosition()).rotateMatrix;
+        mat4 motion = getMotion(getCycle()->getPosition()).rotateMatrix;
         return relativeRotateMatrix * motion;
     }
     void setRelativeRotateMatrix(mat4 relRWM) {
@@ -449,7 +469,7 @@ public:
 
     //return scale matrix without shear elements
     mat4 getRelativeUndeformedScaleMatrix() {
-        //mat4 motion = getMotion(walkState.getPosition());
+        //mat4 motion = getMotion(getCycle()->getPosition());
         mat4 scale = relativeScaleMatrix/* * motion*/;
 
         //float heightOffset = sphereOffset.yOffset;
@@ -470,7 +490,7 @@ public:
         return diagonal/* * follow*/;
     }
     mat4 getRelativeScaleMatrix() {
-        mat4 motion = getMotion(walkState.getPosition()).scaleMatrix;
+        mat4 motion = getMotion(getCycle()->getPosition()).scaleMatrix;
         return relativeScaleMatrix * motion;
     }
     void setRelativeScaleMatrix(mat4 relSWM) {
@@ -610,10 +630,10 @@ public:
     }
     // Return initial y-position of model
     float getInitY() {return initY;}
-
+protected:
     //let other class handle walking.
     WalkCycle walkState;
-protected:
+
     //initializes some values.
     void init(TRSMatricesHolder ini_relTRSMatrices) {
         initial_relativeTranslateMatrix = ini_relTRSMatrices.translateMatrix;
@@ -650,7 +670,7 @@ protected:
     //shear motion when walking
     TRSMatricesHolder walkMotion(float position) {
         const float amplitude = 4;
-        //const float position = walkState.getPosition();
+        //const float position = getCycle()->getPosition();
 
         //shear side-to-side + vertical scaling.
         mat4 motion = 
@@ -668,7 +688,7 @@ protected:
     //    //position should be between 0 to 1.
     //    const float amplitude = 4;
     //    const float rotationAngle = 90.0f;
-    //    //const float position = walkState.getPosition();
+    //    //const float position = getCycle()->getPosition();
 
     //    //shear side-to-side + vertical scaling.
     //    mat4 motion =
@@ -690,7 +710,7 @@ protected:
     //}
     mat4 sphereFollow() {
         //untested besides scale component
-        TRSMatricesHolder motion = getMotion(walkState.getPosition());
+        TRSMatricesHolder motion = getMotion(getCycle()->getPosition());
 
         float heightOffset = sphereOffset.yOffset;
         float sideMovement = motion.scaleMatrix[1].x * heightOffset;
@@ -800,7 +820,7 @@ public:
         
         //replace motion with rotation
         // or could use own attribute instead.
-        walkState = RotateCycle(10.0f);
+        rotateState = RotateCycle(2.0f);
 
         //angle to rotate towards.
         targetAngle = 0;
@@ -823,7 +843,9 @@ public:
         CharModel::reset();
         targetAngle = 0;
     }
-
+    WalkCycle* getCycle() {
+        return &rotateState;
+    }
 protected:
     TRSMatricesHolder getMotion(float position) {
         return rotateMotion(position);
@@ -832,7 +854,7 @@ protected:
         //position should be between 0 to 1.
         const float amplitude = 4;
         const float rotationAngle = targetAngle;
-        //const float position = walkState.getPosition();
+        //const float position = getCycle()->getPosition();
     
         //shear side-to-side + vertical scaling.
         mat4 motion =
@@ -859,6 +881,7 @@ protected:
     }
 
     float targetAngle;
+    RotateCycle rotateState;
 private:
     mat4 cubeOffset;
 };
@@ -3895,9 +3918,9 @@ int main(int argc, char* argv[])
 
                 //manual toggle shear movement.
                 //ToDo: delete this comment.
-                //int temp = selectedModel->walkState.getState();
+                //int temp = selectedModel->getCycle()->getState();
                 //temp = (temp ==1) ? 2: 1;
-                //selectedModel->walkState.setState(temp);
+                //selectedModel->getCycle()->setState(temp);
             }
             //B key has been pressed, so toggle shadows.
             if (selectedSetting[3]) {
