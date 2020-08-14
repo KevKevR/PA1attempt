@@ -446,7 +446,7 @@ public:
 
 
     mat4 getRelativeTranslateMatrix() {
-        mat4 motion = getMotion(getCycle()->getPosition()).translateMatrix;
+        mat4 motion = getMotion(updateWalkProgress(0)).translateMatrix;
         return relativeTranslateMatrix * motion;
     }
     void setRelativeTranslateMatrix(mat4 relTWM) {
@@ -457,7 +457,7 @@ public:
     }
 
     mat4 getRelativeRotateMatrix() {
-        mat4 motion = getMotion(getCycle()->getPosition()).rotateMatrix;
+        mat4 motion = getMotion(updateWalkProgress(0)).rotateMatrix;
         return relativeRotateMatrix * motion;
     }
     void setRelativeRotateMatrix(mat4 relRWM) {
@@ -469,7 +469,7 @@ public:
 
     //return scale matrix without shear elements
     mat4 getRelativeUndeformedScaleMatrix() {
-        //mat4 motion = getMotion(getCycle()->getPosition());
+        //mat4 motion = getMotion(updateWalkProgress(0));
         mat4 scale = relativeScaleMatrix/* * motion*/;
 
         //float heightOffset = sphereOffset.yOffset;
@@ -490,7 +490,7 @@ public:
         return diagonal/* * follow*/;
     }
     mat4 getRelativeScaleMatrix() {
-        mat4 motion = getMotion(getCycle()->getPosition()).scaleMatrix;
+        mat4 motion = getMotion(updateWalkProgress(0)).scaleMatrix;
         return relativeScaleMatrix * motion;
     }
     void setRelativeScaleMatrix(mat4 relSWM) {
@@ -539,11 +539,31 @@ public:
     }
     virtual void reset() {
         resetInitialRelativeMatrices();
-        getCycle()->setState(0);
+        updateWalkProgress(0,0);
         vector<CharModel*>::iterator it;
         for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
             if (*it) {
                 (*it)->reset();
+            }
+        }
+    }
+
+
+    void attachedNext() {
+        vector<CharModel*>::iterator it;
+        for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
+            if (*it) {
+                (*it)->next();
+                //temp to start
+                (*it)->updateWalkProgress(0, 1);
+            }
+        }
+    }
+    void attachedPrev() {
+        vector<CharModel*>::iterator it;
+        for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
+            if (*it) {
+                (*it)->prev();
             }
         }
     }
@@ -670,7 +690,7 @@ protected:
     //shear motion when walking
     TRSMatricesHolder walkMotion(float position) {
         const float amplitude = 4;
-        //const float position = getCycle()->getPosition();
+        //const float position = updateWalkProgress(0);
 
         //shear side-to-side + vertical scaling.
         mat4 motion = 
@@ -688,7 +708,7 @@ protected:
     //    //position should be between 0 to 1.
     //    const float amplitude = 4;
     //    const float rotationAngle = 90.0f;
-    //    //const float position = getCycle()->getPosition();
+    //    //const float position = updateWalkProgress(0);
 
     //    //shear side-to-side + vertical scaling.
     //    mat4 motion =
@@ -710,7 +730,7 @@ protected:
     //}
     mat4 sphereFollow() {
         //untested besides scale component
-        TRSMatricesHolder motion = getMotion(getCycle()->getPosition());
+        TRSMatricesHolder motion = getMotion(updateWalkProgress(0));
 
         float heightOffset = sphereOffset.yOffset;
         float sideMovement = motion.scaleMatrix[1].x * heightOffset;
@@ -854,7 +874,7 @@ protected:
         //position should be between 0 to 1.
         const float amplitude = 4;
         const float rotationAngle = targetAngle;
-        //const float position = getCycle()->getPosition();
+        //const float position = updateWalkProgress(0);
     
         //shear side-to-side + vertical scaling.
         mat4 motion =
@@ -3450,6 +3470,7 @@ int main(int argc, char* argv[])
     vector<mat4>::iterator init_T_itr;
     const float boxSideLength = 3.0f;
     const int boxPerSide = 3;
+    const float boxCenterHeight = boxPerSide / 2 * boxSideLength + boxSideLength;
     // indexes 0 to 3 is back bottom row
     // indexes 0 to 9 is back wall
     for (int i = 0; i < boxPerSide; i++) {
@@ -3477,7 +3498,7 @@ int main(int argc, char* argv[])
 
 
     //base
-    //                                                              [x,      y,      z]
+    ////                                                              [x,      y,      z]
     //ModelBox boxCore     (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 1]);
     //ModelBox boxTop      (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 1]);
     //ModelBox boxBot      (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 1]);
@@ -3487,21 +3508,25 @@ int main(int argc, char* argv[])
     //ModelBox boxBack     (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 0]);
     
     TRSMatricesHolder tempinit_TRS = TRSMatricesHolder();
-    tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 1];
-    CharModel boxCore     (shaderProgram, tempinit_TRS);
-    tempinit_TRS.translateMatrix = init_T[1 + 3 * 2 + 9 * 1];
+    //                                   [x       y       z]
+    //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 1];
+    //CharModel boxCore     (shaderProgram, tempinit_TRS);
+    CharModel boxCore(shaderProgram, TRSMatricesHolder(mat4(1.0f), translate(mat4(1.0f),vec3(0,boxCenterHeight,0)), mat4(1.0f)));
+    //tempinit_TRS.translateMatrix = init_T[1 + 3 * 2 + 9 * 1];
     CharModel boxTop      (shaderProgram, tempinit_TRS);
-    tempinit_TRS.translateMatrix = init_T[1 + 3 * 0 + 9 * 1];
+    //tempinit_TRS.translateMatrix = init_T[1 + 3 * 0 + 9 * 1];
     CharModel boxBot      (shaderProgram, tempinit_TRS);
-    tempinit_TRS.translateMatrix = init_T[2 + 3 * 1 + 9 * 1];
+    //tempinit_TRS.translateMatrix = init_T[2 + 3 * 1 + 9 * 1];
     CharModel boxPort     (shaderProgram, tempinit_TRS);
-    tempinit_TRS.translateMatrix = init_T[0 + 3 * 1 + 9 * 1];
+    //tempinit_TRS.translateMatrix = init_T[0 + 3 * 1 + 9 * 1];
     CharModel boxStarboard(shaderProgram, tempinit_TRS);
-    tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 2];
+    //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 2];
     CharModel boxFront    (shaderProgram, tempinit_TRS);
-    tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 0];
+    //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 0];
     CharModel boxBack     (shaderProgram, tempinit_TRS);
 
+    //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 1];
+    CharModel boxRotater  (shaderProgram, tempinit_TRS);
     ////                                         [x,      y,      z]
     //CharModel boxCore     (shaderProgram, init_T[1 + 3 * 1 + 9 * 1]);
     //CharModel boxTop      (shaderProgram, init_T[1 + 3 * 2 + 9 * 1]);
@@ -3530,6 +3555,7 @@ int main(int argc, char* argv[])
     //vModels.push_back(&boxTop);
     //vModels.push_back(&boxBot);
     vModels.push_back(&boxCore);
+    vModels.push_back(&boxRotater);
     vModels.push_back(&s3);
     vModels.push_back(&n2);
     vModels.push_back(&a9);
@@ -3688,6 +3714,14 @@ int main(int argc, char* argv[])
     attachedToCore.push_back(&A8);
     attachedToCore.push_back(&A9);
 
+    vector<CharModel*> attachedToRotater(0);
+    attachedToRotater.push_back(&boxFront);
+    attachedToRotater.push_back(&boxBack);
+    attachedToRotater.push_back(&boxTop);
+    attachedToRotater.push_back(&boxBot);
+    attachedToRotater.push_back(&boxPort);
+    attachedToRotater.push_back(&boxStarboard);
+
     boxFront.setAttachedModels(attachedToFront);
     boxBack.setAttachedModels(attachedToBack);
     boxTop.setAttachedModels(attachedToTop);
@@ -3696,6 +3730,7 @@ int main(int argc, char* argv[])
     boxStarboard.setAttachedModels(attachedToStarboard);
 
     boxCore.setAttachedModels(attachedToCore);
+    boxRotater.setAttachedModels(attachedToRotater);
     //boxBot.setAttachedModels(attachedToBack);
     //workaround to get the shadow map to include the parts.
     //base
@@ -3902,7 +3937,7 @@ int main(int argc, char* argv[])
                 //reset TRS matrices
                 selectedModel->reset();
                 //reset walk state.
-                selectedModel->getCycle()->setState(0);
+                selectedModel->updateWalkProgress(0, 0);
                 //reset camera too.
                 cameraPosition = initial_cameraPosition;
                 //cameraLookAt = initial_cameraLookAt;
@@ -3920,7 +3955,7 @@ int main(int argc, char* argv[])
                 //ToDo: delete this comment.
                 //int temp = selectedModel->getCycle()->getState();
                 //temp = (temp ==1) ? 2: 1;
-                //selectedModel->getCycle()->setState(temp);
+                //selectedModel->updateWalkProgress(0, temp);
             }
             //B key has been pressed, so toggle shadows.
             if (selectedSetting[3]) {
@@ -3929,15 +3964,17 @@ int main(int argc, char* argv[])
             //g pressed, so go to next mode
             if (selectedSetting[4] || selectedSetting[5]) {
                 //make selected part model display next mode
-                selectedModel->getAttachedModels()[partIndex]->next();
-                selectedModel->getAttachedModels()[partIndex]->getCycle()->setState(1);
+                selectedModel->getAttachedModels()[partIndex]->attachedNext();
+                //selectedModel->getAttachedModels()[partIndex]->next();
+                //selectedModel->getAttachedModels()[partIndex]->updateWalkProgress(0, 1);
                 //selectedModel->getAttachedModels()[partIndex]->addRelativeWorldMatrix(translate(mat4(1.0f), vec3(dt * 100, 0.0f,0.0f)), relativeWorldMatrix[1], relativeWorldMatrix[2]);
 
             }
             //f pressed, so go to prev mode
             if (selectedSetting[6] || selectedSetting[7]) {
                 //make selected part model display previous mode
-                selectedModel->getAttachedModels()[partIndex]->prev();
+                //selectedModel->getAttachedModels()[partIndex]->prev();
+                selectedModel->getAttachedModels()[partIndex]->attachedPrev();
             }
             //Adjust selected model accordingly.
             selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
@@ -3945,17 +3982,17 @@ int main(int argc, char* argv[])
             //checks whether the models move
             if (hasMovement) {
                 //start walking
-                selectedModel->getCycle()->setState(1);
+                selectedModel->updateWalkProgress(0, 1);
             }
             else if (prevHadMovement){
                 //stop walking
-                selectedModel->getCycle()->setState(2);
+                selectedModel->updateWalkProgress(0, 2);
             }
             prevHadMovement = hasMovement;
 
             //makes previous model stop walking
             if (prevModel != selectedModel && prevModel) {
-                prevModel->getCycle()->setState(2);
+                prevModel->updateWalkProgress(0, 2);
             }
             renderModels(renderInfo, vModels);
             //update
