@@ -40,7 +40,8 @@ using namespace std;
 GLuint loadTexture(const char* filename);
 
 const int numMainModels = 6;
-const int numAttachedModelsPerMain = 6;
+const int numAttachedModelsPerMain = 2;
+const int numDigits = 8;
 
 // Timer variables
 // TODO: Delete previousDecimals
@@ -520,10 +521,20 @@ public:
     virtual void draw() {
         //implement in derived class please.
     }
+
+    //Timer stuff: to display timer with passed string, or with chars, depending on implementation.
+    virtual void selectMode(string) {
+        //implement in derived class please.
+        //mostly for border model (contains digit models, so will decompose string into chars to distribute).
+    }
+    virtual void selectMode(char) {
+        //implement in derived class please.
+        //mostly for digit model.
+    }
+
 	virtual void drawLetter() {
 		//implement in derived class please.
 	}
-
 	virtual void drawNumber() {
 		//implement in derived class please.
 	}
@@ -806,6 +817,58 @@ private:
     mat4 relativeRotateMatrix;      //Stored rotate matrix
     mat4 relativeScaleMatrix;       //Stored scale matrix
 };
+
+//placeholder border for now, can change stuff later.
+class Model_Border : public CharModel {
+public:
+
+    Model_Border(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder()) : CharModel(shaderProgram, ini_relTRSMatrices) {
+        //let super do the initializations.
+    }
+
+    void selectMode(string time) {
+        vector<CharModel*>::iterator it;
+        //index i from 0 to number of digits attached to iterate on, in case needed. delete if not necessary. 
+        int i = 0;
+        for (it = attachedModels.begin(); it != attachedModels.end(); it++, i++) {
+            if (*it) {
+                //TODO Timer: separate string to char
+
+
+                // v v v placeholder to demonstrate code.
+                //char digit = i % 10 + '0';
+                char digit = time[i];
+
+
+                (*it)->selectMode(digit);
+            }
+        }
+    }
+
+    void draw() {
+
+        //border's constants
+        //for now, hard-coded constants
+        const float width_base_model = 2;
+        const float spacing = (0.24f + 0.2f) * width_base_model;
+        const float total_width = width_base_model * numDigits + spacing * (numDigits);
+        const float total_height = 2 * width_base_model + spacing;
+        const float border_thickness = width_base_model / 5;
+        //skate constant
+        const float skate_height = border_thickness;
+        mat4 borderPosition = translate(mat4(1.0f),
+            vec3(-total_width / 2 + (numDigits + 1) / 2 * (width_base_model + spacing),
+                total_height / 2 + border_thickness + skate_height,
+                0))
+            //lessen the depth
+            * scale(mat4(1.0f),
+                vec3(1.0f, 1.0f, 0.25f));
+        drawBorder(total_height, total_width, border_thickness, border_thickness, mat4(1.0f), getRelativeWorldMatrix() * borderPosition);
+    }
+protected:
+private:
+};
+
 class Model_DigitalFont : public CharModel {
 public:
 
@@ -842,10 +905,17 @@ public:
         resetInitialRelativeMatrices();
         selectDraw(charToDraw);
     }
-
-    void selectDraw(char);
+    //select display character
+    void selectMode(char cTD) {
+        setCharToDraw(cTD);
+        selectDraw(charToDraw);
+    }
 protected:
 
+    //set char to draw
+    void setCharToDraw(char cTD) {
+        charToDraw = cTD;
+    }
     void selectNext() {
         if (charToDraw == '9') {
             charToDraw = 'A';
@@ -1002,6 +1072,9 @@ protected:
     char init_charToDraw;
     bool toDrawTop[6];
     bool toDrawBot[6];
+
+private:
+        void selectDraw(char);
 };
 //draw the main bar for the digital font, size according to specifications.
 void Model_DigitalFont::drawBar(mat4 inertialWorldMatrix) {
@@ -3447,7 +3520,6 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
     inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_4, 3));
     inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_5, 4));
     inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_6, 5));
-    inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_7, 6));
 
     //default return value
     GLchar selectedMode = previousModelIndex;
@@ -3486,7 +3558,6 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
     const float translateSpeed = transformSpeed;
     const float rotateSpeed = 5.0f;   //specifications
     const float scaleSpeed = transformSpeed / 12;
-    //TODO: code shearing into separate movement function (since the shearing itself is not in the user's control, only the movement)
     const float shearSpeed = transformSpeed * 3;        //temporary, will move to another method for movement
     // capital case letters only
     if (isShiftPressed(window))
@@ -3539,7 +3610,7 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
     {
         //shear model if pressed
         //temporary, will move to another method for movement
-        //TODO: code shearing into separate movement function (since the shearing itself is not in the user's control, only the movement)
+        //TODO: delete later, since this isn't needed anymore.
         inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_Q, {
             mat4(1, 0, 0, 0,  // first column
             0, 1, 0, 0,  // second column
@@ -3587,7 +3658,7 @@ int partModelControl(GLFWwindow* window, int prevPartIndex, map<int, KeyState> p
 
     //positive modulo 
     //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
-    const float mod = numAttachedModelsPerMain;
+    const float mod = numDigits;
     const int newPartIndex = fmodf(mod + fmodf(prevPartIndex + indexIncrement, mod), mod);
     return newPartIndex;
 }
@@ -3738,6 +3809,7 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models) {
     glBindTexture(GL_TEXTURE_2D, 0);
     glUniform1i(enableTextureLocation, 0);
     CharModel::drawSphere(models);
+    CharModel::draw(models);
     //CharModel::draw(models);
     glUniform1i(enableTextureLocation, enableTexture);
 
@@ -3963,6 +4035,29 @@ int main(int argc, char* argv[])
     int modelIndex = 0;
     int partIndex = 0;
 
+
+    //Prepare initial positions of digits.
+    TRSMatricesHolder pos_m[numDigits];
+    //get some units to position models in + measurements for extra border around.
+    const float z_position = 0;
+    const float width_base_model = 2;
+    const float spacing = (0.24f + 0.2f) * width_base_model;
+    //border measurement
+    const float total_width = width_base_model * numDigits + spacing * (numDigits);
+    const float total_height = 2 * width_base_model + spacing;
+    //border's constant
+    const float border_thickness = width_base_model / 5;
+    //skate constant
+    const float skate_height = border_thickness;
+    for (int i = 0; i < numDigits; i++) {
+        pos_m[i].translateMatrix = translate(mat4(1.0f),
+            vec3(-total_width / 2 + (i + 0.5f) * (width_base_model + spacing),
+                border_thickness + spacing / 2 + skate_height,
+                0));
+    }
+
+
+    Model_Border base(shaderProgram);
     ModelV9 v9(shaderProgram);
     ModelS3 s3(shaderProgram);
     ModelA9 a9(shaderProgram);
@@ -3974,6 +4069,7 @@ int main(int argc, char* argv[])
     //models[2] = &a9;
     //models[3] = &n4;
     //models[4] = &v9;
+    vModels.push_back(&base);
     vModels.push_back(&s3);
     vModels.push_back(&n2);
     vModels.push_back(&a9);
@@ -3993,6 +4089,48 @@ int main(int argc, char* argv[])
     s3.setAttachedModels(attachedToS3);
     n2.setAttachedModels(attachedToN2);
 
+    //digits
+    Model_DigitalFont m_k(shaderProgram, 'k', pos_m[0]);
+    Model_DigitalFont m_2(shaderProgram, '2', pos_m[1]);
+    Model_DigitalFont m_e(shaderProgram, 'e', pos_m[2]);
+    Model_DigitalFont m_7(shaderProgram, '7', pos_m[3]);
+    Model_DigitalFont m_k2(shaderProgram, 'k', pos_m[4]);
+    Model_DigitalFont m_22(shaderProgram, '2', pos_m[5]);
+    Model_DigitalFont m_e2(shaderProgram, 'e', pos_m[6]);
+    Model_DigitalFont m_72(shaderProgram, '7', pos_m[7]);
+
+    vector<CharModel*> attachedToBase;
+    attachedToBase.push_back(&m_k);
+    attachedToBase.push_back(&m_2);
+    attachedToBase.push_back(&m_e);
+    attachedToBase.push_back(&m_7);
+    attachedToBase.push_back(&m_k2);
+    attachedToBase.push_back(&m_22);
+    attachedToBase.push_back(&m_e2);
+    attachedToBase.push_back(&m_72);
+    base.setAttachedModels(attachedToBase);
+
+
+    //for some reason, shadows don't display if the parts' draw call aren't called directly.
+    modelsAndParts = vModels;
+    for (int i = 0; i < numMainModels; i++) {
+        vector<CharModel*> temp;
+        vector<CharModel*>::iterator it;
+        switch (i) {
+        case 0:
+            temp = attachedToS3;
+            break;
+        case 1:
+            temp = attachedToN2;
+            break;
+        }
+        for (it = temp.begin(); it != temp.end(); it++) {
+            //parts
+            if (*it) {
+                modelsAndParts.push_back(*it);
+            }
+        }
+    }
     //previous frame, if valid input to model.
     bool prevHadMovement = false;
 
@@ -4199,13 +4337,6 @@ int main(int argc, char* argv[])
             //X key has been pressed, so toggle textures.
             if (selectedSetting[2]) {
                 enableTexture = enableTexture * -1 + 1;
-
-
-                //manual toggle shear movement.
-                //ToDo: delete this comment.
-                //int temp = selectedModel->walkState.getState();
-                //temp = (temp ==1) ? 2: 1;
-                //selectedModel->walkState.setState(temp);
             }
             //B key has been pressed, so toggle shadows.
             if (selectedSetting[3]) {
@@ -4245,9 +4376,15 @@ int main(int argc, char* argv[])
             renderModels(renderInfo, vModels);
             //update
             CharModel::update(vModels, dt);
-            CharModel::update(attachedToCore, dt);
+            //CharModel::update(modelsAndParts, dt);
             CharModel::resetCumulativeTRS(vModels);
             CharModel::updateAttachedCumulativeTRS(vModels);
+
+            //TODO Timer: bring time in string.
+            // v v vplaceholder to demonstrate code
+            string time = to_string((int)(currentTime * 1000) % 1000000 + 10000000);
+            //string time = "123456789";
+            base.selectMode(time);
 		}
 
 
