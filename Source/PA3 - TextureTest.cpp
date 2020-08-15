@@ -562,10 +562,9 @@ private:
 	mat4 relativeScaleMatrix;       //Stored scale matrix
 };
 
-class ModelBox : public CharModel {
+class ModelBoxFace : public CharModel {
 public:
-
-	ModelBox(int shaderProgram, mat4 initialTranslateMatrix = mat4(1.0f)) : CharModel(shaderProgram, initialTranslateMatrix) {
+	ModelBoxFace(int shaderProgram, mat4 initialTranslateMatrix = mat4(1.0f)) : CharModel(shaderProgram, initialTranslateMatrix) {
 
 		sphereOffset = { 0.0f, 9.0f, 5.5f };
 	}
@@ -712,7 +711,6 @@ vector<vec3> sphereVertices(vec3 prevVertexArray[44 * 2], const int heightParts,
 int createTexturedCubeVertexArrayObject()
 {
 	// Cube model (used for models and axis)
-
 	vec3 vertexArray[] = {  // position and normal
 		//cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
 		//left
@@ -771,11 +769,6 @@ int createTexturedCubeVertexArrayObject()
 		vec3(-0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),
 	};
 
-
-	////fix change in way storing normal (should be same as position).
-	//for (int i = 0; i < 44; i++) {
-	//    vertexArray[2*i + 1] = vertexArray[2 * i];
-	//}
 	//create instancing array for tile grid. 
 	const int sideLength = 100;
 	const float cellLength = 1.0f;
@@ -932,26 +925,6 @@ const char* getFragmentShaderSource()
 
 		"out vec4 FragColor;"   //output
 
-		//////shadow calculation
-		//"float ShadowCalculation(vec4 fragPosLightSpace)"
-		//"{"
-		////manual perspective divide (for perspective projection)
-		//"    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;"
-		////range from [-1, 1] to [0, 1].
-		//"    projCoords = projCoords * 0.5 + 0.5;"
-		////closest depth value
-		//"    float closestDepth = texture(shadowMap, projCoords.xy).r;"
-		////"    float closestDepth = 0;"
-		////current depth value
-		//"    float currentDepth = projCoords.z;"
-		////is in shadow if not the closest depth.
-		//"    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;"
-		////"    shadow = currentDepth;"
-		//"    if (projCoords.z > 1.0){"
-		//"        shadow = 0.0;"
-		//"    }"
-		//"    return shadow;"
-		//"}"
 		"float ShadowCalculation(vec4 fragPosLightSpace)"
 		"{"
 		"    float shadow = 0.0f;"
@@ -2454,9 +2427,6 @@ int main(int argc, char* argv[])
 	GLuint viewMatrixLocation = glGetUniformLocation(shaderProgram, "viewMatrix");
 	//glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
 
-	//used for draw instancing.
-	vec3 instanceVec[100];
-	instanceVec[0] = vec3(0, 0, 0);
 	// Define and upload geometry to the GPU here ...
 	int cubeVAOa = createTexturedCubeVertexArrayObject();
 
@@ -2508,7 +2478,7 @@ int main(int argc, char* argv[])
 			for (int k = 0; k < boxPerSide; k++) {
 				mat4 tempInit_T = translate(mat4(1.0f),
 					vec3(-(boxSideLength * (boxPerSide - 1) / 2) + k * boxSideLength,
-						boxCenterHeight -(boxSideLength * (boxPerSide - 1) / 2) + j * boxSideLength,
+						-(boxSideLength * (boxPerSide - 1) / 2) + j * boxSideLength + boxCenterHeight,
 						-(boxSideLength * (boxPerSide - 1) / 2) + i * boxSideLength));
 				init_T.push_back(tempInit_T);
 			}
@@ -2520,33 +2490,33 @@ int main(int argc, char* argv[])
 	CharModel* models[numMainModels];
 	int modelIndex = 0;
 	//								 [    x       y       z]
-	ModelBox f1(shaderProgram, init_T[1 * 0 + 3 * 0 + 9 * 2]);
-	ModelBox f2(shaderProgram, init_T[1 * 1 + 3 * 0 + 9 * 2]);
-	ModelBox f3(shaderProgram, init_T[1 * 2 + 3 * 0 + 9 * 2]);
-	ModelBox f4(shaderProgram, init_T[1 * 0 + 3 * 1 + 9 * 2]);
-	ModelBox f5(shaderProgram, init_T[1 * 1 + 3 * 1 + 9 * 2]);
-	ModelBox f6(shaderProgram, init_T[1 * 2 + 3 * 1 + 9 * 2]);
-	ModelBox f7(shaderProgram, init_T[1 * 0 + 3 * 2 + 9 * 2]);
-	ModelBox f8(shaderProgram, init_T[1 * 1 + 3 * 2 + 9 * 2]);
-	ModelBox f9(shaderProgram, init_T[1 * 2 + 3 * 2 + 9 * 2]);
-	ModelBox m1(shaderProgram, init_T[1 * 0 + 3 * 0 + 9 * 1]);
-	ModelBox m2(shaderProgram, init_T[1 * 1 + 3 * 0 + 9 * 1]);
-	ModelBox m3(shaderProgram, init_T[1 * 2 + 3 * 0 + 9 * 1]);
-	ModelBox m4(shaderProgram, init_T[1 * 0 + 3 * 1 + 9 * 1]);
-	ModelBox m5(shaderProgram, init_T[1 * 1 + 3 * 1 + 9 * 1]);
-	ModelBox m6(shaderProgram, init_T[1 * 2 + 3 * 1 + 9 * 1]);
-	ModelBox m7(shaderProgram, init_T[1 * 0 + 3 * 2 + 9 * 1]);
-	ModelBox m8(shaderProgram, init_T[1 * 1 + 3 * 2 + 9 * 1]);
-	ModelBox m9(shaderProgram, init_T[1 * 2 + 3 * 2 + 9 * 1]);
-	ModelBox b1(shaderProgram, init_T[1 * 0 + 3 * 0 + 9 * 0]);
-	ModelBox b2(shaderProgram, init_T[1 * 1 + 3 * 0 + 9 * 0]);
-	ModelBox b3(shaderProgram, init_T[1 * 2 + 3 * 0 + 9 * 0]);
-	ModelBox b4(shaderProgram, init_T[1 * 0 + 3 * 1 + 9 * 0]);
-	ModelBox b5(shaderProgram, init_T[1 * 1 + 3 * 1 + 9 * 0]);
-	ModelBox b6(shaderProgram, init_T[1 * 2 + 3 * 1 + 9 * 0]);
-	ModelBox b7(shaderProgram, init_T[1 * 0 + 3 * 2 + 9 * 0]);
-	ModelBox b8(shaderProgram, init_T[1 * 1 + 3 * 2 + 9 * 0]);
-	ModelBox b9(shaderProgram, init_T[1 * 2 + 3 * 2 + 9 * 0]);
+	ModelBoxFace f1(shaderProgram, init_T[1 * 0 + 3 * 0 + 9 * 2]);
+	ModelBoxFace f2(shaderProgram, init_T[1 * 1 + 3 * 0 + 9 * 2]);
+	ModelBoxFace f3(shaderProgram, init_T[1 * 2 + 3 * 0 + 9 * 2]);
+	ModelBoxFace f4(shaderProgram, init_T[1 * 0 + 3 * 1 + 9 * 2]);
+	ModelBoxFace f5(shaderProgram, init_T[1 * 1 + 3 * 1 + 9 * 2]);
+	ModelBoxFace f6(shaderProgram, init_T[1 * 2 + 3 * 1 + 9 * 2]);
+	ModelBoxFace f7(shaderProgram, init_T[1 * 0 + 3 * 2 + 9 * 2]);
+	ModelBoxFace f8(shaderProgram, init_T[1 * 1 + 3 * 2 + 9 * 2]);
+	ModelBoxFace f9(shaderProgram, init_T[1 * 2 + 3 * 2 + 9 * 2]);
+	ModelBoxFace m1(shaderProgram, init_T[1 * 0 + 3 * 0 + 9 * 1]);
+	ModelBoxFace m2(shaderProgram, init_T[1 * 1 + 3 * 0 + 9 * 1]);
+	ModelBoxFace m3(shaderProgram, init_T[1 * 2 + 3 * 0 + 9 * 1]);
+	ModelBoxFace m4(shaderProgram, init_T[1 * 0 + 3 * 1 + 9 * 1]);
+	ModelBoxFace m5(shaderProgram, init_T[1 * 1 + 3 * 1 + 9 * 1]);
+	ModelBoxFace m6(shaderProgram, init_T[1 * 2 + 3 * 1 + 9 * 1]);
+	ModelBoxFace m7(shaderProgram, init_T[1 * 0 + 3 * 2 + 9 * 1]);
+	ModelBoxFace m8(shaderProgram, init_T[1 * 1 + 3 * 2 + 9 * 1]);
+	ModelBoxFace m9(shaderProgram, init_T[1 * 2 + 3 * 2 + 9 * 1]);
+	ModelBoxFace b1(shaderProgram, init_T[1 * 0 + 3 * 0 + 9 * 0]);
+	ModelBoxFace b2(shaderProgram, init_T[1 * 1 + 3 * 0 + 9 * 0]);
+	ModelBoxFace b3(shaderProgram, init_T[1 * 2 + 3 * 0 + 9 * 0]);
+	ModelBoxFace b4(shaderProgram, init_T[1 * 0 + 3 * 1 + 9 * 0]);
+	ModelBoxFace b5(shaderProgram, init_T[1 * 1 + 3 * 1 + 9 * 0]);
+	ModelBoxFace b6(shaderProgram, init_T[1 * 2 + 3 * 1 + 9 * 0]);
+	ModelBoxFace b7(shaderProgram, init_T[1 * 0 + 3 * 2 + 9 * 0]);
+	ModelBoxFace b8(shaderProgram, init_T[1 * 1 + 3 * 2 + 9 * 0]);
+	ModelBoxFace b9(shaderProgram, init_T[1 * 2 + 3 * 2 + 9 * 0]);
 
 	models[0] = &f1;
 	models[1] = &f2;
@@ -2582,6 +2552,28 @@ int main(int argc, char* argv[])
 	//float time = 0;
 	GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
 	GLuint shadowWorldMatrixLocation = glGetUniformLocation(shaderProgramShadow, "model");
+
+
+	//put store info, so can render easier for shadow map.
+	RenderInfo renderInfo;
+
+	renderInfo.colorLocation = colorLocation;
+	renderInfo.enableTextureLocation = enableTextureLocation;
+	renderInfo.enableShadowLocation = enableShadowLocation;
+
+	renderInfo.enableTexture = enableTexture;
+	renderInfo.enableShadow = enableShadow;
+
+	renderInfo.textures.depthMap = depthMap;
+	renderInfo.textures.tiledTextureID = tiledTextureID;
+	renderInfo.textures.boxTextureID = boxTextureID;
+	renderInfo.textures.metalTextureID = metalTextureID;
+	renderInfo.textures.brickTextureID = brickTextureID;
+	renderInfo.textures.cloverTextureID = cloverTextureID;
+	renderInfo.textures.jaguarTextureID = jaguarTextureID;
+	renderInfo.textures.woodTextureID = woodTextureID;
+
+	renderInfo.cubeVAOa = cubeVAOa;
 	// Entering Main Loop
 	while (!glfwWindowShouldClose(window))
 	{
@@ -2620,30 +2612,11 @@ int main(int argc, char* argv[])
 		//avoid peter panning
 		//glCullFace(GL_FRONT);
 
-		//put store info, so can render easier for shadow map.
-		RenderInfo renderInfo;
+		//renderScene(shaderProgramShadow, cubeVAOa);
+
 		//render with shader used to create a shadow map
 		renderInfo.shaderProgram = shaderProgramShadow;
-
-		renderInfo.colorLocation = colorLocation;
 		renderInfo.worldMatrixLocation = shadowWorldMatrixLocation;
-		renderInfo.enableTextureLocation = enableTextureLocation;
-		renderInfo.enableShadowLocation = enableShadowLocation;
-
-		renderInfo.enableTexture = enableTexture;
-		renderInfo.enableShadow = enableShadow;
-
-		renderInfo.textures.depthMap = depthMap;
-		renderInfo.textures.tiledTextureID = tiledTextureID;
-		renderInfo.textures.boxTextureID = boxTextureID;
-		renderInfo.textures.metalTextureID = metalTextureID;
-		renderInfo.textures.brickTextureID = brickTextureID;
-		renderInfo.textures.cloverTextureID = cloverTextureID;
-		renderInfo.textures.jaguarTextureID = jaguarTextureID;
-		renderInfo.textures.woodTextureID = woodTextureID;
-
-		renderInfo.cubeVAOa = cubeVAOa;
-		//renderScene(shaderProgramShadow, cubeVAOa);
 
 		glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
 		renderDecor(renderInfo);
