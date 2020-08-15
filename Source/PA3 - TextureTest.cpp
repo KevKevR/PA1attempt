@@ -268,8 +268,6 @@ public:
 		relativeScaleMatrix = initial_relativeScaleMatrix;
 		initY = 0;
 
-		modelMatrix = mat4(1.0f);
-
 		walkState = WalkCycle(1);
 		sphereOffset = { 0,0 };
 	}
@@ -386,13 +384,6 @@ public:
 	}
 
 	//Class method to draws all passed models. (issues when unloaded models).
-	static void addOntoModelMatrix(CharModel* arr[numMainModels], mat4 relRWM) {
-		for (int i = 0; i < numMainModels; i++) {
-			if (arr[i]) {
-				arr[i]->modelMatrix *= relRWM;
-			}
-		}
-	}
 	static void draw(CharModel* arr[numMainModels]) {
 		for (int i = 0; i < numMainModels; i++) {
 			if (arr[i]) {
@@ -553,8 +544,6 @@ protected:
 	mat4 initial_relativeRotateMatrix;      //Initial rotate matrix, value to take when reset.
 	mat4 initial_relativeScaleMatrix;       //Initial scale matrix, value to take when reset.
 	float initY;                            // Initial y-position in initial translate matrix (note: value assigned to child constructor)
-
-	mat4 modelMatrix;		//should apply before relative matrices.
 private:
 
 	mat4 relativeTranslateMatrix;   //Stored translate matrix
@@ -586,7 +575,7 @@ private:
 		translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 		scalingMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(3.0f, 3.0f, 3.0f));
 		worldMatrix = translationMatrix * scalingMatrix;
-		mWorldMatrix = relativeWorldMatrix * modelMatrix *worldMatrix;
+		mWorldMatrix = relativeWorldMatrix * worldMatrix;
 		glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
@@ -873,6 +862,126 @@ int createTexturedCubeVertexArrayObject()
 	return vertexArrayObject;
 }
 
+int createTexturedCubeFaceVertexArrayObject(int offset)
+{
+	vec3 vertexArray[] = {  
+		// position and normal
+		//cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
+		//left
+		vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
+		vec3(-0.5f,-0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+		vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+		vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
+		vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+		vec3(-0.5f, 0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
+		// far
+		vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+		vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+		vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+		vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+		vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+		vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+		// bottom
+		vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+		vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
+		vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
+		vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+		vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+		vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
+		// near
+		vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+		vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+		vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+		vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+		vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+		vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+		// right
+		vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+		// top
+		vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+		vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
+		vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
+		vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+		vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
+		vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f)
+	};
+	const int numVertices = 6;
+	const int vecOffset = offset * numVertices;
+	vec3 va_pos[6];
+	vec2 va_uv[6];
+	vec3 va_nor[6];
+
+	for (int i = 0; i < numVertices; i++) {
+		va_pos[i] = texturedCubeVertexArray[i + vecOffset].position;
+		//va_nor[i] = texturedCubeVertexArray[i + vecOffset].;
+		va_uv[i] = texturedCubeVertexArray[i + vecOffset].uv;
+		va_nor[i] = vertexArray[(i + vecOffset)*2+1];
+	}
+	// Create a vertex array
+	GLuint vertexArrayObject;
+	glGenVertexArrays(1, &vertexArrayObject);
+	glBindVertexArray(vertexArrayObject);
+
+	// Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
+	//Have multiple arrays/buffer.
+	//https://www.khronos.org/opengl/wiki/Tutorial2:_VAOs,_VBOs,_Vertex_and_Fragment_Shaders_(C_/_SDL)
+	GLuint vertexBufferObject[4];
+	glGenBuffers(4, vertexBufferObject);
+
+	//pos
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(va_pos), va_pos, GL_STATIC_DRAW);
+	glVertexAttribPointer(0,                   // attribute 0 matches aPos in Vertex Shader
+		3,                   // size
+		GL_FLOAT,            // type
+		GL_FALSE,            // normalized?
+		sizeof(vec3),        // stride - each vertex contains vec3 (position)
+		(void*)0             // array buffer offset
+	);
+	glEnableVertexAttribArray(0);
+
+	//uv
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(va_uv), va_uv, GL_STATIC_DRAW);
+	glVertexAttribPointer(2,                            // attribute 2 matches aUV in Vertex Shader
+		2,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(vec2),
+		(void*)0      // uv is offseted by 2 vec3 (comes after position and normal)
+	);
+	glEnableVertexAttribArray(2);
+
+	//normal
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[2]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(va_nor), va_nor, GL_STATIC_DRAW);
+	glVertexAttribPointer(4,                   // attribute 1 matches aNormal in Vertex Shader
+		3,                   // size
+		GL_FLOAT,            // type
+		GL_FALSE,            // normalized?
+		sizeof(vec3),        // stride - each vertex contains vec3 (position)
+		(void*)0  // array buffer offset
+	);
+	glEnableVertexAttribArray(4);
+
+	//instancing
+	vec3 offsetArray[1] = { vec3(0) };
+	//https://learnopengl.com/Advanced-OpenGL/Instancing
+	//Setting up the instance array
+	glEnableVertexAttribArray(3);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[3]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(offsetArray), offsetArray, GL_STATIC_DRAW);
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribDivisor(3, 1);
+
+	return vertexArrayObject;
+}
 const char* getVertexShaderSource()
 {
 	return
@@ -2139,7 +2248,6 @@ struct RenderInfo {
 	int cubeVAOBack;
 
 
-
 	int enableTexture;
 	int enableShadow;
 	TextureId textures;
@@ -2164,7 +2272,6 @@ void renderDecor(RenderInfo renderInfo) {
 	int cubeVAOBack = renderInfo.cubeVAOBack;
 	int cubeVAOTop = renderInfo.cubeVAOTop;
 	int cubeVAOBottom = renderInfo.cubeVAOBottom;
-
 
 
 	// Draw ground
@@ -2199,7 +2306,13 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 	int jaguarTextureID = renderInfo.textures.jaguarTextureID;
 	int woodTextureID = renderInfo.textures.woodTextureID;
 
-	mat4 faceRotation;
+	int cubeVAOa = renderInfo.cubeVAOa;
+	int cubeVAOFront = renderInfo.cubeVAOFront;
+	int cubeVAOLeft = renderInfo.cubeVAOLeft;
+	int cubeVAORight = renderInfo.cubeVAORight;
+	int cubeVAOBack = renderInfo.cubeVAOBack;
+	int cubeVAOTop = renderInfo.cubeVAOTop;
+	int cubeVAOBottom = renderInfo.cubeVAOBottom;
 
 	//draw all models
 	GLuint temp = CharModel::swapWorldMatrixLocation(models, worldMatrixLocation);
@@ -2207,45 +2320,32 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 	glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
 
 	//front
-	faceRotation = rotate(mat4(1.0f), radians(90.0f), vec3(0, 1, 0));
-	CharModel::addOntoModelMatrix(models, faceRotation);
+	glBindVertexArray(cubeVAOFront);
 	glBindTexture(GL_TEXTURE_2D, brickTextureID);
 	CharModel::draw(models);
 	//back
-	faceRotation = rotate(mat4(1.0f), radians(180.0f), vec3(0, 1, 0));
-	CharModel::addOntoModelMatrix(models, faceRotation);
+	glBindVertexArray(cubeVAOBack);
 	glBindTexture(GL_TEXTURE_2D, tiledTextureID);
 	CharModel::draw(models);
-	//port
-	faceRotation = rotate(mat4(1.0f), radians(270.0f), vec3(0, 1, 0));
-	CharModel::addOntoModelMatrix(models, faceRotation);
+	//left
+	glBindVertexArray(cubeVAOLeft);
 	glBindTexture(GL_TEXTURE_2D, cloverTextureID);
 	CharModel::draw(models);
-	//starboard
-	faceRotation = rotate(mat4(1.0f), radians(180.0f), vec3(0, 1, 0));
-	CharModel::addOntoModelMatrix(models, faceRotation);
+	//right
+	glBindVertexArray(cubeVAORight);
 	glBindTexture(GL_TEXTURE_2D, jaguarTextureID);
 	CharModel::draw(models);
-	//reset back
-	faceRotation = rotate(mat4(1.0f), radians(90.0f), vec3(0, 1, 0));
 	//top
-	faceRotation = rotate(faceRotation, radians(270.0f), vec3(0, 0, 1));
-	CharModel::addOntoModelMatrix(models, faceRotation);
+	glBindVertexArray(cubeVAOTop);
 	glBindTexture(GL_TEXTURE_2D, boxTextureID);
 	CharModel::draw(models);
 	//bot
-	faceRotation = rotate(mat4(1.0f), radians(180.0f), vec3(0, 0, 1));
-	CharModel::addOntoModelMatrix(models, faceRotation);
+	glBindVertexArray(cubeVAOBottom);
 	glBindTexture(GL_TEXTURE_2D, woodTextureID);
 	CharModel::draw(models);
-	//reset to front
-	faceRotation = rotate(mat4(1.0f), radians(270.0f), vec3(0, 0, 1));
-	CharModel::addOntoModelMatrix(models, faceRotation);
 
-	//undo front
-	faceRotation = rotate(mat4(1.0f), radians(270.0f), vec3(0, 1, 0));
-	CharModel::addOntoModelMatrix(models, faceRotation);
-
+	glBindVertexArray(cubeVAOa);
+	//number
 	glBindTexture(GL_TEXTURE_2D, metalTextureID);
 	CharModel::drawNumber(models);
 	//Sphere has no texture for now.
@@ -2429,6 +2529,12 @@ int main(int argc, char* argv[])
 
 	// Define and upload geometry to the GPU here ...
 	int cubeVAOa = createTexturedCubeVertexArrayObject();
+	int cubeVAOFront = createTexturedCubeFaceVertexArrayObject(3);
+	int cubeVAOLeft = createTexturedCubeFaceVertexArrayObject(0);
+	int cubeVAORight = createTexturedCubeFaceVertexArrayObject(4);
+	int cubeVAOTop = createTexturedCubeFaceVertexArrayObject(5);
+	int cubeVAOBottom = createTexturedCubeFaceVertexArrayObject(2);
+	int cubeVAOBack = createTexturedCubeFaceVertexArrayObject(1);
 
 	int planeVAO = createPlaneVertexArrayObject();
 	// For frame time
@@ -2574,6 +2680,12 @@ int main(int argc, char* argv[])
 	renderInfo.textures.woodTextureID = woodTextureID;
 
 	renderInfo.cubeVAOa = cubeVAOa;
+	renderInfo.cubeVAOFront = cubeVAOFront;
+	renderInfo.cubeVAOBack = cubeVAOBack;
+	renderInfo.cubeVAOLeft = cubeVAOLeft;
+	renderInfo.cubeVAORight = cubeVAORight;
+	renderInfo.cubeVAOTop = cubeVAOTop;
+	renderInfo.cubeVAOBottom = cubeVAOBottom;
 	// Entering Main Loop
 	while (!glfwWindowShouldClose(window))
 	{
