@@ -10,6 +10,15 @@
 // due July 27th, 2020.
 //
 
+//cube controls (temporary)
+// select model 1 - WASD to move cube, ad also.
+// select model 2 - cv to "rotate" (not fully completed yet, all the sides rotate the same axis.)
+//                - fg to select side to rotate
+//
+// beware that the cube doesn't like wasd with model 2. home to reset.
+
+
+
 //TODO:
 // -when the shadow is figured out, can delete shader with "[...]Test()" method.
 
@@ -564,6 +573,8 @@ public:
         for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
             if (*it) {
                 (*it)->prev();
+                //temp to start
+                (*it)->updateWalkProgress(0, 1);
             }
         }
     }
