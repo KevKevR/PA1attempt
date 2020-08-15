@@ -4056,8 +4056,10 @@ int main(int argc, char* argv[])
                 0));
     }
 
-
-    Model_Border base(shaderProgram);
+    TRSMatricesHolder(initBase);
+    initBase.translateMatrix = translate(mat4(1.0f), vec3(0.0f,0.0f,6.0f));
+    
+    Model_Border base(shaderProgram, initBase);
     ModelV9 v9(shaderProgram);
     ModelS3 s3(shaderProgram);
     ModelA9 a9(shaderProgram);
