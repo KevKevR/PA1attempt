@@ -175,8 +175,13 @@ public:
         walkState = 0;
         currentPosition = 0;
         stopWalkPosition = 0;
-    }
 
+        direction = 1;
+    }
+    //1 or -1 direction
+    void setDirection(int dir) {
+        direction = dir/labs(dir);
+    }
     //increment time step
     void stepForward(float dt) {
         //speed controlled with timePerState.
@@ -232,8 +237,6 @@ public:
 protected:
     /*virtual*/ void walk(float dt) {
         //walking, periodic movement from -0.5 to 0.5.
-        //set direction to -1 or 1;
-        const int direction = 1;
         currentPosition += dt / timePerState * direction;
     }
     /*virtual*/ void returnFromWalk(float dt) {
@@ -275,6 +278,8 @@ protected:
     float currentPosition;
     //stop position
     float stopWalkPosition;
+    //set direction to -1 or 1;
+    int direction;
 };
 //derive to replace getPosition and reuse rest
 class RotateCycle : public WalkCycle{
@@ -282,10 +287,6 @@ public:
     RotateCycle(float tPerState = 1) : WalkCycle(tPerState) {}
 
     float getPosition() {
-        //sigmoid function, modify it to restrict output into [0, 1] range, when input is from [-0.5, 0.5].
-        //https://stackoverflow.com/questions/10732027/fast-sigmoid-algorithm
-        //return (currentPosition / (1 + fabsf(currentPosition)));
-
     //positive modulo 
     //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
         const float mod = 1;
@@ -521,11 +522,24 @@ public:
     }
     mat4 getRelativeWorldMatrix() {
         return cumulativeTRS.trs() * getRelativeTranslateMatrix() * getRelativeRotateMatrix() * getRelativeScaleMatrix();
+        //return getRelativeTranslateMatrix() * getRelativeRotateMatrix() * getRelativeScaleMatrix();
+        //return getRelativeTranslateMatrix() * getRelativeRotateMatrix() * getRelativeScaleMatrix() * cumulativeTRS.trs();
+        //return getRelativeTranslateMatrix() * cumulativeTRS.translateMatrix * getRelativeRotateMatrix() * cumulativeTRS.rotateMatrix * getRelativeScaleMatrix()* cumulativeTRS.scaleMatrix;
     }
     //return without shear elements
     mat4 getRelativeUndeformedWorldMatrix() {
         return cumulativeTRS.trs() * getRelativeTranslateMatrix() * getRelativeRotateMatrix() * getRelativeUndeformedScaleMatrix();
     }
+    ////temp
+    //virtual void applyOffset(mat4){}
+    //static void setOffset(vector<CharModel*> arr, mat4 off) {
+    //    vector<CharModel*>::iterator it;
+    //    for (it = arr.begin(); it != arr.end(); it++) {
+    //        if (*it) {
+    //            (*it)->applyOffset(off);
+    //        }
+    //    }
+    //}
 
     virtual void next() {
         //implement in derived class please.
@@ -574,7 +588,7 @@ public:
             if (*it) {
                 (*it)->prev();
                 //temp to start
-                (*it)->updateWalkProgress(0, 1);
+                (*it)->updateWalkProgress(0, 2);
             }
         }
     }
@@ -863,6 +877,7 @@ public:
         //pass arguments stored in parent class.
         glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
         drawCube(worldMatrixLocation, colorLocation, getRelativeWorldMatrix() * cubeOffset);
+        //drawCube(worldMatrixLocation, colorLocation, getRelativeWorldMatrix() * cubeOffset * cumulativeTRS.trs());
     }
     void next() {
         targetAngle += 90.0f;
@@ -1179,16 +1194,9 @@ private:
 class ModelS3 : public CharModel {
 public:
 
-	ModelS3(int shaderProgram) : CharModel(shaderProgram) {
+    ModelS3(int shaderProgram, TRSMatricesHolder init_relTRSMatrices = TRSMatricesHolder()) : CharModel(shaderProgram, init_relTRSMatrices){
 		//initialize initial_relativeTranslateMatrix here and set relativeTranslateMatrix to that value.
         initY = -2.0f;
-		initial_relativeTranslateMatrix =
-			translate(mat4(1.0f),
-				vec3(0,
-					initY,
-					0));
-
-		setRelativeTranslateMatrix(initial_relativeTranslateMatrix);
 
         sphereOffset = { 0.0f, 9.0f, 5.5f };
 	}
@@ -3265,6 +3273,17 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models) {
     CharModel::swapWorldMatrixLocation(models, temp);
 }
 
+//index of box at cooridnates, 3x3x3 only
+int getCoord(int x, int y, int z) {
+    //return 1 * x + 3 * y + 9 * z;
+    int arr[3][3][3] = {
+        { {19,  0,  1}, {21,  2,  3}, {23,  4 , 5} },
+        { {18, 25,  6}, {20, 26,  8}, {22, 24 ,10} },
+        { {13, 12,  7}, {15, 14,  9}, {17, 16 ,11} }
+    };
+    int a= arr[z][y][x];
+    return a;
+}
 int main(int argc, char* argv[])
 {
     // Initialize GLFW and OpenGL version
@@ -3328,7 +3347,8 @@ int main(int argc, char* argv[])
 
 #endif
     // Grey background
-    glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
+    //glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
+    glClearColor(164 / 255.0f, 173 / 255.0f, 176 / 255.0f, 1.0f);
 
     // Compile and link shaders here ...
     int shaderProgram = compileAndLinkShaders();
@@ -3480,23 +3500,79 @@ int main(int argc, char* argv[])
     vector<mat4> init_T(0);
     vector<mat4>::iterator init_T_itr;
     const float boxSideLength = 3.0f;
+    const float boxSpacing = boxSideLength * 0.10f*5;
     const int boxPerSide = 3;
-    const float boxCenterHeight = boxPerSide / 2 * boxSideLength + boxSideLength;
-    // indexes 0 to 3 is back bottom row
-    // indexes 0 to 9 is back wall
+    const float cubeLength = boxPerSide / 2 * (boxSideLength + boxSpacing);
+    //const float cubeLengtha = boxPerSide / 2 * (boxSideLength + boxSpacing);
+    const float cubeCenterHeight = boxPerSide / 2 * boxSideLength + boxSideLength*2;
+    // indexes 0 to 2 is back bottom row
+    // indexes 0 to 8 is back wall
     for (int i = 0; i < boxPerSide; i++) {
         for (int j = 0; j < boxPerSide; j++) {
             for (int k = 0; k < boxPerSide; k++) {
                 mat4 tempInit_T = translate(mat4(1.0f),
-                    vec3(-(boxSideLength * (boxPerSide - 1) / 2) + k * boxSideLength,
-                        -(boxSideLength * (boxPerSide - 1) / 2) + j * boxSideLength,
-                        -(boxSideLength * (boxPerSide - 1) / 2) + i * boxSideLength));
+                    vec3(-(cubeLength * (boxPerSide - 1) / 2) + k * cubeLength,
+                        -(cubeLength * (boxPerSide - 1) / 2) + j * cubeLength,
+                        -(cubeLength * (boxPerSide - 1) / 2) + i * cubeLength));
                 //TRSMatricesHolder tempinit_TRS = TRSMatricesHolder(tempInit_T, mat4(1.0f), mat4(1.0f));
                 //init_T.push_back(tempinit_TRS);
                 init_T.push_back(tempInit_T);
             }
         }
     }
+
+    //indexes 0 to 5 are 6 left-most cells of tall 3x3 in the back.
+    //construct initial positions for sides
+    //i from [0,3] are sides, [4,5] are top/bot, [6] center
+    //float cubeLength = cubeLengtha;
+    //for (int i = 0; i < 7; i++) {
+    //    mat4 rotateM;
+    //    switch (i) {
+    //    case 0: case 1: case 2: case 3:
+    //    {
+    //        for (int j = 0; j < boxPerSide; j++) {
+    //            for (int k = 1; k < boxPerSide; k++) {
+    //                mat4 tempInit_T = 
+    //                    rotate(mat4(1.0f), radians(90.0f * i), vec3(0.0f, -1.0f, 0.0f)) *
+    //                    translate(mat4(1.0f),
+    //                        vec3(-(cubeLength * (boxPerSide - 1) / 2) + k * cubeLength,
+    //                            -(cubeLength * (boxPerSide - 1) / 2) + j * cubeLength,
+    //                            -(cubeLength * (boxPerSide - 1) / 2)));
+    //                //TRSMatricesHolder tempinit_TRS = TRSMatricesHolder(tempInit_T, mat4(1.0f), mat4(1.0f));
+    //                //init_T.push_back(tempinit_TRS);
+    //                init_T.push_back(tempInit_T);
+    //            }
+    //        }
+    //    }
+    //    break;
+    //    case 4: case 5:
+    //    {
+    //        mat4 tempInit_T =
+    //             //rotate(mat4(1.0f), radians(90.0f + 180 * i), vec3(1.0f, 0.0f, 0.0f)) *
+    //             translate(mat4(1.0f),
+    //                vec3(0,
+    //                    0,
+    //                    -(cubeLength * (boxPerSide - 1) / 2)));
+    //        //TRSMatricesHolder tempinit_TRS = TRSMatricesHolder(tempInit_T, mat4(1.0f), mat4(1.0f));
+    //        //init_T.push_back(tempinit_TRS);
+    //        init_T.push_back(tempInit_T);
+    //    }
+    //    break;
+    //    case 6:
+    //    {
+    //        mat4 tempInit_T =
+    //            translate(mat4(1.0f),
+    //                vec3(0,
+    //                    0,
+    //                    0));
+    //        //TRSMatricesHolder tempinit_TRS = TRSMatricesHolder(tempInit_T, mat4(1.0f), mat4(1.0f));
+    //        //init_T.push_back(tempinit_TRS);
+    //        init_T.push_back(tempInit_T);
+    //    }
+    //    break;
+    //    }
+    //    //cubeLength *= 1.2;
+    //}
 
     //Models
     //CharModel* selectedModel;
@@ -3517,23 +3593,31 @@ int main(int argc, char* argv[])
     //ModelBox boxStarboard(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 1 + 9 * 1]);
     //ModelBox boxFront    (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 2]);
     //ModelBox boxBack     (shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 1 + 9 * 0]);
-    
+
     TRSMatricesHolder tempinit_TRS = TRSMatricesHolder();
     //                                   [x       y       z]
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 1];
     //CharModel boxCore     (shaderProgram, tempinit_TRS);
-    CharModel boxCore(shaderProgram, TRSMatricesHolder(mat4(1.0f), translate(mat4(1.0f),vec3(0,boxCenterHeight,0)), mat4(1.0f)));
+    CharModel boxCore(shaderProgram, TRSMatricesHolder(mat4(1.0f), translate(mat4(1.0f),vec3(0, cubeCenterHeight,0)), mat4(1.0f)));
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 2 + 9 * 1];
+    //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(90.0f), vec3(1.0f, 0.0f, 0.0f));
     CharModel boxTop      (shaderProgram, tempinit_TRS);
+    tempinit_TRS = TRSMatricesHolder();
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 0 + 9 * 1];
+    //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(90.0f - 180), vec3(1.0f, 0.0f, 0.0f));
     CharModel boxBot      (shaderProgram, tempinit_TRS);
+    tempinit_TRS = TRSMatricesHolder();
     //tempinit_TRS.translateMatrix = init_T[2 + 3 * 1 + 9 * 1];
+    //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, -1.0f, 0.0f));
     CharModel boxPort     (shaderProgram, tempinit_TRS);
     //tempinit_TRS.translateMatrix = init_T[0 + 3 * 1 + 9 * 1];
+    //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(270.0f), vec3(0.0f, -1.0f, 0.0f));
     CharModel boxStarboard(shaderProgram, tempinit_TRS);
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 2];
+    //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(-90.0f), vec3(0.0f, -1.0f, 0.0f));
     CharModel boxFront    (shaderProgram, tempinit_TRS);
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 0];
+    tempinit_TRS = TRSMatricesHolder();
     CharModel boxBack     (shaderProgram, tempinit_TRS);
 
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 1];
@@ -3548,7 +3632,7 @@ int main(int argc, char* argv[])
     //CharModel boxBack     (shaderProgram, init_T[1 + 3 * 1 + 9 * 0]);
 
     ModelV9 v9(shaderProgram);
-    ModelS3 s3(shaderProgram);
+    ModelS3 s3(shaderProgram, TRSMatricesHolder(translate(mat4(1.0f), vec3(100)),mat4(1.0f),mat4(1.0f)));
     ModelA9 a9(shaderProgram);
     ModelN2 n2(shaderProgram);
     ModelN4 n4(shaderProgram);
@@ -3604,7 +3688,7 @@ int main(int argc, char* argv[])
     ModelBox C7(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 2 + 9 * 0]);
     ModelBox C8(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 0]);
     ModelBox C9(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 2 + 9 * 0]);
-
+    
     ModelBox B1(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 0 + 9 * 1]);
     ModelBox B2(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 1]);
     ModelBox B3(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 0 + 9 * 1]);
@@ -3614,7 +3698,7 @@ int main(int argc, char* argv[])
     ModelBox B7(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 2 + 9 * 1]);
     ModelBox B8(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 1]);
     ModelBox B9(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 2 + 9 * 1]);
-
+    
     ModelBox A1(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 0 + 9 * 2]);
     ModelBox A2(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 2]);
     ModelBox A3(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 0 + 9 * 2]);
@@ -3624,6 +3708,66 @@ int main(int argc, char* argv[])
     ModelBox A7(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 2 + 9 * 2]);
     ModelBox A8(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 2]);
     ModelBox A9(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 2 + 9 * 2]);
+
+    //ModelBox C1(shaderProgram, init_T[0 + 3 * 0 + 9 * 0]);
+    //ModelBox C2(shaderProgram, init_T[1 + 3 * 0 + 9 * 0]);
+    //ModelBox C3(shaderProgram, init_T[2 + 3 * 0 + 9 * 0]);
+    //ModelBox C4(shaderProgram, init_T[0 + 3 * 1 + 9 * 0]);
+    //ModelBox C5(shaderProgram, init_T[1 + 3 * 1 + 9 * 0]);
+    //ModelBox C6(shaderProgram, init_T[2 + 3 * 1 + 9 * 0]);
+    //ModelBox C7(shaderProgram, init_T[0 + 3 * 2 + 9 * 0]);
+    //ModelBox C8(shaderProgram, init_T[1 + 3 * 2 + 9 * 0]);
+    //ModelBox C9(shaderProgram, init_T[2 + 3 * 2 + 9 * 0]);
+
+    //ModelBox B1(shaderProgram, init_T[0 + 3 * 0 + 9 * 1]);
+    //ModelBox B2(shaderProgram, init_T[1 + 3 * 0 + 9 * 1]);
+    //ModelBox B3(shaderProgram, init_T[2 + 3 * 0 + 9 * 1]);
+    //ModelBox B4(shaderProgram, init_T[0 + 3 * 1 + 9 * 1]);
+    //ModelBox B5(shaderProgram, init_T[1 + 3 * 1 + 9 * 1]);
+    //ModelBox B6(shaderProgram, init_T[2 + 3 * 1 + 9 * 1]);
+    //ModelBox B7(shaderProgram, init_T[0 + 3 * 2 + 9 * 1]);
+    //ModelBox B8(shaderProgram, init_T[1 + 3 * 2 + 9 * 1]);
+    //ModelBox B9(shaderProgram, init_T[2 + 3 * 2 + 9 * 1]);
+
+    //ModelBox A1(shaderProgram, init_T[0 + 3 * 0 + 9 * 2]);
+    //ModelBox A2(shaderProgram, init_T[1 + 3 * 0 + 9 * 2]);
+    //ModelBox A3(shaderProgram, init_T[2 + 3 * 0 + 9 * 2]);
+    //ModelBox A4(shaderProgram, init_T[0 + 3 * 1 + 9 * 2]);
+    //ModelBox A5(shaderProgram, init_T[1 + 3 * 1 + 9 * 2]);
+    //ModelBox A6(shaderProgram, init_T[2 + 3 * 1 + 9 * 2]);
+    //ModelBox A7(shaderProgram, init_T[0 + 3 * 2 + 9 * 2]);
+    //ModelBox A8(shaderProgram, init_T[1 + 3 * 2 + 9 * 2]);
+    //ModelBox A9(shaderProgram, init_T[2 + 3 * 2 + 9 * 2]);
+
+    //ModelBox C1(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,0,0)]);
+    //ModelBox C2(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,0,0)]);
+    //ModelBox C3(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,0,0)]);
+    //ModelBox C4(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,1,0)]);
+    //ModelBox C5(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,1,0)]);
+    //ModelBox C6(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,1,0)]);
+    //ModelBox C7(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,2,0)]);
+    //ModelBox C8(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,2,0)]);
+    //ModelBox C9(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,2,0)]);
+    //
+    //ModelBox B1(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,0,1)]);
+    //ModelBox B2(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,0,1)]);
+    //ModelBox B3(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,0,1)]);
+    //ModelBox B4(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,1,1)]);
+    //ModelBox B5(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,1,1)]);
+    //ModelBox B6(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,1,1)]);
+    //ModelBox B7(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,2,1)]);
+    //ModelBox B8(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,2,1)]);
+    //ModelBox B9(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,2,1)]);
+    //
+    //ModelBox A1(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,0,2)]);
+    //ModelBox A2(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,0,2)]);
+    //ModelBox A3(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,0,2)]);
+    //ModelBox A4(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,1,2)]);
+    //ModelBox A5(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,1,2)]);
+    //ModelBox A6(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,1,2)]);
+    //ModelBox A7(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,2,2)]);
+    //ModelBox A8(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,2,2)]);
+    //ModelBox A9(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,2,2)]);
 
     vector<CharModel*> attachedToFront(0);
     attachedToFront.push_back(&A1);
@@ -3742,6 +3886,14 @@ int main(int argc, char* argv[])
 
     boxCore.setAttachedModels(attachedToCore);
     boxRotater.setAttachedModels(attachedToRotater);
+
+    //CharModel::setOffset(boxTop.getAttachedModels(), rotate(mat4(1.0f), radians(-90.0f), vec3(1.0f, 0.0f, 0.0f)));
+    //CharModel::setOffset(boxBot.getAttachedModels(), rotate(mat4(1.0f), radians(90.0f), vec3(1.0f, 0.0f, 0.0f)));
+    //CharModel::setOffset(boxFront.getAttachedModels(), rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, -1.0f, 0.0f)));
+    //CharModel::setOffset(boxBack.getAttachedModels(), rotate(mat4(1.0f), radians(0.0f), vec3(1.0f, 0.0f, 0.0f)));
+    //CharModel::setOffset(boxPort.getAttachedModels(), rotate(mat4(1.0f), radians(-90.0f), vec3(0.0f, -1.0f, 0.0f)));
+    //CharModel::setOffset(boxStarboard.getAttachedModels(), rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, -1.0f, 0.0f)));
+
     //boxBot.setAttachedModels(attachedToBack);
     //workaround to get the shadow map to include the parts.
     //base
@@ -4010,6 +4162,9 @@ int main(int argc, char* argv[])
             CharModel::update(vModels, dt);
             CharModel::update(attachedToCore, dt);
             CharModel::resetCumulativeTRS(vModels);
+            TRSMatricesHolder(tempTop);
+            tempTop.rotateMatrix = rotate(mat4(1.0f), radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
+            //boxTop.accumulateTRS(tempTop);
             CharModel::updateAttachedCumulativeTRS(vModels);
 		}
 
