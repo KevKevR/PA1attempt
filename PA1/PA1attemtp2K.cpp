@@ -41,11 +41,10 @@ GLuint loadTexture(const char* filename);
 
 const int numMainModels = 6;
 const int numAttachedModelsPerMain = 2;
-const int numDigits = 8;
+const int numDigits = 11;
 
 // Timer variables
-// TODO: Delete previousDecimals
-int hours = 0, minutes = 0, seconds = 0, decimals = 0, previousDecimals = -1;
+int hours = 0, minutes = 0, seconds = 0, decimals = 0;
 float timePause = 0, timeResume = 0, totalTimePaused = 0, timeReset = 0, currentTime;
 bool paused = false;
 
@@ -62,7 +61,7 @@ void window_size_callback(GLFWwindow* window, int width, int height);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 // Define timer-related functions
-void displayClock(); // Print timer in console TODO: delete or adapt it so it shows on UI with opengl
+string getTimerString();
 void adjustTimer();
 void handlePauseTimer();
 void resetTimer();
@@ -475,7 +474,7 @@ public:
         //        0));
 
         //float minScale = min(min(relativeScaleMatrix[0].x, relativeScaleMatrix[1].y), relativeScaleMatrix[2].z);
-        float minScale = min(min(scale[0].x, scale[1].y), scale[2].z);
+        float minScale = fmin(fmin(scale[0].x, scale[1].y), scale[2].z);
         mat4 diagonal = mat4(minScale, 0, 0, 0,
             0, minScale, 0, 0,
             0, 0, minScale, 0,
@@ -833,13 +832,8 @@ public:
         for (it = attachedModels.begin(); it != attachedModels.end(); it++, i++) {
             if (*it) {
                 //TODO Timer: separate string to char
-
-
-                // v v v placeholder to demonstrate code.
                 //char digit = i % 10 + '0';
                 char digit = time[i];
-
-
                 (*it)->selectMode(digit);
             }
         }
@@ -854,10 +848,11 @@ public:
         const float total_width = width_base_model * numDigits + spacing * (numDigits);
         const float total_height = 2 * width_base_model + spacing;
         const float border_thickness = width_base_model / 5;
+        const float correctiveXOffset = -1.4f;
         //skate constant
         const float skate_height = border_thickness;
         mat4 borderPosition = translate(mat4(1.0f),
-            vec3(-total_width / 2 + (numDigits + 1) / 2 * (width_base_model + spacing),
+            vec3(-total_width / 2 + (numDigits + 1) / 2 * (width_base_model + spacing) + correctiveXOffset,
                 total_height / 2 + border_thickness + skate_height,
                 0))
             //lessen the depth
@@ -932,8 +927,10 @@ protected:
             charToDraw -= 1;
         }
     }
-    void Model_DigitalFont::drawBar(mat4 inertialWorldMatrix);
-    void Model_DigitalFont::drawBarWithSlits(mat4 inertialWorldMatrix);
+    //void Model_DigitalFont::drawBar(mat4 inertialWorldMatrix);
+    //void Model_DigitalFont::drawBarWithSlits(mat4 inertialWorldMatrix);
+    void drawBar(mat4 inertialWorldMatrix);
+    void drawBarWithSlits(mat4 inertialWorldMatrix);
     //Draw "8"-styled digital clock placements. bool array inputs to control which portions to draw.
     void drawDigitalFont() {
         //bool toDrawTop[6] = {true, true , true , true , true , true }; //order: 0top, 1right, 2bottom, 3left, 4main diagonal, 5secondary diagonal. Top half.
@@ -1468,6 +1465,12 @@ void Model_DigitalFont::selectDraw(char c) {
         copy(bot, bot + 6, toDrawBot);
         break;
     }
+    case '-':
+        bool top[6] = { false, false, true, false, false, false };
+        bool bot[6] = { false, false, false, false, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
     }
 }
 class ModelV9 : public CharModel {
@@ -4098,6 +4101,9 @@ int main(int argc, char* argv[])
     Model_DigitalFont m_22(shaderProgram, '2', pos_m[5]);
     Model_DigitalFont m_e2(shaderProgram, 'e', pos_m[6]);
     Model_DigitalFont m_72(shaderProgram, '7', pos_m[7]);
+    Model_DigitalFont m_k3(shaderProgram, 'k', pos_m[8]);
+    Model_DigitalFont m_23(shaderProgram, '2', pos_m[9]);
+    Model_DigitalFont m_e3(shaderProgram, 'e', pos_m[10]);
 
     vector<CharModel*> attachedToBase;
     attachedToBase.push_back(&m_k);
@@ -4108,6 +4114,9 @@ int main(int argc, char* argv[])
     attachedToBase.push_back(&m_22);
     attachedToBase.push_back(&m_e2);
     attachedToBase.push_back(&m_72);
+    attachedToBase.push_back(&m_k3);
+    attachedToBase.push_back(&m_23);
+    attachedToBase.push_back(&m_e3);
     base.setAttachedModels(attachedToBase);
 
 
@@ -4152,9 +4161,8 @@ int main(int argc, char* argv[])
         //glClearColor(0.4f * (1 + cosf(radians(1.3f * time))), 0.4f * (1 + cosf(radians(1.5f * time + 120))), 0.4f * (1 + cosf(radians(1.7f * time - 120))), 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Handle timer TODO: May need to change where the code is written
-        displayClock();
-        previousDecimals = decimals; // TODO: Only used for console printing so can be deleted later on
+        // Handle timer
+        string time = getTimerString();
         if (!paused)
         {
             // Computes seconds and decimals elapsed since the last minute
@@ -4382,7 +4390,7 @@ int main(int argc, char* argv[])
 
             //TODO Timer: bring time in string.
             // v v vplaceholder to demonstrate code
-            string time = to_string((int)(currentTime * 1000) % 1000000 + 10000000);
+            //string time = getTimerString();
             //string time = "123456789";
             base.selectMode(time);
 		}
@@ -4622,44 +4630,37 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         resetTimer(); // reset timer
 }
 
-// TODO: Change implementation of this function (a.k.a change this method)
-// Print timer in console in format "Timer:  HH : MM : SS.DD" (temp)
-void displayClock()
-{
+// Returns the current timer in "HH-MM-SS-DD" format
+string getTimerString() {
+    string timerOutput = "";
     
-    if (decimals != previousDecimals) {
-        string timerOutput = "Timer:  ";
+    if (hours < 10)
+        timerOutput += "0" + to_string(hours);
+    else
+        timerOutput += to_string(hours);
     
-        // Note: When drawing, extract digits from each time variables
-        if (hours < 10)
-            timerOutput += "0" + to_string(hours);
-        else
-            timerOutput += to_string(hours);
+    timerOutput += "-";
     
-        timerOutput += " : ";
+    if (minutes < 10)
+        timerOutput += "0" + to_string(minutes);
+    else
+        timerOutput += to_string(minutes);
     
-        if (minutes < 10)
-            timerOutput += "0" + to_string(minutes);
-        else
-            timerOutput += to_string(minutes);
+    timerOutput += "-";
     
-        timerOutput += " : ";
-    
-        if (seconds < 10)
-            timerOutput += "0" + to_string(seconds);
-        else
-            timerOutput += to_string(seconds);
+    if (seconds < 10)
+        timerOutput += "0" + to_string(seconds);
+    else
+        timerOutput += to_string(seconds);
         
-        timerOutput += ".";
+    timerOutput += "-";
         
-        if (decimals < 10)
-            timerOutput += "0" + to_string(decimals);
-        else
-            timerOutput += to_string(decimals);
+    if (decimals < 10)
+        timerOutput += "0" + to_string(decimals);
+    else
+        timerOutput += to_string(decimals);
     
-        cout << timerOutput << endl;
-        //cout << glfwGetTime() << endl;
-    }
+    return timerOutput;
 }
 
 // Reset seconds and minutes variables when they reach 60
