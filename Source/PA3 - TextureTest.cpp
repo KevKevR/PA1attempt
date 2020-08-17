@@ -1,5 +1,5 @@
 //
-// Concordia University COMP 371 Programming Assignment 2, Summer 2020.
+// Concordia University COMP 371 Programming Assignment 3, Summer 2020.
 //
 // Created by :
 //    Jason Beccherini (40130107)
@@ -484,7 +484,7 @@ protected:
 				//Move bar to top/bottom
 				? translate(mat4(1.0f),
 					vec3(0,
-						(modelMaxHeight + boxVerticalWidth) / 2 * parity,
+					(modelMaxHeight + boxVerticalWidth) / 2 * parity,
 						0))
 				//Move bar to sides
 				: translate(mat4(1.0f),
@@ -864,7 +864,7 @@ int createTexturedCubeVertexArrayObject()
 
 int createTexturedCubeFaceVertexArrayObject(int offset)
 {
-	vec3 vertexArray[] = {  
+	vec3 vertexArray[] = {
 		// position and normal
 		//cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
 		//left
@@ -920,7 +920,7 @@ int createTexturedCubeFaceVertexArrayObject(int offset)
 		va_pos[i] = texturedCubeVertexArray[i + vecOffset].position;
 		//va_nor[i] = texturedCubeVertexArray[i + vecOffset].;
 		va_uv[i] = texturedCubeVertexArray[i + vecOffset].uv;
-		va_nor[i] = vertexArray[(i + vecOffset)*2+1];
+		va_nor[i] = vertexArray[(i + vecOffset) * 2 + 1];
 	}
 	// Create a vertex array
 	GLuint vertexArrayObject;
@@ -1053,8 +1053,8 @@ const char* getFragmentShaderSource()
 		"       float currentDepth = projCoords.z;"
 		//is in shadow if not the closest depth.
 	//"    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;"
-	"float bias = 0.005;"
-	// calculate bias (based on depth map resolution and slope)
+		"float bias = 0.005;"
+		// calculate bias (based on depth map resolution and slope)
 		"       vec3 normal = normalize(normalVec);"
 		"       vec3 lightDir = normalize(lightPos - fragPos);"
 		//"       float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);"
@@ -2228,7 +2228,12 @@ struct TextureId {
 	int cloverTextureID;
 	int jaguarTextureID;
 	int woodTextureID;
-
+	int redTextureID;
+	int blueTextureID;
+	int yellowTextureID;
+	int greenTextureID;
+	int orangeTextureID;
+	int purpleTextureID;
 	//etc
 };
 //has info on all settings to render.
@@ -2305,6 +2310,12 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 	int cloverTextureID = renderInfo.textures.cloverTextureID;
 	int jaguarTextureID = renderInfo.textures.jaguarTextureID;
 	int woodTextureID = renderInfo.textures.woodTextureID;
+	int redTextureID = renderInfo.textures.redTextureID;
+	int blueTextureID = renderInfo.textures.blueTextureID;
+	int yellowTextureID = renderInfo.textures.yellowTextureID;
+	int greenTextureID = renderInfo.textures.greenTextureID;
+	int orangeTextureID = renderInfo.textures.orangeTextureID;
+	int purpleTextureID = renderInfo.textures.purpleTextureID;
 
 	int cubeVAOa = renderInfo.cubeVAOa;
 	int cubeVAOFront = renderInfo.cubeVAOFront;
@@ -2321,27 +2332,27 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 
 	//front
 	glBindVertexArray(cubeVAOFront);
-	glBindTexture(GL_TEXTURE_2D, brickTextureID);
+	glBindTexture(GL_TEXTURE_2D, yellowTextureID);
 	CharModel::draw(models);
 	//back
 	glBindVertexArray(cubeVAOBack);
-	glBindTexture(GL_TEXTURE_2D, tiledTextureID);
+	glBindTexture(GL_TEXTURE_2D, blueTextureID);
 	CharModel::draw(models);
 	//left
 	glBindVertexArray(cubeVAOLeft);
-	glBindTexture(GL_TEXTURE_2D, cloverTextureID);
+	glBindTexture(GL_TEXTURE_2D, redTextureID);
 	CharModel::draw(models);
 	//right
 	glBindVertexArray(cubeVAORight);
-	glBindTexture(GL_TEXTURE_2D, jaguarTextureID);
+	glBindTexture(GL_TEXTURE_2D, greenTextureID);
 	CharModel::draw(models);
 	//top
 	glBindVertexArray(cubeVAOTop);
-	glBindTexture(GL_TEXTURE_2D, boxTextureID);
+	glBindTexture(GL_TEXTURE_2D, orangeTextureID);
 	CharModel::draw(models);
-	//bot
+	//bottom
 	glBindVertexArray(cubeVAOBottom);
-	glBindTexture(GL_TEXTURE_2D, woodTextureID);
+	glBindTexture(GL_TEXTURE_2D, purpleTextureID);
 	CharModel::draw(models);
 
 	glBindVertexArray(cubeVAOa);
@@ -2410,13 +2421,24 @@ int main(int argc, char* argv[])
 	GLuint cloverTextureID = loadTexture("Textures/clover.jpg");
 	GLuint jaguarTextureID = loadTexture("Textures/jaguar.jpg");
 	GLuint woodTextureID = loadTexture("Textures/wood.jpg");
-
+	GLuint redTextureID = loadTexture("Textures/red.jpg");
+	GLuint blueTextureID = loadTexture("Textures/blue.jpg");
+	GLuint yellowTextureID = loadTexture("Textures/yellow.jpg");
+	GLuint greenTextureID = loadTexture("Textures/green.jpg");
+	GLuint orangeTextureID = loadTexture("Textures/orange.jpg");
+	GLuint purpleTextureID = loadTexture("Textures/purple.jpg");
 
 #else
 	//GLuint tiledTextureID = loadTexture("../Assets/Textures/brick.jpg");
 	//GLuint cementTextureID = loadTexture("../Assets/Textures/cement.jpg");
 	//GLuint metalTextureID = loadTexture("../Assets/Textures/metal.jpg");
 	//GLuint boxTextureID = loadTexture("../Assets/Textures/box.jpg");
+	//GLuint redTextureID = loadTexture("../Assets/Textures/red.jpg");
+	//GLuint blueTextureID = loadTexture("../Assets/Textures/blue.jpg");
+	//GLuint yellowTextureID = loadTexture("../Assets/Textures/yellow.jpg");
+	//GLuint greenTextureID = loadTexture("../Assets/Textures/green.jpg");
+	//GLuint orangeTextureID = loadTexture("../Assets/Textures/orange.jpg");
+	//GLuint purpleTextureID = loadTexture("../Assets/Textures/purple.jpg");
 
 	GLuint brickTextureID = loadTexture("../Assets/Textures/brick.jpg");
 	GLuint tiledTextureID = loadTexture("../Assets/Textures/tiled.jpg");
@@ -2426,7 +2448,12 @@ int main(int argc, char* argv[])
 	GLuint cloverTextureID = loadTexture("../Assets/Textures/clover.jpg");
 	GLuint jaguarTextureID = loadTexture("../Assets/Textures/jaguar.jpg");
 	GLuint woodTextureID = loadTexture("../Assets/Textures/wood.jpg");
-
+	GLuint redTextureID = loadTexture("../Assets/Textures/red.jpg");
+	GLuint blueTextureID = loadTexture("../Assets/Textures/blue.jpg");
+	GLuint yellowTextureID = loadTexture("../Assets/Textures/yellow.jpg");
+	GLuint greenTextureID = loadTexture("../Assets/Textures/green.jpg");
+	GLuint orangeTextureID = loadTexture("../Assets/Textures/orange.jpg");
+	GLuint purpleTextureID = loadTexture("../Assets/Textures/purple.jpg");
 
 #endif
 	// Grey background
@@ -2678,6 +2705,12 @@ int main(int argc, char* argv[])
 	renderInfo.textures.cloverTextureID = cloverTextureID;
 	renderInfo.textures.jaguarTextureID = jaguarTextureID;
 	renderInfo.textures.woodTextureID = woodTextureID;
+	renderInfo.textures.redTextureID = redTextureID;
+	renderInfo.textures.blueTextureID = blueTextureID;
+	renderInfo.textures.yellowTextureID = yellowTextureID;
+	renderInfo.textures.greenTextureID = greenTextureID;
+	renderInfo.textures.orangeTextureID = orangeTextureID;
+	renderInfo.textures.purpleTextureID = purpleTextureID;
 
 	renderInfo.cubeVAOa = cubeVAOa;
 	renderInfo.cubeVAOFront = cubeVAOFront;
