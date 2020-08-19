@@ -207,11 +207,7 @@ public:
         }
         }
         //bound to approx. [-0.5f, 0.5f] interval.
-        //positive modulo 
-        //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
-        //currentPosition = fmodf(currentPosition + 0.5f, 1) -0.5f ;
-        const float mod = 1;
-        currentPosition = fmodf(mod + fmodf(currentPosition + 0.5f, mod), mod) - 0.5f;
+        bound();
     }
 
     //allow walkState to change.
@@ -235,7 +231,7 @@ public:
         return sinf(radians(180.0f * (currentPosition * 2)));
     }
 protected:
-    /*virtual*/ void walk(float dt) {
+    virtual void walk(float dt) {
         //walking, periodic movement from -0.5 to 0.5.
         currentPosition += dt / timePerState * direction;
     }
@@ -265,6 +261,15 @@ protected:
         currentPosition = 0;
     }
 
+    virtual void bound() {
+        //bound to approx. [-0.5f, 0.5f] interval.
+        //positive modulo 
+        //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
+        //currentPosition = fmodf(currentPosition + 0.5f, 1) -0.5f ;
+        const float mod = 1;
+        currentPosition = fmodf(mod + fmodf(currentPosition + 0.5f, mod), mod) - 0.5f;
+    }
+
     //walkState
     // 0: stop.
     // 1: walking, periodic movement.
@@ -284,14 +289,29 @@ protected:
 //derive to replace getPosition and reuse rest
 class RotateCycle : public WalkCycle{
 public:
-    RotateCycle(float tPerState = 1) : WalkCycle(tPerState) {}
+    RotateCycle(float tPerState = 1) : WalkCycle(tPerState) { }
 
     float getPosition() {
-    //positive modulo 
-    //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
-        const float mod = 1;
+        //positive modulo 
+        //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
+        const float mod = -1;
         const float pos = fmodf(mod + fmodf(currentPosition, mod), mod);
         return pos;
+        //return currentPosition;
+    }
+
+    void walk(float dt) {
+        WalkCycle::walk(dt);
+
+        //stop rotation after it completes
+        if (abs(currentPosition) >= 1.0f) {
+            setState(0);
+
+        }
+    }
+    void bound() {
+        //do not bound
+        // * technically, walk() already bounds the position in [-1, 1].
     }
 };
 //holds TRS matrices
@@ -328,7 +348,9 @@ public:
         return translateMatrix * rotateMatrix * scaleMatrix;
     }
 };
-
+struct MotionData {
+    vec3 axisRotation;
+};
 class CharModel {
 public:
     CharModel(int shaderProgram, TRSMatricesHolder init_relTRSMatrices = TRSMatricesHolder()) {
@@ -348,6 +370,14 @@ public:
         numAttachedModels = 0;
 
         //modeMotion = true;
+        //data used in motion
+        motionD = {vec3(0,0,-1)};
+    }
+
+    //temp, will move later
+    MotionData motionD;
+    void setMotionData(MotionData md) {
+        motionD = md;
     }
 
     float updateWalkProgress(float dt, int st = -1, float tState = -1) {
@@ -858,7 +888,7 @@ private:
     mat4 relativeRotateMatrix;      //Stored rotate matrix
     mat4 relativeScaleMatrix;       //Stored scale matrix
 };
-class ModelBox :public CharModel {
+class ModelBox : public CharModel {
 public:
     ModelBox(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder(), mat4 modelOffset = mat4(1.0f))
         : CharModel(shaderProgram, ini_relTRSMatrices), cubeOffset(modelOffset){
@@ -880,10 +910,14 @@ public:
         //drawCube(worldMatrixLocation, colorLocation, getRelativeWorldMatrix() * cubeOffset * cumulativeTRS.trs());
     }
     void next() {
-        targetAngle += 90.0f;
+        targetAngle = 90.0f;
+        addRelativeRotateMatrix(
+            rotate(mat4(1.0f),
+                radians(90.0f),
+                motionD.axisRotation));
     }
     void prev() {
-        targetAngle -= 90.0f;
+        targetAngle = -90.0f;
     }
     void reset() {
         CharModel::reset();
@@ -903,10 +937,14 @@ protected:
         //const float position = updateWalkProgress(0);
     
         //shear side-to-side + vertical scaling.
+        //mat4 motion =
+        //    rotate(mat4(1.0f),
+        //        radians(rotationAngle) * position,
+        //        vec3(0.0f, 0.0f, -1.0f));
         mat4 motion =
             rotate(mat4(1.0f),
-                radians(rotationAngle) * position,
-                vec3(0.0f, 0.0f, -1.0f));
+                radians(90.0f) * (position),
+                motionD.axisRotation);
         TRSMatricesHolder(tempR);
         tempR.rotateMatrix = motion;
         return tempR;
@@ -932,6 +970,21 @@ private:
     mat4 cubeOffset;
 };
 
+//only stores axis for rotation purposes.
+class ModelFace : public CharModel{
+public:
+    ModelFace(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder(), vec3 axis = vec3(1.0f, 0, 0))
+        : CharModel(shaderProgram, ini_relTRSMatrices), axis(axis) {}
+
+    vec3 getAxis() {
+        return axis;
+    }
+    //axis should only be modified when constructing, but this makes it easier to code with.
+    void setAxis(vec3 axisR) {
+        axis = axisR;
+    }
+        vec3 axis;
+};
 class ModelV9 : public CharModel {
 public:
 	//Constructor
@@ -3601,24 +3654,24 @@ int main(int argc, char* argv[])
     CharModel boxCore(shaderProgram, TRSMatricesHolder(mat4(1.0f), translate(mat4(1.0f),vec3(0, cubeCenterHeight,0)), mat4(1.0f)));
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 2 + 9 * 1];
     //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(90.0f), vec3(1.0f, 0.0f, 0.0f));
-    CharModel boxTop      (shaderProgram, tempinit_TRS);
+    ModelFace boxTop      (shaderProgram, tempinit_TRS);
     tempinit_TRS = TRSMatricesHolder();
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 0 + 9 * 1];
     //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(90.0f - 180), vec3(1.0f, 0.0f, 0.0f));
-    CharModel boxBot      (shaderProgram, tempinit_TRS);
+    ModelFace boxBot      (shaderProgram, tempinit_TRS);
     tempinit_TRS = TRSMatricesHolder();
     //tempinit_TRS.translateMatrix = init_T[2 + 3 * 1 + 9 * 1];
     //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, -1.0f, 0.0f));
-    CharModel boxPort     (shaderProgram, tempinit_TRS);
+    ModelFace boxPort     (shaderProgram, tempinit_TRS);
     //tempinit_TRS.translateMatrix = init_T[0 + 3 * 1 + 9 * 1];
     //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(270.0f), vec3(0.0f, -1.0f, 0.0f));
-    CharModel boxStarboard(shaderProgram, tempinit_TRS);
+    ModelFace boxStarboard(shaderProgram, tempinit_TRS);
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 2];
     //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(-90.0f), vec3(0.0f, -1.0f, 0.0f));
-    CharModel boxFront    (shaderProgram, tempinit_TRS);
+    ModelFace boxFront    (shaderProgram, tempinit_TRS);
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 0];
     tempinit_TRS = TRSMatricesHolder();
-    CharModel boxBack     (shaderProgram, tempinit_TRS);
+    ModelFace boxBack     (shaderProgram, tempinit_TRS);
 
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 1];
     CharModel boxRotater  (shaderProgram, tempinit_TRS);
@@ -3630,6 +3683,14 @@ int main(int argc, char* argv[])
     //CharModel boxStarboard(shaderProgram, init_T[0 + 3 * 1 + 9 * 1]);
     //CharModel boxFront    (shaderProgram, init_T[1 + 3 * 1 + 9 * 2]);
     //CharModel boxBack     (shaderProgram, init_T[1 + 3 * 1 + 9 * 0]);
+
+    boxTop.setAxis(vec3(0, 1, 0));
+    boxBot.setAxis(vec3(0, -1, 0));
+    boxPort.setAxis(vec3(1, 0, 0));
+    boxStarboard.setAxis(vec3(-1, 0, 0));
+    boxFront.setAxis(vec3(0, 0, 1));
+    boxBack.setAxis(vec3(0, 0, -1));
+
 
     ModelV9 v9(shaderProgram);
     ModelS3 s3(shaderProgram, TRSMatricesHolder(translate(mat4(1.0f), vec3(100)),mat4(1.0f),mat4(1.0f)));
@@ -4124,7 +4185,7 @@ int main(int argc, char* argv[])
             if (selectedSetting[3]) {
                 enableShadow = enableShadow * -1 + 1;
             }
-            //g pressed, so go to next mode
+            //c pressed, so go to next mode
             if (selectedSetting[4] || selectedSetting[5]) {
                 //make selected part model display next mode
                 selectedModel->getAttachedModels()[partIndex]->attachedNext();
@@ -4133,7 +4194,7 @@ int main(int argc, char* argv[])
                 //selectedModel->getAttachedModels()[partIndex]->addRelativeWorldMatrix(translate(mat4(1.0f), vec3(dt * 100, 0.0f,0.0f)), relativeWorldMatrix[1], relativeWorldMatrix[2]);
 
             }
-            //f pressed, so go to prev mode
+            //v pressed, so go to prev mode
             if (selectedSetting[6] || selectedSetting[7]) {
                 //make selected part model display previous mode
                 //selectedModel->getAttachedModels()[partIndex]->prev();
