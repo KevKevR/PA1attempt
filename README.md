@@ -1,8 +1,8 @@
-Programming Assignment 2
+Programming Assignment 3
 ======
 for COMP371 CC, Concordia University Summer 2020
 with instructor Serguei A. Mokhov, 
-due by the end of July 27th, 2020.
+due by the end of August 21st, 2020.
 
 Team List
 ======
@@ -16,7 +16,7 @@ Features and Functionality
 ======
 This program takes advantage of what OpenGL v3.1 and onwards offers to render colored 3D models with a movable perspective camera.
 The ground is shown with a 100x100 unit grid centered at the origin and it is illuminated by a point light source placed 30 units above it. The entire scene is rendered in a tiled texture and shadows. Standard xyz axes are also centered at the origin, and are colored in rgb fashion. 
-Models representing each of the students are arbitrarily placed in each of the four corners and center positions. They are models of the following letter-number pairs: S3, N2, A9, N4, V9. All models were drawn with copies of a same, single unit cube object, applied with various transformation to stretch and position them in shapes of alphanumeric characters. Each one is also paired with a single unit sphere object that covers the upper half of the models. The letters and numbers are rendered with textures, with the former having a box-lie texture and the latter shiny metal textures. These are free to move in the XZ-plane individually through the **models controls** section below. Additional modifications are possible and found in said section. Note that some of these modification apply once per key press, while others are applied continuously as long as the valid key combination is held.
+A model representing a rubik's cube model is placed at the center of the grid. It is composed of 27 cubes with a texture theme that can be changed by the press of a buttom (There are 4 themes in total). The pieces are free to move in the XZ-plane individually through the **models controls** section below. Additional modifications are possible and found in said section. Note that some of these modification apply once per key press, while others are applied continuously as long as the valid key combination is held.
 The view camera initially centers its focus onto the origin point (0, 0, 0). Additional camera and display properties can be found in the **Display/Camera** section. The camera moves in first person view tradition. Further details on how to move it are found in the **Camera Controls** section.
 Rendering mode can change between triangles, lines and points. Controls found in **Rendering Controls** section.
 
