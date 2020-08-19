@@ -376,8 +376,13 @@ public:
 
     //temp, will move later
     MotionData motionD;
-    void setMotionData(MotionData md) {
-        motionD = md;
+    void setAttachedMotionData(MotionData md) {
+        vector<CharModel*>::iterator it;
+        for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
+            if (*it) {
+                (*it)->motionD = md;
+            }
+        }
     }
 
     float updateWalkProgress(float dt, int st = -1, float tState = -1) {
@@ -505,6 +510,9 @@ public:
     }
     void addRelativeRotateMatrix(mat4 relRWM) {
         relativeRotateMatrix = relRWM * relativeRotateMatrix;
+    }
+    void addRelativeRotateMatrix2(mat4 relRWM) {
+        relativeRotateMatrix = relativeRotateMatrix * relRWM;
     }
 
     //return scale matrix without shear elements
@@ -911,7 +919,7 @@ public:
     }
     void next() {
         targetAngle = 90.0f;
-        addRelativeRotateMatrix(
+        addRelativeRotateMatrix2(
             rotate(mat4(1.0f),
                 radians(90.0f),
                 motionD.axisRotation));
@@ -974,16 +982,18 @@ private:
 class ModelFace : public CharModel{
 public:
     ModelFace(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder(), vec3 axis = vec3(1.0f, 0, 0))
-        : CharModel(shaderProgram, ini_relTRSMatrices), axis(axis) {}
+        : CharModel(shaderProgram, ini_relTRSMatrices)/*, axis(axis)*/ {}
 
-    vec3 getAxis() {
-        return axis;
-    }
+    //vec3 getAxis() {
+    //    //return axis;
+    //}
     //axis should only be modified when constructing, but this makes it easier to code with.
     void setAxis(vec3 axisR) {
-        axis = axisR;
+        //axis = axisR;
+
+        motionD.axisRotation = axisR;
     }
-        vec3 axis;
+        //vec3 axis;
 };
 class ModelV9 : public CharModel {
 public:
@@ -3328,14 +3338,14 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models) {
 
 //index of box at cooridnates, 3x3x3 only
 int getCoord(int x, int y, int z) {
-    //return 1 * x + 3 * y + 9 * z;
-    int arr[3][3][3] = {
-        { {19,  0,  1}, {21,  2,  3}, {23,  4 , 5} },
-        { {18, 25,  6}, {20, 26,  8}, {22, 24 ,10} },
-        { {13, 12,  7}, {15, 14,  9}, {17, 16 ,11} }
-    };
-    int a= arr[z][y][x];
-    return a;
+    return 1 * x + 3 * y + 9 * z;
+    //int arr[3][3][3] = {
+    //    { {19,  0,  1}, {21,  2,  3}, {23,  4 , 5} },
+    //    { {18, 25,  6}, {20, 26,  8}, {22, 24 ,10} },
+    //    { {13, 12,  7}, {15, 14,  9}, {17, 16 ,11} }
+    //};
+    //int a= arr[z][y][x];
+    //return a;
 }
 int main(int argc, char* argv[])
 {
@@ -3690,6 +3700,13 @@ int main(int argc, char* argv[])
     boxStarboard.setAxis(vec3(-1, 0, 0));
     boxFront.setAxis(vec3(0, 0, 1));
     boxBack.setAxis(vec3(0, 0, -1));
+
+    //boxTop.setAttachedMotionData({ vec3(0, 1, 0) });
+    //boxBot.setAttachedMotionData({ vec3(0, -1, 0) });
+    //boxPort.setAttachedMotionData({ vec3(1, 0, 0) });
+    //boxStarboard.setAttachedMotionData({ vec3(-1, 0, 0) });
+    //boxFront.setAttachedMotionData({ vec3(0, 0, 1) });
+    //boxBack.setAttachedMotionData({ vec3(0, 0, -1) });
 
 
     ModelV9 v9(shaderProgram);
@@ -4152,6 +4169,7 @@ int main(int argc, char* argv[])
             partIndex = partModelControl(window, partIndex, previousKeyStates);
             CharModel* prevModel = selectedModel;
             selectedModel = vModels[modelIndex];
+            CharModel* selectedPartModel = selectedModel->getAttachedModels()[partIndex];
             //Control model key presses.
             mat4* relativeWorldMatrix = modelControl(window, dt, previousKeyStates);
             bool hasMovement = checkModelMovement(window, previousKeyStates);
@@ -4188,7 +4206,8 @@ int main(int argc, char* argv[])
             //c pressed, so go to next mode
             if (selectedSetting[4] || selectedSetting[5]) {
                 //make selected part model display next mode
-                selectedModel->getAttachedModels()[partIndex]->attachedNext();
+                selectedPartModel->setAttachedMotionData(selectedPartModel->motionD);
+                selectedPartModel->attachedNext();
                 //selectedModel->getAttachedModels()[partIndex]->next();
                 //selectedModel->getAttachedModels()[partIndex]->updateWalkProgress(0, 1);
                 //selectedModel->getAttachedModels()[partIndex]->addRelativeWorldMatrix(translate(mat4(1.0f), vec3(dt * 100, 0.0f,0.0f)), relativeWorldMatrix[1], relativeWorldMatrix[2]);
@@ -4198,7 +4217,7 @@ int main(int argc, char* argv[])
             if (selectedSetting[6] || selectedSetting[7]) {
                 //make selected part model display previous mode
                 //selectedModel->getAttachedModels()[partIndex]->prev();
-                selectedModel->getAttachedModels()[partIndex]->attachedPrev();
+                selectedPartModel->attachedPrev();
             }
             //Adjust selected model accordingly.
             selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
@@ -4455,3 +4474,299 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
         randomPosModel(selectedModel);
 }
+
+
+class RubikCube {
+public:
+    RubikCube(vector<CharModel*> boxes) : boxes(boxes){
+        for (int i = 0; i < 27; i++) {
+            positionsIndex[i] = i;
+        }
+    }
+
+    vector<CharModel*> getFront() {
+        vector<CharModel*> result(0);
+        for (int i = 0; i < 27; i++) {
+            //or if ((i/9)%3==2)
+            if (i > 17) {
+                result.push_back(boxes[positionsIndex[i]]);
+            }
+        }
+        return result;
+    }
+    vector<CharModel*> getBack() {
+        vector<CharModel*> result(0);
+        for (int i = 0; i < 27; i++) {
+            if (i < 9) {
+                result.push_back(boxes[positionsIndex[i]]);
+            }
+        }
+        return result;
+    }
+    vector<CharModel*> getTop() {
+        vector<CharModel*> result(0);
+        for (int i = 0; i < 27; i++) {
+            if ((i%9)/3 == 2) {
+                result.push_back(boxes[positionsIndex[i]]);
+            }
+        }
+        return result;
+    }
+    vector<CharModel*> getBot() {
+        vector<CharModel*> result(0);
+        for (int i = 0; i < 27; i++) {
+            if ((i % 9) / 3 == 0) {
+                result.push_back(boxes[positionsIndex[i]]);
+            }
+        }
+        return result;
+    }
+    vector<CharModel*> getPort() {
+        vector<CharModel*> result(0);
+        for (int i = 0; i < 27; i++) {
+            if ((i % 9) % 3 == 2) {
+                result.push_back(boxes[positionsIndex[i]]);
+            }
+        }
+        return result;
+    }
+    vector<CharModel*> getStarboard() {
+        vector<CharModel*> result(0);
+        for (int i = 0; i < 27; i++) {
+            if ((i % 9) % 3 == 0) {
+                result.push_back(boxes[positionsIndex[i]]);
+            }
+        }
+        return result;
+    }
+
+    vector<vector<int>> rotateFaceCW(vector<vector<int>> arr) {
+        //vector<vector<int>> result;
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > result(3, row);
+
+        const int size = 3;
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                result[i][j] = arr[size - 1 - j][i];
+            }
+        }
+        return result;
+    }
+    vector<vector<int>> rotateFaceCCW(vector<vector<int>> arr) {
+        //vector<vector<int>> result;
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > result(3, row);
+
+        const int size = 3;
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                result[i][j] = arr[j][size - 1 - i];
+            }
+        }
+        return result;
+    }
+
+    //direction negative makes rotation CCW, otherwise rotation is CW.
+    void rotateFront(float direction) {
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > arr(3, row);
+        const int size = 3;
+        //get indexes of face
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                arr[j][i] = positionsIndex[getCoord(i, j, 2)];
+            }
+        }
+        //rotate face
+        vector<vector<int> > result;
+        if (signbit(direction)) {
+            result = rotateFaceCW(arr);
+
+        }
+        else {
+            result = rotateFaceCCW(arr);
+        }
+
+        //update indexes
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                positionsIndex[getCoord(i, j, 2)] = result[j][i];
+            }
+        }
+    }
+    //direction negative makes rotation CCW, otherwise rotation is CW.
+    void rotateBack(float direction) {
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > arr(3, row);
+        const int size = 3;
+        //get indexes of face
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                arr[j][i] = positionsIndex[getCoord(i, j, 0)];
+            }
+        }
+        //rotate face
+        vector<vector<int> > result;
+        if (signbit(direction)) {
+            result = rotateFaceCW(arr);
+
+        }
+        else {
+            result = rotateFaceCCW(arr);
+        }
+
+        //update indexes
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                positionsIndex[getCoord(i, j, 0)] = result[j][i];
+            }
+        }
+    }
+    //direction negative makes rotation CCW, otherwise rotation is CW.
+    void rotateTop(float direction) {
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > arr(3, row);
+        const int size = 3;
+        //get indexes of face
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                arr[j][i] = positionsIndex[getCoord(i, 2, j)];
+                // maybe instead?: arr[j][i] = positionsIndex[getCoord(size - 1 - i, 2, j)];
+            }
+        }
+        //rotate face
+        vector<vector<int> > result;
+        if (signbit(direction)) {
+            result = rotateFaceCW(arr);
+
+        }
+        else {
+            result = rotateFaceCCW(arr);
+        }
+
+        //update indexes
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                positionsIndex[getCoord(i, 2, j)] = result[j][i];
+            }
+        }
+    }
+    //direction negative makes rotation CCW, otherwise rotation is CW.
+    void rotateBot(float direction) {
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > arr(3, row);
+        const int size = 3;
+        //get indexes of face
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                arr[j][i] = positionsIndex[getCoord(i, 0, j)];
+                // maybe instead?: arr[j][i] = positionsIndex[getCoord(size - 1 - i, 0, j)];
+            }
+        }
+        //rotate face
+        vector<vector<int> > result;
+        if (signbit(direction)) {
+            result = rotateFaceCW(arr);
+
+        }
+        else {
+            result = rotateFaceCCW(arr);
+        }
+
+        //update indexes
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                positionsIndex[getCoord(i, 0, j)] = result[j][i];
+            }
+        }
+    }
+    //direction negative makes rotation CCW, otherwise rotation is CW.
+    void rotatePort(float direction) {
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > arr(3, row);
+        const int size = 3;
+        //get indexes of face
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                arr[j][i] = positionsIndex[getCoord(2, j, i)];
+            }
+        }
+        //rotate face
+        vector<vector<int> > result;
+        if (signbit(direction)) {
+            result = rotateFaceCW(arr);
+
+        }
+        else {
+            result = rotateFaceCCW(arr);
+        }
+
+        //update indexes
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                positionsIndex[getCoord(2, j, i)] = result[j][i];
+            }
+        }
+    }
+    //direction negative makes rotation CCW, otherwise rotation is CW.
+    void rotateStarboard(float direction) {
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > arr(3, row);
+        const int size = 3;
+        //get indexes of face
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                arr[j][i] = positionsIndex[getCoord(0, j, i)];
+            }
+        }
+        //rotate face
+        vector<vector<int> > result;
+        if (signbit(direction)) {
+            result = rotateFaceCW(arr);
+
+        }
+        else {
+            result = rotateFaceCCW(arr);
+        }
+
+        //update indexes
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                positionsIndex[getCoord(0, j, i)] = result[j][i];
+            }
+        }
+    }
+
+
+
+    //boxes indexed in order
+    vector<CharModel*> boxes;
+
+    //index points to box that should be in cell position.
+    int positionsIndex[27];
+
+};
+
+//box indexes (start from 1)
+//Back to Front
+//  7  8  9
+//  4  5  6
+//  1  2  3
+
+// 16 17 18
+// 13 14 15
+// 10 11 12
+
+// 25 26 27
+// 22 23 24
+// 19 20 21
+
