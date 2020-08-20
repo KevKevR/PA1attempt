@@ -388,6 +388,14 @@ public:
     void setColor(Color colorRGB) {
         color = colorRGB;
     }
+    void setAttachedColor(Color colorRGB) {
+        vector<CharModel*>::iterator it;
+        for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
+            if (*it) {
+                (*it)->setColor(colorRGB);
+            }
+        }
+    }
 
     MotionData getMotionData() {
         return motionD;
@@ -4361,16 +4369,10 @@ int main(int argc, char* argv[])
     //set color of boxes
     {
         //set color of all boxes
-        for (itBox = attachedToCore.begin(); itBox != attachedToCore.end(); itBox++) {
-            (*itBox)->setColor(initialBoxColor);
-        }
+        boxCore.setAttachedColor(initialBoxColor);
         //set color of initial selection
         selectedPartModel = boxRotater.getAttachedModels()[partIndex];
-        vector<CharModel*> attached;
-        attached = selectedPartModel->getAttachedModels();
-        for (itBox = attached.begin(); itBox != attached.end(); itBox++) {
-            (*itBox)->setColor(selectedBoxColor);
-        }
+        selectedPartModel->setAttachedColor(selectedBoxColor);
     }
     //CharModel::setOffset(boxTop.getAttachedModels(), rotate(mat4(1.0f), radians(-90.0f), vec3(1.0f, 0.0f, 0.0f)));
     //CharModel::setOffset(boxBot.getAttachedModels(), rotate(mat4(1.0f), radians(90.0f), vec3(1.0f, 0.0f, 0.0f)));
@@ -4595,16 +4597,9 @@ int main(int argc, char* argv[])
                 //set color of boxes
                 {
                     //set color of all boxes
-                    for (itBox = attachedToCore.begin(); itBox != attachedToCore.end(); itBox++) {
-                        (*itBox)->setColor(initialBoxColor);
-                    }
+                    boxCore.setAttachedColor(initialBoxColor);
                     //set color of selection
-                    selectedPartModel = boxRotater.getAttachedModels()[partIndex];
-                    vector<CharModel*> attached;
-                    attached = selectedPartModel->getAttachedModels();
-                    for (itBox = attached.begin(); itBox != attached.end(); itBox++) {
-                        (*itBox)->setColor(selectedBoxColor);
-                    }
+                    selectedPartModel->setAttachedColor(selectedBoxColor);
                 }
 
                 //reset camera too.
@@ -4688,21 +4683,13 @@ int main(int argc, char* argv[])
             if (prevModel != selectedModel && prevModel) {
                 prevModel->updateWalkProgress(0, 2);
             }
-            //TODO selected color: reset color of other boxes, when prev part is not selected part. Also change color of selected part.
             
             //when selecting different faces,
             if (prevSelectedPartModel != selectedPartModel && prevSelectedPartModel) {
                 //reset color of previous selection
-                vector<CharModel*> attached;
-                attached = prevSelectedPartModel->getAttachedModels();
-                for (itBox = attached.begin(); itBox != attached.end(); itBox++) {
-                    (*itBox)->setColor({ 1,1,1 });
-                }
+                prevSelectedPartModel->setAttachedColor(initialBoxColor);
                 //set color of selection
-                attached = selectedPartModel->getAttachedModels();
-                for (itBox = attached.begin(); itBox != attached.end(); itBox++) {
-                    (*itBox)->setColor(selectedBoxColor);
-                }
+                selectedPartModel->setAttachedColor(selectedBoxColor);
             }
 
             renderModels(renderInfo, vModels);
