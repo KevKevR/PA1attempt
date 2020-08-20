@@ -899,7 +899,7 @@ protected:
         const int heightParts = 22;
         const int ringParts = 30;
         const int numVertices = (heightParts - 1) * ringParts * 2;
-        glDrawArrays(GL_TRIANGLE_STRIP, 44, numVertices);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, numVertices);
     }
     //bool modeMotion;
 
@@ -1739,60 +1739,7 @@ private:
         
 	}
 };
-vector<vec3> sphereVertices(vec3 prevVertexArray[44 * 2],const int heightParts, const int ringParts) {
-
-    const int vertexArrNum = 44;
-    /*
-    vec3 vertexArr[vertexArrNum * 2] = {
-        //left
-        vec3(-0.5f, -0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, -0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, -0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, 0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        // far
-        vec3(0.5f, 0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(0.5f, 0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(0.5f, -0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
-        // bottom
-        vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(0.5f, -0.5f, -0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(-0.5f, -0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, -1.0f, 0.0f),
-        // near
-        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(-0.5f, -0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        // right
-        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f, -0.5f, -0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f, 0.5f, -0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f, -0.5f, -0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f, -0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-        // top
-        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-    
-        //line (0,0,-0.5)to(0,0,0.5)
-        vec3(0.0f, 0.0f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-    };
-    */
-    vec3* vertexArr = prevVertexArray;
+vector<vec3> sphereVertices(const int heightParts, const int ringParts) {
 
     //plan to compute sphere vertices by iterating along cylindrical coordinates -> convert to rectangular.
     //sphere radius, rho
@@ -1810,17 +1757,8 @@ vector<vec3> sphereVertices(vec3 prevVertexArray[44 * 2],const int heightParts, 
     //44*2 + (heightParts-1)*ringParts*2*2
     //const int numVertices = (heightParts - 1) * ringParts * 2;
 
-    //vec3 sphereArray[numVertices] = {};
-    vector<vec3> vecSphereArray(vertexArrNum * 2);
-    
+    vector<vec3> vecSphereArray (0);
 
-    //prepend previous array
-    for (int i = 0; i < vertexArrNum * 2 ; i++) {
-        vecSphereArray[i] = vertexArr[i];
-    }
-
-
-    /// attempt 3
     //for every height part
     for (int i = 0; i < heightParts - 1; i++) {
         //for each part of a ring
@@ -1833,7 +1771,7 @@ vector<vec3> sphereVertices(vec3 prevVertexArray[44 * 2],const int heightParts, 
                 // v v v diameter divided by area part count, then center to origin. so spacing is by diameter
                 float ya = (i + alternate) * 2 * radius / (heightParts - 1) - radius;
                 // v v v height segment is given by phi angle.
-                float y = radius *(sinf(radians(2* 90*((float)(i + alternate) / (heightParts - 1) - 0.5f))));
+                float y = radius * (sinf(radians(2 * 90 * ((float)(i + alternate) / (heightParts - 1) - 0.5f))));
                 //vertices for a xz-ring at height y.
                 //r is radial distance
                 float r = sqrt(radius * radius - y * y);
@@ -1844,8 +1782,16 @@ vector<vec3> sphereVertices(vec3 prevVertexArray[44 * 2],const int heightParts, 
                 float z = r * sinf(theta);
                 //every height will have ringParts# * 2 of elements
 
+                //position
                 vecSphereArray.push_back(vec3(x, y, z));
+                //normal
                 vecSphereArray.push_back(vec3(x, y, z));
+                //uv
+                //bound to [0.0f, 1.0f] interval from [-1.0f, 1.0f].
+                float norm_x = (x + 1) / (2 * radius);
+                float norm_z = (z + 1) / (2 * radius);
+                //ignore 3rd float
+                vecSphereArray.push_back(vec3(norm_x, norm_z, 0.0f));
             }
         }
     }
@@ -1853,6 +1799,7 @@ vector<vec3> sphereVertices(vec3 prevVertexArray[44 * 2],const int heightParts, 
     //return sphereArray;
     return vecSphereArray;
 }
+
 int createTexturedCubeVertexArrayObject()
 {
     // Cube model (used for models and axis)
@@ -1913,32 +1860,25 @@ int createTexturedCubeVertexArrayObject()
         vec3(0.5f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
         vec3(-0.5f, 0.0f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
         vec3(-0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),
-        
-        // 1261 Sphere vertices (from lab5) (44)
     };
 
-
-    ////fix change in way storing normal (should be same as position).
-    //for (int i = 0; i < 44; i++) {
-    //    vertexArray[2*i + 1] = vertexArray[2 * i];
-    //}
     //create instancing array for tile grid. 
     const int sideLength = 100;
     const float cellLength = 1.0f;
     const float height = 0.0f;
-    vec3 offsetArray[sideLength*sideLength] = {};
+    vec3 offsetArray[sideLength * sideLength] = {};
     for (int i = 0; i < sideLength; ++i)
     {
         for (int j = 0; j < sideLength; ++j)
         {
             //skip the extra one (the last one)
-            if (i == sideLength - 1 && j == sideLength - 1 ) {
+            if (i == sideLength - 1 && j == sideLength - 1) {
                 break;
             }
-            offsetArray[sideLength * i + j +1] =
-                    vec3(-cellLength * sideLength + (i+1) * cellLength,
-                        height,
-                        -cellLength * sideLength + (j+1) * cellLength);
+            offsetArray[sideLength * i + j + 1] =
+                vec3(-cellLength * sideLength + (i + 1) * cellLength,
+                    height,
+                    -cellLength * sideLength + (j + 1) * cellLength);
         }
     }
 
@@ -1975,26 +1915,13 @@ int createTexturedCubeVertexArrayObject()
     glEnableVertexAttribArray(2);
 
 
-    const int vertexArrayNum = 44;
-    const int heightParts = 22;
-    const int ringParts = 30; 
-    //make sure the sphere draw function draws [(heightParts-1)*ringParts*2] figures.
-    //https://stackoverflow.com/questions/4264304/how-to-return-an-array-from-a-function
-    vector<vec3> vertexArraySphere = sphereVertices(vertexArray, heightParts, ringParts);
-
-    vec3 vertexArr2[vertexArrayNum *2 + (heightParts-1)*ringParts*2*2];
-    //convert it to array
-    for (int i = 0; i < vertexArraySphere.size(); i++) {
-        vertexArr2[i] = vertexArraySphere[i];
-    }
-
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
     //glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
     // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
     //GLuint vertexBufferObject;
     //glGenBuffers(1, &vertexBufferObject);
     //glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArr2), vertexArr2, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0,                   // attribute 0 matches aPos in Vertex Shader
         3,                   // size
@@ -2014,6 +1941,89 @@ int createTexturedCubeVertexArrayObject()
     );
     glEnableVertexAttribArray(4);
 
+    //https://learnopengl.com/Advanced-OpenGL/Instancing
+    //Setting up the instance array
+    glEnableVertexAttribArray(3);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[2]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(offsetArray), offsetArray, GL_STATIC_DRAW);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribDivisor(3, 1);
+
+    return vertexArrayObject;
+}
+
+int createTexturedSphereVertexArrayObject()
+{
+    // Create a vertex array
+    GLuint vertexArrayObject;
+    glGenVertexArrays(1, &vertexArrayObject);
+    glBindVertexArray(vertexArrayObject);
+
+    // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
+    //Have multiple arrays/buffer.
+    //https://www.khronos.org/opengl/wiki/Tutorial2:_VAOs,_VBOs,_Vertex_and_Fragment_Shaders_(C_/_SDL)
+    GLuint vertexBufferObject[3];
+    glGenBuffers(3, vertexBufferObject);
+    //glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[0]);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(texturedCubeVertexArray), texturedCubeVertexArray, GL_STATIC_DRAW);
+
+    //);
+    //glEnableVertexAttribArray(1);
+
+
+    //const int vertexArrayNum = 44;
+    const int heightParts = 22;
+    const int ringParts = 30;
+    const int numStride = 3;
+    const int numVertexes = (heightParts - 1) * ringParts * 2 * numStride;
+    //make sure the sphere draw function draws [(heightParts-1)*ringParts*2] figures.
+    //https://stackoverflow.com/questions/4264304/how-to-return-an-array-from-a-function
+    vector<vec3> vertexArraySphere = sphereVertices(heightParts, ringParts);
+
+    vec3 vertexArr2[numVertexes];
+    //convert it to array
+    for (int i = 0; i < vertexArraySphere.size(); i++) {
+        vertexArr2[i] = vertexArraySphere[i];
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
+    // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
+    //GLuint vertexBufferObject;
+    //glGenBuffers(1, &vertexBufferObject);
+    //glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArr2), vertexArr2, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0,                   // attribute 0 matches aPos in Vertex Shader
+        3,                   // size
+        GL_FLOAT,            // type
+        GL_FALSE,            // normalized?
+        3 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        (void*)0             // array buffer offset
+    );
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(2,                            // attribute 2 matches aUV in Vertex Shader
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        3 * sizeof(vec3),
+        (void*)(2 * sizeof(vec3))      // uv is offseted by 2 vec3 (comes after position and normal)
+    );
+    glEnableVertexAttribArray(2);
+
+    glVertexAttribPointer(4,                   // attribute 1 matches aNormal in Vertex Shader
+        3,                   // size
+        GL_FLOAT,            // type
+        GL_FALSE,            // normalized?
+        3 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        (void*)sizeof(vec3)  // array buffer offset
+    );
+    glEnableVertexAttribArray(4);
+
+
+    vec3 offsetArray[1] = { vec3(0) };
     //https://learnopengl.com/Advanced-OpenGL/Instancing
     //Setting up the instance array
     glEnableVertexAttribArray(3);
@@ -3305,6 +3315,11 @@ struct TextureId {
     int metalTextureID;
     //etc
 };
+//individual fields are VAO
+struct VAO {
+    int cubeVAO;
+    int sphereVAO;
+};
 //has info on all settings to render.
 struct RenderInfo {
     int shaderProgram;
@@ -3313,12 +3328,11 @@ struct RenderInfo {
     GLuint enableShadowLocation;
     GLuint worldMatrixLocation;
 
-    int cubeVAOa;
-
     int enableTexture;
     int enableShadow;
     TextureId textures;
 
+    VAO vao;
     //etc
 };
 
@@ -3332,7 +3346,8 @@ void renderDecor(RenderInfo renderInfo) {
     int enableShadow = renderInfo.enableShadow;
     int tiledTextureID = renderInfo.textures.tiledTextureID;
 
-    int cubeVAOa = renderInfo.cubeVAOa;
+    int cubeVAOa = renderInfo.vao.cubeVAO;
+    glBindVertexArray(cubeVAOa);
 
     // Draw ground
     glUniform1i(enableShadowLocation, enableShadow);
@@ -3343,7 +3358,6 @@ void renderDecor(RenderInfo renderInfo) {
     drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
     // draw axis
     drawAxes(worldMatrixLocation, colorLocation);
-    glBindVertexArray(cubeVAOa);
     glUniform1i(enableTextureLocation, enableTexture);
 
     //draw tiles
@@ -3357,8 +3371,14 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models) {
     GLuint enableTextureLocation = renderInfo.enableTextureLocation;
     GLuint worldMatrixLocation = renderInfo.worldMatrixLocation;
     int enableTexture = renderInfo.enableTexture;
+
     int boxTextureID = renderInfo.textures.boxTextureID;
     int metalTextureID = renderInfo.textures.metalTextureID;
+
+    int cubeVAOa = renderInfo.vao.cubeVAO;
+    int sphereVAOa = renderInfo.vao.sphereVAO;
+
+    glBindVertexArray(cubeVAOa);
 
     //draw all models
     GLuint temp = CharModel::swapWorldMatrixLocation(models, worldMatrixLocation);
@@ -3371,8 +3391,9 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models) {
     //Sphere has no texture for now.
     glBindTexture(GL_TEXTURE_2D, 0);
     glUniform1i(enableTextureLocation, 0);
-    CharModel::drawSphere(models);
     CharModel::draw(models);
+    glBindVertexArray(sphereVAOa);
+    CharModel::drawSphere(models);
     glUniform1i(enableTextureLocation, enableTexture);
 
     //swap back
@@ -3934,6 +3955,7 @@ int main(int argc, char* argv[])
     instanceVec[0] = vec3(0, 0, 0);
     // Define and upload geometry to the GPU here ...
     int cubeVAOa = createTexturedCubeVertexArrayObject();
+    int sphereVAOa = createTexturedSphereVertexArrayObject();
     int planeVAO = createPlaneVertexArrayObject();
     // For frame time
     float lastFrameTime = glfwGetTime();
@@ -4501,7 +4523,8 @@ int main(int argc, char* argv[])
         renderInfo.textures.boxTextureID = boxTextureID;
         renderInfo.textures.metalTextureID = metalTextureID;
 
-        renderInfo.cubeVAOa = cubeVAOa;
+        renderInfo.vao.cubeVAO = cubeVAOa;
+        renderInfo.vao.sphereVAO = sphereVAOa;
         //renderScene(shaderProgramShadow, cubeVAOa);
         glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
         renderDecor(renderInfo);
