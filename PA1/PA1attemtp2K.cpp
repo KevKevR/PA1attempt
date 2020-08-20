@@ -623,7 +623,7 @@ public:
             if (*it) {
                 (*it)->prev();
                 //temp to start
-                (*it)->updateWalkProgress(0, 2);
+                (*it)->updateWalkProgress(0, 1);
             }
         }
     }
@@ -923,6 +923,10 @@ public:
     }
     void prev() {
         targetAngle = -90.0f;
+        addRelativeRotateMatrix(
+            rotate(mat4(1.0f),
+                radians(-90.0f),
+                motionD.axisRotation));
     }
     void reset() {
         CharModel::reset();
@@ -948,7 +952,7 @@ protected:
         //        vec3(0.0f, 0.0f, -1.0f));
         mat4 motion =
             rotate(mat4(1.0f),
-                radians(90.0f) * (position),
+                radians(rotationAngle) * (position),
                 motionD.axisRotation);
         TRSMatricesHolder(tempR);
         tempR.rotateMatrix = motion;
@@ -3346,28 +3350,34 @@ int getCoord(int x, int y, int z) {
     //return a;
 }
 
-
+bool DEBUG_RUBIKCUBE_FRONT = false;
+bool DEBUG_RUBIKCUBE_TOP= false;
 class RubikCube {
 public:
     RubikCube(vector<CharModel*> boxes) : boxes(boxes) {
+        reset();
+    }
+    //reset positions
+    void reset() {
         for (int i = 0; i < 27; i++) {
             positionsIndex[i] = i;
         }
     }
-
     vector<CharModel*> getFront() {
         vector<CharModel*> result(0);
-        cout << "Front:\n";
+        if (DEBUG_RUBIKCUBE_FRONT)cout << "Front:\n";
         int debugi = 0;
         for (int i = 0; i < 27; i++) {
             //or if ((i/9)%3==2)
             if (i > 17) {
                 result.push_back(boxes[positionsIndex[i]]);
 
-                cout << positionsIndex[i];
-                cout << " ";
-                debugi++;
-                if (debugi % 3 == 0) cout << "\n";
+                if (DEBUG_RUBIKCUBE_FRONT) {
+                    cout << positionsIndex[i];
+                    cout << " ";
+                    debugi++;
+                    if (debugi % 3 == 0) cout << "\n";
+                }
             }
         }
         return result;
@@ -3383,9 +3393,17 @@ public:
     }
     vector<CharModel*> getTop() {
         vector<CharModel*> result(0);
+        if (DEBUG_RUBIKCUBE_TOP)cout << "Top:\n";
+        int debugi = 0;
         for (int i = 0; i < 27; i++) {
             if ((i % 9) / 3 == 2) {
                 result.push_back(boxes[positionsIndex[i]]);
+                if (DEBUG_RUBIKCUBE_TOP) {
+                    cout << positionsIndex[i];
+                    cout << " ";
+                    debugi++;
+                    if (debugi % 3 == 0) cout << "\n";
+                }
             }
         }
         return result;
@@ -3623,7 +3641,47 @@ public:
         }
     }
 
+    void rotateFace(float direction, int face) {
+        switch (face) {
+        case 0:
+            //Front
+        {
+            rotateFront(direction);
+        }
+        break;
+        case 1:
+            //Back
+        {
+            rotateBack(direction);
+        }
+        break;
+        case 2:
+            //Top
+        {
+            rotateTop(direction);
+        }
+        break;
+        case 3:
+            //Bot
+        {
+            rotateBot(direction);
+        }
+        break;
+        case 4:
+            //Port
+        {
+            rotatePort(direction);
+        }
+        break;
+        case 5:
+            //Starboard
+        {
+            rotateStarboard(direction);
+        }
+        break;
 
+        }
+    }
 
     //boxes indexed in order
     vector<CharModel*> boxes;
@@ -3996,13 +4054,19 @@ int main(int argc, char* argv[])
     //CharModel boxFront    (shaderProgram, init_T[1 + 3 * 1 + 9 * 2]);
     //CharModel boxBack     (shaderProgram, init_T[1 + 3 * 1 + 9 * 0]);
 
-    boxTop.setAxis(vec3(0, 1, 0));
+    //boxTop.setAxis(vec3(0, 1, 0));
+    //boxBot.setAxis(vec3(0, -1, 0));
+    //boxPort.setAxis(vec3(1, 0, 0));
+    //boxStarboard.setAxis(vec3(-1, 0, 0));
+    //boxFront.setAxis(vec3(0, 0, 1));
+    //boxBack.setAxis(vec3(0, 0, -1));
+
+    boxTop.setAxis(vec3(0, -1, 0));
     boxBot.setAxis(vec3(0, -1, 0));
-    boxPort.setAxis(vec3(1, 0, 0));
+    boxPort.setAxis(vec3(-1, 0, 0));
     boxStarboard.setAxis(vec3(-1, 0, 0));
     boxFront.setAxis(vec3(0, 0, 1));
-    boxBack.setAxis(vec3(0, 0, -1));
-
+    boxBack.setAxis(vec3(0, 0, 1));
     //boxTop.setAttachedMotionData({ vec3(0, 1, 0) });
     //boxBot.setAttachedMotionData({ vec3(0, -1, 0) });
     //boxPort.setAttachedMotionData({ vec3(1, 0, 0) });
@@ -4474,7 +4538,8 @@ int main(int argc, char* argv[])
             partIndex = partModelControl(window, partIndex, previousKeyStates);
             CharModel* prevModel = selectedModel;
             selectedModel = vModels[modelIndex];
-            CharModel* selectedPartModel = selectedModel->getAttachedModels()[partIndex];
+            //CharModel* selectedPartModel = selectedModel->getAttachedModels()[partIndex];
+            CharModel* selectedPartModel = boxRotater.getAttachedModels()[partIndex];
             //Control model key presses.
             mat4* relativeWorldMatrix = modelControl(window, dt, previousKeyStates);
             bool hasMovement = checkModelMovement(window, previousKeyStates);
@@ -4485,6 +4550,10 @@ int main(int argc, char* argv[])
                 selectedModel->reset();
                 //reset walk state.
                 selectedModel->updateWalkProgress(0, 0);
+
+                //reset whole cube
+                rubik.reset();
+                attachBoxToCube(attachedToRotater, rubik);
                 //reset camera too.
                 cameraPosition = initial_cameraPosition;
                 //cameraLookAt = initial_cameraLookAt;
@@ -4517,12 +4586,17 @@ int main(int argc, char* argv[])
                 
                 //temp debug
                 //rubik.rotateFront(1);
-                rubik.getFront();
+                //rubik.getFront();
                 //attachBoxToCube(attachedToRotater, rubik);
 
-                //make selected part model display next mode
+                //make selected part model display next mode (rotation)
                 selectedPartModel->setAttachedMotionData(selectedPartModel->motionD);
                 selectedPartModel->attachedNext();
+                
+                //rotate internal model, and apply to cube.
+                rubik.rotateFace(1, partIndex);
+                attachBoxToCube(attachedToRotater, rubik);
+
                 //selectedModel->getAttachedModels()[partIndex]->next();
                 //selectedModel->getAttachedModels()[partIndex]->updateWalkProgress(0, 1);
                 //selectedModel->getAttachedModels()[partIndex]->addRelativeWorldMatrix(translate(mat4(1.0f), vec3(dt * 100, 0.0f,0.0f)), relativeWorldMatrix[1], relativeWorldMatrix[2]);
@@ -4532,12 +4606,16 @@ int main(int argc, char* argv[])
             if (selectedSetting[6] || selectedSetting[7]) {
                 //temp debug
                 //rubik.rotateFront(-1);
-                rubik.getFront();
+                //rubik.getFront();
                 //attachBoxToCube(attachedToRotater, rubik);
 
-                //make selected part model display previous mode
-                //selectedModel->getAttachedModels()[partIndex]->prev();
+                //make selected part model display previous mode (rotation)
+                selectedPartModel->setAttachedMotionData(selectedPartModel->motionD);
                 selectedPartModel->attachedPrev();
+
+                //rotate internal model, and apply to cube.
+                rubik.rotateFace(-1, partIndex);
+                attachBoxToCube(attachedToRotater, rubik);
             }
             //Adjust selected model accordingly.
             selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
@@ -4557,6 +4635,8 @@ int main(int argc, char* argv[])
             if (prevModel != selectedModel && prevModel) {
                 prevModel->updateWalkProgress(0, 2);
             }
+            //TODO selected color: reset color of other boxes, when prev part is not selected part. Also change color of selected part.
+
             renderModels(renderInfo, vModels);
             //update
             CharModel::update(vModels, dt);
