@@ -3924,11 +3924,36 @@ int main(int argc, char* argv[])
     //GLuint metalTextureID = loadTexture("../Assets/Textures/metal.jpg");
     //GLuint boxTextureID = loadTexture("../Assets/Textures/box.jpg");
     GLuint brickTextureID = loadTexture("Assets/Textures/brick.jpg");
-    GLuint tiledTextureID = loadTexture("Assets/Textures/tiled.jpg");
+    //GLuint tiledTextureID = loadTexture("Assets/Textures/tiled.jpg");
     GLuint cementTextureID = loadTexture("Assets/Textures/cement.jpg");
     GLuint metalTextureID = loadTexture("Assets/Textures/metal.jpg");
     GLuint boxTextureID = loadTexture("Assets/Textures/box.jpg");
 
+    GLuint tiledTextureID = loadTexture("../Assets/Textures/tiled.jpg");
+    GLuint redTextureID = loadTexture("../Assets/Textures/red.jpg");
+    GLuint blueTextureID = loadTexture("../Assets/Textures/blue.jpg");
+    GLuint yellowTextureID = loadTexture("../Assets/Textures/yellow.jpg");
+    GLuint greenTextureID = loadTexture("../Assets/Textures/green.jpg");
+    GLuint orangeTextureID = loadTexture("../Assets/Textures/orange.jpg");
+    GLuint purpleTextureID = loadTexture("../Assets/Textures/purple.jpg");
+    GLuint pianoTextureID = loadTexture("../Assets/Textures/piano.jpg");
+    GLuint trumpetTextureID = loadTexture("../Assets/Textures/trumpet.jpg");
+    GLuint fluteTextureID = loadTexture("../Assets/Textures/flute.jpg");
+    GLuint triangleTextureID = loadTexture("../Assets/Textures/triangle.jpg");
+    GLuint guitarTextureID = loadTexture("../Assets/Textures/guitar.jpg");
+    GLuint drumTextureID = loadTexture("../Assets/Textures/drum.jpg");
+    GLuint laptopTextureID = loadTexture("../Assets/Textures/laptop.jpg");
+    GLuint glassTextureID = loadTexture("../Assets/Textures/glass.jpg");
+    GLuint doublehelixTextureID = loadTexture("../Assets/Textures/doublehelix.jpg");
+    GLuint cellsTextureID = loadTexture("../Assets/Textures/cells.jpg");
+    GLuint telescopeTextureID = loadTexture("../Assets/Textures/telescope.jpg");
+    GLuint javaTextureID = loadTexture("../Assets/Textures/java.jpg");
+    GLuint soccerTextureID = loadTexture("../Assets/Textures/soccer.jpg");
+    GLuint basketballTextureID = loadTexture("../Assets/Textures/basketball.jpg");
+    GLuint tennisTextureID = loadTexture("../Assets/Textures/tennis.jpg");
+    GLuint baseballTextureID = loadTexture("../Assets/Textures/baseball.jpg");
+    GLuint hockeyTextureID = loadTexture("../Assets/Textures/hockey.jpg");
+    GLuint bowlingTextureID = loadTexture("../Assets/Textures/bowling.jpg");
 #endif
     //randomize rand();
     srand(time(0));
@@ -4294,8 +4319,16 @@ int main(int argc, char* argv[])
 
     //set face
     int i = 0;
-    for (vector<CharModel*>::iterator itBox = attachedToCore.begin(); itBox != attachedToCore.end(); itBox++, i++) {
-        (*itBox)->setFace(faces[i]);
+    //for (vector<CharModel*>::iterator itBox = attachedToCore.begin(); itBox != attachedToCore.end(); itBox++, i++) {
+    //    (*itBox)->setFace(faces[i]);
+    //}
+
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            for (int k = 0; k < 3; k++) {
+                attachedToCore[getCoord(k, j, i)]->setFace(faces[getCoordB(k, j, i)]);
+            }
+        }
     }
 
     //internal model to track 27 box positions
@@ -4415,13 +4448,13 @@ int main(int argc, char* argv[])
         renderInfo.textures.metalTextureID = metalTextureID;
 
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, boxTextureID);
+        glBindTexture(GL_TEXTURE_2D, drumTextureID);
         glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, boxTextureID);
+        glBindTexture(GL_TEXTURE_2D, pianoTextureID);
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, boxTextureID);
+        glBindTexture(GL_TEXTURE_2D, trumpetTextureID);
         glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, boxTextureID);
+        glBindTexture(GL_TEXTURE_2D, bowlingTextureID);
         glActiveTexture(GL_TEXTURE6);
         glBindTexture(GL_TEXTURE_2D, boxTextureID);
         glActiveTexture(GL_TEXTURE7);
