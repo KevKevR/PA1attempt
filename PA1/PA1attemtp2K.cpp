@@ -503,16 +503,13 @@ public:
 
     mat4 getRelativeRotateMatrix() {
         mat4 motion = getMotion(updateWalkProgress(0)).rotateMatrix;
-        return relativeRotateMatrix * motion;
+        return motion * relativeRotateMatrix;
     }
     void setRelativeRotateMatrix(mat4 relRWM) {
         relativeRotateMatrix = relRWM;
     }
     void addRelativeRotateMatrix(mat4 relRWM) {
         relativeRotateMatrix = relRWM * relativeRotateMatrix;
-    }
-    void addRelativeRotateMatrix2(mat4 relRWM) {
-        relativeRotateMatrix = relativeRotateMatrix * relRWM;
     }
 
     //return scale matrix without shear elements
@@ -919,7 +916,7 @@ public:
     }
     void next() {
         targetAngle = 90.0f;
-        addRelativeRotateMatrix2(
+        addRelativeRotateMatrix(
             rotate(mat4(1.0f),
                 radians(90.0f),
                 motionD.axisRotation));
@@ -995,6 +992,7 @@ public:
     }
         //vec3 axis;
 };
+
 class ModelV9 : public CharModel {
 public:
 	//Constructor
@@ -3347,6 +3345,310 @@ int getCoord(int x, int y, int z) {
     //int a= arr[z][y][x];
     //return a;
 }
+
+
+class RubikCube {
+public:
+    RubikCube(vector<CharModel*> boxes) : boxes(boxes) {
+        for (int i = 0; i < 27; i++) {
+            positionsIndex[i] = i;
+        }
+    }
+
+    vector<CharModel*> getFront() {
+        vector<CharModel*> result(0);
+        cout << "Front:\n";
+        int debugi = 0;
+        for (int i = 0; i < 27; i++) {
+            //or if ((i/9)%3==2)
+            if (i > 17) {
+                result.push_back(boxes[positionsIndex[i]]);
+
+                cout << positionsIndex[i];
+                cout << " ";
+                debugi++;
+                if (debugi % 3 == 0) cout << "\n";
+            }
+        }
+        return result;
+    }
+    vector<CharModel*> getBack() {
+        vector<CharModel*> result(0);
+        for (int i = 0; i < 27; i++) {
+            if (i < 9) {
+                result.push_back(boxes[positionsIndex[i]]);
+            }
+        }
+        return result;
+    }
+    vector<CharModel*> getTop() {
+        vector<CharModel*> result(0);
+        for (int i = 0; i < 27; i++) {
+            if ((i % 9) / 3 == 2) {
+                result.push_back(boxes[positionsIndex[i]]);
+            }
+        }
+        return result;
+    }
+    vector<CharModel*> getBot() {
+        vector<CharModel*> result(0);
+        for (int i = 0; i < 27; i++) {
+            if ((i % 9) / 3 == 0) {
+                result.push_back(boxes[positionsIndex[i]]);
+            }
+        }
+        return result;
+    }
+    vector<CharModel*> getPort() {
+        vector<CharModel*> result(0);
+        for (int i = 0; i < 27; i++) {
+            if ((i % 9) % 3 == 2) {
+                result.push_back(boxes[positionsIndex[i]]);
+            }
+        }
+        return result;
+    }
+    vector<CharModel*> getStarboard() {
+        vector<CharModel*> result(0);
+        for (int i = 0; i < 27; i++) {
+            if ((i % 9) % 3 == 0) {
+                result.push_back(boxes[positionsIndex[i]]);
+            }
+        }
+        return result;
+    }
+
+    vector<vector<int>> rotateFaceCW(vector<vector<int>> arr) {
+        //vector<vector<int>> result;
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > result(3, row);
+
+        const int size = 3;
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                result[i][j] = arr[size - 1 - j][i];
+            }
+        }
+        return result;
+    }
+    vector<vector<int>> rotateFaceCCW(vector<vector<int>> arr) {
+        //vector<vector<int>> result;
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > result(3, row);
+
+        const int size = 3;
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                result[i][j] = arr[j][size - 1 - i];
+            }
+        }
+        return result;
+    }
+
+    //direction negative makes rotation CCW, otherwise rotation is CW.
+    void rotateFront(float direction) {
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > arr(3, row);
+        const int size = 3;
+        //get indexes of face
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                arr[j][i] = positionsIndex[getCoord(i, j, 2)];
+            }
+        }
+        //rotate face
+        vector<vector<int> > result;
+        if (signbit(direction)) {
+            result = rotateFaceCCW(arr);
+        }
+        else {
+            result = rotateFaceCW(arr);
+        }
+
+        //update indexes
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                positionsIndex[getCoord(i, j, 2)] = result[j][i];
+            }
+        }
+    }
+    //direction negative makes rotation CCW, otherwise rotation is CW.
+    void rotateBack(float direction) {
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > arr(3, row);
+        const int size = 3;
+        //get indexes of face
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                arr[j][i] = positionsIndex[getCoord(i, j, 0)];
+            }
+        }
+        //rotate face
+        vector<vector<int> > result;
+        if (signbit(direction)) {
+            result = rotateFaceCCW(arr);
+
+        }
+        else {
+            result = rotateFaceCW(arr);
+        }
+
+        //update indexes
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                positionsIndex[getCoord(i, j, 0)] = result[j][i];
+            }
+        }
+    }
+    //direction negative makes rotation CCW, otherwise rotation is CW.
+    void rotateTop(float direction) {
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > arr(3, row);
+        const int size = 3;
+        //get indexes of face
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                arr[j][i] = positionsIndex[getCoord(i, 2, j)];
+                // maybe instead?: arr[j][i] = positionsIndex[getCoord(size - 1 - i, 2, j)];
+            }
+        }
+        //rotate face
+        vector<vector<int> > result;
+        if (signbit(direction)) {
+            result = rotateFaceCCW(arr);
+
+        }
+        else {
+            result = rotateFaceCW(arr);
+        }
+
+        //update indexes
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                positionsIndex[getCoord(i, 2, j)] = result[j][i];
+            }
+        }
+    }
+    //direction negative makes rotation CCW, otherwise rotation is CW.
+    void rotateBot(float direction) {
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > arr(3, row);
+        const int size = 3;
+        //get indexes of face
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                arr[j][i] = positionsIndex[getCoord(i, 0, j)];
+                // maybe instead?: arr[j][i] = positionsIndex[getCoord(size - 1 - i, 0, j)];
+            }
+        }
+        //rotate face
+        vector<vector<int> > result;
+        if (signbit(direction)) {
+            result = rotateFaceCCW(arr);
+
+        }
+        else {
+            result = rotateFaceCW(arr);
+        }
+
+        //update indexes
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                positionsIndex[getCoord(i, 0, j)] = result[j][i];
+            }
+        }
+    }
+    //direction negative makes rotation CCW, otherwise rotation is CW.
+    void rotatePort(float direction) {
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > arr(3, row);
+        const int size = 3;
+        //get indexes of face
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                arr[j][i] = positionsIndex[getCoord(2, j, i)];
+            }
+        }
+        //rotate face
+        vector<vector<int> > result;
+        if (signbit(direction)) {
+            result = rotateFaceCCW(arr);
+
+        }
+        else {
+            result = rotateFaceCW(arr);
+        }
+
+        //update indexes
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                positionsIndex[getCoord(2, j, i)] = result[j][i];
+            }
+        }
+    }
+    //direction negative makes rotation CCW, otherwise rotation is CW.
+    void rotateStarboard(float direction) {
+        //3x3 vector array
+        vector<int> row(3, -1);
+        vector<vector<int> > arr(3, row);
+        const int size = 3;
+        //get indexes of face
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                arr[j][i] = positionsIndex[getCoord(0, j, i)];
+            }
+        }
+        //rotate face
+        vector<vector<int> > result;
+        if (signbit(direction)) {
+            result = rotateFaceCCW(arr);
+
+        }
+        else {
+            result = rotateFaceCW(arr);
+        }
+
+        //update indexes
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                positionsIndex[getCoord(0, j, i)] = result[j][i];
+            }
+        }
+    }
+
+
+
+    //boxes indexed in order
+    vector<CharModel*> boxes;
+
+    //index points to box that should be in cell position.
+    int positionsIndex[27];
+
+};
+
+//attachedToRotater has sides of cube (front, back, top, bot, port, starboard).
+void attachBoxToCube(vector<CharModel*> attachedToRotater, RubikCube rCube) {
+    //front
+    attachedToRotater[0]->setAttachedModels(rCube.getFront());
+    //back
+    attachedToRotater[1]->setAttachedModels(rCube.getBack());
+    //top
+    attachedToRotater[2]->setAttachedModels(rCube.getTop());
+    //bot
+    attachedToRotater[3]->setAttachedModels(rCube.getBot());
+    //port
+    attachedToRotater[4]->setAttachedModels(rCube.getPort());
+    //starboard
+    attachedToRotater[5]->setAttachedModels(rCube.getStarboard());
+
+}
 int main(int argc, char* argv[])
 {
     // Initialize GLFW and OpenGL version
@@ -3847,66 +4149,66 @@ int main(int argc, char* argv[])
     //ModelBox A8(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,2,2)]);
     //ModelBox A9(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,2,2)]);
 
-    vector<CharModel*> attachedToFront(0);
-    attachedToFront.push_back(&A1);
-    attachedToFront.push_back(&A2);
-    attachedToFront.push_back(&A3);
-    attachedToFront.push_back(&A4);
-    attachedToFront.push_back(&A5);
-    attachedToFront.push_back(&A6);
-    attachedToFront.push_back(&A7);
-    attachedToFront.push_back(&A8);
-    attachedToFront.push_back(&A9);
-    vector<CharModel*> attachedToBack(0);
-    attachedToBack.push_back(&C1);
-    attachedToBack.push_back(&C2);
-    attachedToBack.push_back(&C3);
-    attachedToBack.push_back(&C4);
-    attachedToBack.push_back(&C5);
-    attachedToBack.push_back(&C6);
-    attachedToBack.push_back(&C7);
-    attachedToBack.push_back(&C8);
-    attachedToBack.push_back(&C9);
-    vector<CharModel*> attachedToPort(0);
-    attachedToPort.push_back(&C3);
-    attachedToPort.push_back(&B3);
-    attachedToPort.push_back(&A3);
-    attachedToPort.push_back(&C6);
-    attachedToPort.push_back(&B6);
-    attachedToPort.push_back(&A6);
-    attachedToPort.push_back(&C9);
-    attachedToPort.push_back(&B9);
-    attachedToPort.push_back(&A9);
-    vector<CharModel*> attachedToStarboard(0);
-    attachedToStarboard.push_back(&C1);
-    attachedToStarboard.push_back(&B1);
-    attachedToStarboard.push_back(&A1);
-    attachedToStarboard.push_back(&C4);
-    attachedToStarboard.push_back(&B4);
-    attachedToStarboard.push_back(&A4);
-    attachedToStarboard.push_back(&C7);
-    attachedToStarboard.push_back(&B7);
-    attachedToStarboard.push_back(&A7);
-    vector<CharModel*> attachedToTop(0);
-    attachedToTop.push_back(&C7);
-    attachedToTop.push_back(&C8);
-    attachedToTop.push_back(&C9);
-    attachedToTop.push_back(&B7);
-    attachedToTop.push_back(&B8);
-    attachedToTop.push_back(&B9);
-    attachedToTop.push_back(&A7);
-    attachedToTop.push_back(&A8);
-    attachedToTop.push_back(&A9);
-    vector<CharModel*> attachedToBot(0);
-    attachedToBot.push_back(&C1);
-    attachedToBot.push_back(&C2);
-    attachedToBot.push_back(&C3);
-    attachedToBot.push_back(&B1);
-    attachedToBot.push_back(&B2);
-    attachedToBot.push_back(&B3);
-    attachedToBot.push_back(&A1);
-    attachedToBot.push_back(&A2);
-    attachedToBot.push_back(&A3);
+    //vector<CharModel*> attachedToFront(0);
+    //attachedToFront.push_back(&A1);
+    //attachedToFront.push_back(&A2);
+    //attachedToFront.push_back(&A3);
+    //attachedToFront.push_back(&A4);
+    //attachedToFront.push_back(&A5);
+    //attachedToFront.push_back(&A6);
+    //attachedToFront.push_back(&A7);
+    //attachedToFront.push_back(&A8);
+    //attachedToFront.push_back(&A9);
+    //vector<CharModel*> attachedToBack(0);
+    //attachedToBack.push_back(&C1);
+    //attachedToBack.push_back(&C2);
+    //attachedToBack.push_back(&C3);
+    //attachedToBack.push_back(&C4);
+    //attachedToBack.push_back(&C5);
+    //attachedToBack.push_back(&C6);
+    //attachedToBack.push_back(&C7);
+    //attachedToBack.push_back(&C8);
+    //attachedToBack.push_back(&C9);
+    //vector<CharModel*> attachedToPort(0);
+    //attachedToPort.push_back(&C3);
+    //attachedToPort.push_back(&B3);
+    //attachedToPort.push_back(&A3);
+    //attachedToPort.push_back(&C6);
+    //attachedToPort.push_back(&B6);
+    //attachedToPort.push_back(&A6);
+    //attachedToPort.push_back(&C9);
+    //attachedToPort.push_back(&B9);
+    //attachedToPort.push_back(&A9);
+    //vector<CharModel*> attachedToStarboard(0);
+    //attachedToStarboard.push_back(&C1);
+    //attachedToStarboard.push_back(&B1);
+    //attachedToStarboard.push_back(&A1);
+    //attachedToStarboard.push_back(&C4);
+    //attachedToStarboard.push_back(&B4);
+    //attachedToStarboard.push_back(&A4);
+    //attachedToStarboard.push_back(&C7);
+    //attachedToStarboard.push_back(&B7);
+    //attachedToStarboard.push_back(&A7);
+    //vector<CharModel*> attachedToTop(0);
+    //attachedToTop.push_back(&C7);
+    //attachedToTop.push_back(&C8);
+    //attachedToTop.push_back(&C9);
+    //attachedToTop.push_back(&B7);
+    //attachedToTop.push_back(&B8);
+    //attachedToTop.push_back(&B9);
+    //attachedToTop.push_back(&A7);
+    //attachedToTop.push_back(&A8);
+    //attachedToTop.push_back(&A9);
+    //vector<CharModel*> attachedToBot(0);
+    //attachedToBot.push_back(&C1);
+    //attachedToBot.push_back(&C2);
+    //attachedToBot.push_back(&C3);
+    //attachedToBot.push_back(&B1);
+    //attachedToBot.push_back(&B2);
+    //attachedToBot.push_back(&B3);
+    //attachedToBot.push_back(&A1);
+    //attachedToBot.push_back(&A2);
+    //attachedToBot.push_back(&A3);
 
 
     vector<CharModel*> attachedToCore(0);
@@ -3955,12 +4257,16 @@ int main(int argc, char* argv[])
     attachedToRotater.push_back(&boxPort);
     attachedToRotater.push_back(&boxStarboard);
 
-    boxFront.setAttachedModels(attachedToFront);
-    boxBack.setAttachedModels(attachedToBack);
-    boxTop.setAttachedModels(attachedToTop);
-    boxBot.setAttachedModels(attachedToBot);
-    boxPort.setAttachedModels(attachedToPort);
-    boxStarboard.setAttachedModels(attachedToStarboard);
+    //boxFront.setAttachedModels(attachedToFront);
+    //boxBack.setAttachedModels(attachedToBack);
+    //boxTop.setAttachedModels(attachedToTop);
+    //boxBot.setAttachedModels(attachedToBot);
+    //boxPort.setAttachedModels(attachedToPort);
+    //boxStarboard.setAttachedModels(attachedToStarboard);
+
+    //internal model to track 27 box positions
+    RubikCube rubik(attachedToCore);
+    attachBoxToCube(attachedToRotater, rubik);
 
     boxCore.setAttachedModels(attachedToCore);
     boxRotater.setAttachedModels(attachedToRotater);
@@ -3997,7 +4303,6 @@ int main(int argc, char* argv[])
             }
         }
     }
-
 
     //previous frame, if valid input to model.
     bool prevHadMovement = false;
@@ -4192,6 +4497,10 @@ int main(int argc, char* argv[])
             if (selectedSetting[2]) {
                 enableTexture = enableTexture * -1 + 1;
 
+                //
+                rubik.rotateFront(1);
+                rubik.getFront();
+                attachBoxToCube(attachedToRotater, rubik);
 
                 //manual toggle shear movement.
                 //ToDo: delete this comment.
@@ -4205,6 +4514,12 @@ int main(int argc, char* argv[])
             }
             //c pressed, so go to next mode
             if (selectedSetting[4] || selectedSetting[5]) {
+                
+                //temp debug
+                //rubik.rotateFront(1);
+                rubik.getFront();
+                //attachBoxToCube(attachedToRotater, rubik);
+
                 //make selected part model display next mode
                 selectedPartModel->setAttachedMotionData(selectedPartModel->motionD);
                 selectedPartModel->attachedNext();
@@ -4215,6 +4530,11 @@ int main(int argc, char* argv[])
             }
             //v pressed, so go to prev mode
             if (selectedSetting[6] || selectedSetting[7]) {
+                //temp debug
+                //rubik.rotateFront(-1);
+                rubik.getFront();
+                //attachBoxToCube(attachedToRotater, rubik);
+
                 //make selected part model display previous mode
                 //selectedModel->getAttachedModels()[partIndex]->prev();
                 selectedPartModel->attachedPrev();
@@ -4474,287 +4794,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
         randomPosModel(selectedModel);
 }
-
-
-class RubikCube {
-public:
-    RubikCube(vector<CharModel*> boxes) : boxes(boxes){
-        for (int i = 0; i < 27; i++) {
-            positionsIndex[i] = i;
-        }
-    }
-
-    vector<CharModel*> getFront() {
-        vector<CharModel*> result(0);
-        for (int i = 0; i < 27; i++) {
-            //or if ((i/9)%3==2)
-            if (i > 17) {
-                result.push_back(boxes[positionsIndex[i]]);
-            }
-        }
-        return result;
-    }
-    vector<CharModel*> getBack() {
-        vector<CharModel*> result(0);
-        for (int i = 0; i < 27; i++) {
-            if (i < 9) {
-                result.push_back(boxes[positionsIndex[i]]);
-            }
-        }
-        return result;
-    }
-    vector<CharModel*> getTop() {
-        vector<CharModel*> result(0);
-        for (int i = 0; i < 27; i++) {
-            if ((i%9)/3 == 2) {
-                result.push_back(boxes[positionsIndex[i]]);
-            }
-        }
-        return result;
-    }
-    vector<CharModel*> getBot() {
-        vector<CharModel*> result(0);
-        for (int i = 0; i < 27; i++) {
-            if ((i % 9) / 3 == 0) {
-                result.push_back(boxes[positionsIndex[i]]);
-            }
-        }
-        return result;
-    }
-    vector<CharModel*> getPort() {
-        vector<CharModel*> result(0);
-        for (int i = 0; i < 27; i++) {
-            if ((i % 9) % 3 == 2) {
-                result.push_back(boxes[positionsIndex[i]]);
-            }
-        }
-        return result;
-    }
-    vector<CharModel*> getStarboard() {
-        vector<CharModel*> result(0);
-        for (int i = 0; i < 27; i++) {
-            if ((i % 9) % 3 == 0) {
-                result.push_back(boxes[positionsIndex[i]]);
-            }
-        }
-        return result;
-    }
-
-    vector<vector<int>> rotateFaceCW(vector<vector<int>> arr) {
-        //vector<vector<int>> result;
-        //3x3 vector array
-        vector<int> row(3, -1);
-        vector<vector<int> > result(3, row);
-
-        const int size = 3;
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                result[i][j] = arr[size - 1 - j][i];
-            }
-        }
-        return result;
-    }
-    vector<vector<int>> rotateFaceCCW(vector<vector<int>> arr) {
-        //vector<vector<int>> result;
-        //3x3 vector array
-        vector<int> row(3, -1);
-        vector<vector<int> > result(3, row);
-
-        const int size = 3;
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                result[i][j] = arr[j][size - 1 - i];
-            }
-        }
-        return result;
-    }
-
-    //direction negative makes rotation CCW, otherwise rotation is CW.
-    void rotateFront(float direction) {
-        //3x3 vector array
-        vector<int> row(3, -1);
-        vector<vector<int> > arr(3, row);
-        const int size = 3;
-        //get indexes of face
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                arr[j][i] = positionsIndex[getCoord(i, j, 2)];
-            }
-        }
-        //rotate face
-        vector<vector<int> > result;
-        if (signbit(direction)) {
-            result = rotateFaceCW(arr);
-
-        }
-        else {
-            result = rotateFaceCCW(arr);
-        }
-
-        //update indexes
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                positionsIndex[getCoord(i, j, 2)] = result[j][i];
-            }
-        }
-    }
-    //direction negative makes rotation CCW, otherwise rotation is CW.
-    void rotateBack(float direction) {
-        //3x3 vector array
-        vector<int> row(3, -1);
-        vector<vector<int> > arr(3, row);
-        const int size = 3;
-        //get indexes of face
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                arr[j][i] = positionsIndex[getCoord(i, j, 0)];
-            }
-        }
-        //rotate face
-        vector<vector<int> > result;
-        if (signbit(direction)) {
-            result = rotateFaceCW(arr);
-
-        }
-        else {
-            result = rotateFaceCCW(arr);
-        }
-
-        //update indexes
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                positionsIndex[getCoord(i, j, 0)] = result[j][i];
-            }
-        }
-    }
-    //direction negative makes rotation CCW, otherwise rotation is CW.
-    void rotateTop(float direction) {
-        //3x3 vector array
-        vector<int> row(3, -1);
-        vector<vector<int> > arr(3, row);
-        const int size = 3;
-        //get indexes of face
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                arr[j][i] = positionsIndex[getCoord(i, 2, j)];
-                // maybe instead?: arr[j][i] = positionsIndex[getCoord(size - 1 - i, 2, j)];
-            }
-        }
-        //rotate face
-        vector<vector<int> > result;
-        if (signbit(direction)) {
-            result = rotateFaceCW(arr);
-
-        }
-        else {
-            result = rotateFaceCCW(arr);
-        }
-
-        //update indexes
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                positionsIndex[getCoord(i, 2, j)] = result[j][i];
-            }
-        }
-    }
-    //direction negative makes rotation CCW, otherwise rotation is CW.
-    void rotateBot(float direction) {
-        //3x3 vector array
-        vector<int> row(3, -1);
-        vector<vector<int> > arr(3, row);
-        const int size = 3;
-        //get indexes of face
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                arr[j][i] = positionsIndex[getCoord(i, 0, j)];
-                // maybe instead?: arr[j][i] = positionsIndex[getCoord(size - 1 - i, 0, j)];
-            }
-        }
-        //rotate face
-        vector<vector<int> > result;
-        if (signbit(direction)) {
-            result = rotateFaceCW(arr);
-
-        }
-        else {
-            result = rotateFaceCCW(arr);
-        }
-
-        //update indexes
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                positionsIndex[getCoord(i, 0, j)] = result[j][i];
-            }
-        }
-    }
-    //direction negative makes rotation CCW, otherwise rotation is CW.
-    void rotatePort(float direction) {
-        //3x3 vector array
-        vector<int> row(3, -1);
-        vector<vector<int> > arr(3, row);
-        const int size = 3;
-        //get indexes of face
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                arr[j][i] = positionsIndex[getCoord(2, j, i)];
-            }
-        }
-        //rotate face
-        vector<vector<int> > result;
-        if (signbit(direction)) {
-            result = rotateFaceCW(arr);
-
-        }
-        else {
-            result = rotateFaceCCW(arr);
-        }
-
-        //update indexes
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                positionsIndex[getCoord(2, j, i)] = result[j][i];
-            }
-        }
-    }
-    //direction negative makes rotation CCW, otherwise rotation is CW.
-    void rotateStarboard(float direction) {
-        //3x3 vector array
-        vector<int> row(3, -1);
-        vector<vector<int> > arr(3, row);
-        const int size = 3;
-        //get indexes of face
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                arr[j][i] = positionsIndex[getCoord(0, j, i)];
-            }
-        }
-        //rotate face
-        vector<vector<int> > result;
-        if (signbit(direction)) {
-            result = rotateFaceCW(arr);
-
-        }
-        else {
-            result = rotateFaceCCW(arr);
-        }
-
-        //update indexes
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                positionsIndex[getCoord(0, j, i)] = result[j][i];
-            }
-        }
-    }
-
-
-
-    //boxes indexed in order
-    vector<CharModel*> boxes;
-
-    //index points to box that should be in cell position.
-    int positionsIndex[27];
-
-};
 
 //box indexes (start from 1)
 //Back to Front
