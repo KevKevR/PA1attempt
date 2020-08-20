@@ -4094,7 +4094,7 @@ int main(int argc, char* argv[])
     //vModels.push_back(&boxTop);
     //vModels.push_back(&boxBot);
     vModels.push_back(&boxCore);
-    vModels.push_back(&boxRotater);
+    //vModels.push_back(&boxRotater);
     vModels.push_back(&s3);
     vModels.push_back(&n2);
     vModels.push_back(&a9);
