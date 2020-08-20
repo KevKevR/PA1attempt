@@ -294,11 +294,18 @@ public:
 
     float getPosition() {
         //float a = 2*currentPosition - 1;
-        //const float smoothPos = a / (1 + a);
+        //const float smoothPos = a / (1 + abs(a)) + 0.5f;
         //const float smoothPos = 2 * currentPosition / (1 + currentPosition);
         //const float smoothPos = 2 * currentPosition - currentPosition * currentPosition;
         //derivative is parabola with value 0 at pos 0 and 1.
-        const float smoothPos = 3 * currentPosition * currentPosition - 2 * currentPosition * currentPosition * currentPosition;
+        //const float smoothPos = 3 * currentPosition * currentPosition - 2 * currentPosition * currentPosition * currentPosition;
+        //modified. squared then restrict to portion.
+        //const float offsetPos = currentPosition - 1;
+        //const float smoothPos = 1-pow(3 * offsetPos * offsetPos + 2 * offsetPos * offsetPos * offsetPos, 2);
+        //modified again, different portion of previous curve.
+        const float smoothPos = (currentPosition * currentPosition * pow(currentPosition-3, 4))/16;
+        //const float smoothPos = pow(currentPosition-1 ,5)+1;
+        //const float smoothPos = 2*currentPosition/(1+abs(currentPosition));
         //positive modulo 
         //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
         const float mod = -1;
@@ -928,7 +935,7 @@ public:
         
         //replace motion with rotation
         // or could use own attribute instead.
-        rotateState = RotateCycle(0.8f);
+        rotateState = RotateCycle(0.6f);
 
         //angle to rotate towards.
         targetAngle = 0;
