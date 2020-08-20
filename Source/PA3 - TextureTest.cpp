@@ -20,7 +20,7 @@
 #include <GL/glew.h>    // Include GLEW - OpenGL Extension Wrangler
 
 #include <GLFW/glfw3.h> // cross-platform interface for creating a graphical context,
-						// initializing OpenGL and binding inputs
+// initializing OpenGL and binding inputs
 
 #include <glm/glm.hpp>  // GLM is an optimized math library with syntax to similar to OpenGL Shading Language
 #include <glm/gtc/matrix_transform.hpp> // include this to create transformation matrices
@@ -38,6 +38,8 @@ using namespace std;
 GLuint loadTexture(const char* filename);
 
 const int numMainModels = 27;
+
+int textureTheme = 1;
 
 // Define (initial) window width and height
 int window_width = 1024, window_height = 768;
@@ -73,7 +75,7 @@ struct TexturedColoredVertex
 
 // Textured Cube model
 const TexturedColoredVertex texturedCubeVertexArray[] = {  // position,                            color
-	//                      position(unused)        color(unused)           uv
+														   //                      position(unused)        color(unused)           uv
 	TexturedColoredVertex(vec3(-0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f), vec2(0.0f, 0.0f)), //left - red
 	TexturedColoredVertex(vec3(-0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f), vec2(0.0f, 1.0f)),
 	TexturedColoredVertex(vec3(-0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f), vec2(1.0f, 1.0f)),
@@ -436,7 +438,7 @@ protected:
 		//shear side-to-side + vertical scaling.
 		mat4 motion =
 			mat4(1, 0, 0, 0,  // first column
-			//amplitude * sinf(radians(180.0f*position)), 1, 0, 0,  // second column
+							  //amplitude * sinf(radians(180.0f*position)), 1, 0, 0,  // second column
 				amplitude * position, 1 + sqrt(amplitude) * powf(position, 2), 0, 0,  // second column
 				0, 0, 1, 0,  // third column
 				0, 0, 0, 1); // fourth column
@@ -588,51 +590,51 @@ vector<vec3> sphereVertices(vec3 prevVertexArray[44 * 2], const int heightParts,
 	const int vertexArrNum = 44;
 	/*
 	vec3 vertexArr[vertexArrNum * 2] = {
-		//left
-		vec3(-0.5f, -0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
-		vec3(-0.5f, -0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
-		vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
-		vec3(-0.5f, -0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
-		vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
-		vec3(-0.5f, 0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
-		// far
-		vec3(0.5f, 0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
-		vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
-		vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
-		vec3(0.5f, 0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
-		vec3(0.5f, -0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
-		vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
-		// bottom
-		vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
-		vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, -1.0f, 0.0f),
-		vec3(0.5f, -0.5f, -0.5f), vec3(0.0f, -1.0f, 0.0f),
-		vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
-		vec3(-0.5f, -0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
-		vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, -1.0f, 0.0f),
-		// near
-		vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-		vec3(-0.5f, -0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-		vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-		vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-		vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-		vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-		// right
-		vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-		vec3(0.5f, -0.5f, -0.5f), vec3(1.0f, 0.0f, 0.0f),
-		vec3(0.5f, 0.5f, -0.5f), vec3(1.0f, 0.0f, 0.0f),
-		vec3(0.5f, -0.5f, -0.5f), vec3(1.0f, 0.0f, 0.0f),
-		vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-		vec3(0.5f, -0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-		// top
-		vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-		vec3(0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
-		vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
-		vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-		vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
-		vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-		//line (0,0,-0.5)to(0,0,0.5)
-		vec3(0.0f, 0.0f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
-		vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+	//left
+	vec3(-0.5f, -0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
+	vec3(-0.5f, -0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+	vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+	vec3(-0.5f, -0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
+	vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
+	vec3(-0.5f, 0.5f, -0.5f), vec3(-1.0f, 0.0f, 0.0f),
+	// far
+	vec3(0.5f, 0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
+	vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
+	vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
+	vec3(0.5f, 0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
+	vec3(0.5f, -0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
+	vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, 0.0f, -1.0f),
+	// bottom
+	vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+	vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, -1.0f, 0.0f),
+	vec3(0.5f, -0.5f, -0.5f), vec3(0.0f, -1.0f, 0.0f),
+	vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+	vec3(-0.5f, -0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
+	vec3(-0.5f, -0.5f, -0.5f), vec3(0.0f, -1.0f, 0.0f),
+	// near
+	vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+	vec3(-0.5f, -0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+	vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+	vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+	vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+	vec3(0.5f, -0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+	// right
+	vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+	vec3(0.5f, -0.5f, -0.5f), vec3(1.0f, 0.0f, 0.0f),
+	vec3(0.5f, 0.5f, -0.5f), vec3(1.0f, 0.0f, 0.0f),
+	vec3(0.5f, -0.5f, -0.5f), vec3(1.0f, 0.0f, 0.0f),
+	vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+	vec3(0.5f, -0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+	// top
+	vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+	vec3(0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
+	vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
+	vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+	vec3(-0.5f, 0.5f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
+	vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+	//line (0,0,-0.5)to(0,0,0.5)
+	vec3(0.0f, 0.0f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
+	vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
 	};
 	*/
 	vec3* vertexArr = prevVertexArray;
@@ -701,8 +703,8 @@ int createTexturedCubeVertexArrayObject()
 {
 	// Cube model (used for models and axis)
 	vec3 vertexArray[] = {  // position and normal
-		//cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
-		//left
+							//cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
+							//left
 		vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
 		vec3(-0.5f,-0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
 		vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
@@ -987,7 +989,7 @@ const char* getVertexShaderSource()
 	return
 		"#version 330 core\n"
 		"layout (location = 0) in vec3 aPos;"           //vertex position
-		//"layout (location = 1) in vec3 aColor;"         //vertex color    (unused)
+														//"layout (location = 1) in vec3 aColor;"         //vertex color    (unused)
 		"layout (location = 2) in vec2 aUV;"            //vertex texture location
 		"layout (location = 3) in vec3 instanceVec; "   // instancing https://learnopengl.com/Advanced-OpenGL/Instancing
 		"layout (location = 4) in vec3 aNormal;"        //vertex normal
@@ -1052,7 +1054,7 @@ const char* getFragmentShaderSource()
 		//current depth value
 		"       float currentDepth = projCoords.z;"
 		//is in shadow if not the closest depth.
-	//"    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;"
+		//"    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;"
 		"float bias = 0.005;"
 		// calculate bias (based on depth map resolution and slope)
 		"       vec3 normal = normalize(normalVec);"
@@ -1176,12 +1178,12 @@ int createPlaneVertexArrayObject()
 	// ------------------------------------------------------------------
 	float planeVertices[] = {
 		// positions            // normals         // texcoords
-		 25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+		25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
 		-25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
 		-25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
 
-		 25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-		 25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 10.0f,
+		25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+		25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 10.0f,
 		-25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f
 	};
 	//for (int i = 0; i < 8 * 6; i++) {
@@ -1252,7 +1254,7 @@ const char* getFragmentShaderSourceTest()
 		"{"
 		"    float depthValue = texture(depthMap, TexCoords).r;"
 		"    FragColor = vec4(vec3(LinearizeDepth(depthValue) / far_plane), 1.0);" // perspective
-		//"    FragColor = vec4(vec3(depthValue), 1.0);" // orthographic
+																				   //"    FragColor = vec4(vec3(depthValue), 1.0);" // orthographic
 		"}";
 }
 int compileAndLinkShadersTest()
@@ -1601,46 +1603,46 @@ void renderCube()
 		float vertices[] = {
 			// back face
 			-1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-			 1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-			 1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
-			 1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+			1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+			1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+			1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
 			-1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
 			-1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
-			// front face
-			-1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-			 1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
-			 1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-			 1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-			-1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
-			-1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-			// left face
-			-1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-			-1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
-			-1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-			-1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-			-1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-			-1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-			// right face
-			 1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-			 1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-			 1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
-			 1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-			 1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-			 1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
-			// bottom face
-			-1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-			 1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
-			 1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-			 1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-			-1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-			-1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-			// top face
-			-1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-			 1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-			 1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
-			 1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-			-1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-			-1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
+																  // front face
+																  -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+																  1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+																  1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+																  1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+																  -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
+																  -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+																														// left face
+																														-1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+																														-1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
+																														-1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+																														-1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+																														-1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+																														-1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+																																											  // right face
+																																											  1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+																																											  1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+																																											  1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+																																											  1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+																																											  1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+																																											  1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+																																																								   // bottom face
+																																																								   -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+																																																								   1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+																																																								   1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+																																																								   1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+																																																								   -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+																																																								   -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+																																																																						 // top face
+																																																																						 -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+																																																																						 1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+																																																																						 1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+																																																																						 1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+																																																																						 -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+																																																																						 -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
 		};
 		glGenVertexArrays(1, &cubeVAO);
 		glGenBuffers(1, &cubeVBO);
@@ -1715,8 +1717,8 @@ void renderQuad()
 			// positions        // texture Coords
 			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
 			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-			 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-			 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+			1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+			1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
 		};
 		for (int i = 0; i < 4 * 5; i++) {
 			switch (i % 5) {
@@ -1805,7 +1807,7 @@ void drawGrid(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWor
 	const float sideLength = 100; //# of cells on side.
 	const float cellLength = 1; //length of side of a cell.
 
-	//make the grid pop-out a bit from the tile grid
+								//make the grid pop-out a bit from the tile grid
 	const float height = 0.03f;     //y-position of grid.
 
 	mat4 lineWorldMatrix;
@@ -1937,11 +1939,11 @@ bool checkModelMovement(GLFWwindow* window, map<int, KeyState> previousKeyStates
 		int previousState = GLFW_RELEASE;
 		map<int, KeyState>::iterator it = previousKeyStates.find(*itr);
 		if (it != previousKeyStates.end()) {        //key is a tracked one
-			//toggling shift should not activate the key again.
-			//So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
+													//toggling shift should not activate the key again.
+													//So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
 			if ((it->second.needShiftPressed == isShiftPressed(window)) && it->second.prevWithShiftPressed) {
 				previousState = GLFW_PRESS;    //so update to actual
-				//glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
+											   //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
 			}
 			else {
 				//otherwise, update to actual previous key.
@@ -2019,7 +2021,7 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
 	selectedTransformation[1] = mat4(1.0f);     //rotate
 	selectedTransformation[2] = mat4(1.0f);     //scale
 
-	//allows map value to contain 2 variables.
+												//allows map value to contain 2 variables.
 	struct Transformation {
 		mat4 matrix;
 		int type;
@@ -2036,32 +2038,32 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
 	const float scaleSpeed = transformSpeed / 12;
 	//TODO: code shearing into separate movement function (since the shearing itself is not in the user's control, only the movement)
 	const float shearSpeed = transformSpeed * 3;        //temporary, will move to another method for movement
-	// capital case letters only
+														// capital case letters only
 	if (isShiftPressed(window))
 	{
 		//translate model if pressed
 		//vertical movement
 		inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_W, {
 			translate(mat4(1.0f),
-				vec3(0,
-					0,
-					-translateSpeed)), 0 }));
+			vec3(0,
+			0,
+			-translateSpeed)), 0 }));
 		inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_S, {
 			translate(mat4(1.0f),
-				vec3(0,
-					0,
-					translateSpeed)), 0 }));
+			vec3(0,
+			0,
+			translateSpeed)), 0 }));
 		//horizontal movement
 		inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_D, {
 			translate(mat4(1.0f),
-				vec3(translateSpeed,
-					0,
-					0)), 0 }));
+			vec3(translateSpeed,
+			0,
+			0)), 0 }));
 		inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_A, {
 			translate(mat4(1.0f),
-				vec3(-translateSpeed,
-					0,
-					0)), 0 }));
+			vec3(-translateSpeed,
+			0,
+			0)), 0 }));
 
 		//scale model if pressed
 		inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_U, {
@@ -2111,11 +2113,11 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
 		int previousState = GLFW_RELEASE;
 		map<int, KeyState>::iterator it = previousKeyStates.find(itr->first);
 		if (it != previousKeyStates.end()) {        //key is a tracked one
-			//toggling shift should not activate the key again.
-			//So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
+													//toggling shift should not activate the key again.
+													//So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
 			if ((it->second.needShiftPressed == isShiftPressed(window)) && it->second.prevWithShiftPressed) {
 				previousState = GLFW_PRESS;    //so update to actual
-				//glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
+											   //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
 			}
 			//else if (isShiftPressed(window) && !it->second.prevWithShiftPressed) {
 			//    previousState = GLFW_PRESS;
@@ -2155,12 +2157,12 @@ bool* customControl(GLFWwindow* window, map<int, KeyState> previousKeyStates) {
 	const Key keyControl[] = {
 		//{KEY, shift requirement(default false)}
 		//signal to reset position and orientation
-		{GLFW_KEY_HOME},
-		{GLFW_KEY_HOME, true},
-		//signal to toggle textures
-		{GLFW_KEY_X, true},
-		//signal to toggle shadows
-		{GLFW_KEY_B, true}
+		{ GLFW_KEY_HOME },
+	{ GLFW_KEY_HOME, true },
+	//signal to toggle textures
+	{ GLFW_KEY_X, true },
+	//signal to toggle shadows
+	{ GLFW_KEY_B, true }
 	};
 
 	//all below is automatic
@@ -2184,11 +2186,11 @@ bool* customControl(GLFWwindow* window, map<int, KeyState> previousKeyStates) {
 		int previousState = GLFW_RELEASE;
 		map<int, KeyState>::iterator it = previousKeyStates.find(keyControl[i].key);
 		if (it != previousKeyStates.end()) {        //key is a tracked one
-			//toggling shift should not activate the key again.
-			//So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
+													//toggling shift should not activate the key again.
+													//So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
 			if (it->second.needShiftPressed == shiftPressed && it->second.prevWithShiftPressed) {
 				previousState = GLFW_PRESS;    //so update to actual
-				//glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
+											   //glClearColor(0.4f, 0.3f, 0.0f, 1.0f);
 			}
 			else {
 				//otherwise, update to actual previous key.
@@ -2213,7 +2215,7 @@ void randomPosModel(CharModel* selectedModel) {
 	int randomPosX = rand() % 91 - 45; // -45 to 45 (not 50 for aesthetic purposes)
 	int randomPosZ = rand() % 91 - 45; // -45 to 45
 
-	// Change relative translate matrix of selected model
+									   // Change relative translate matrix of selected model
 	mat4 randomRelativeTranslateMatrix = translate(mat4(1.0f), vec3((float)randomPosX, selectedModel->getInitY(), (float)randomPosZ));
 	selectedModel->setRelativeTranslateMatrix(randomRelativeTranslateMatrix);
 }
@@ -2228,12 +2230,41 @@ struct TextureId {
 	int cloverTextureID;
 	int jaguarTextureID;
 	int woodTextureID;
+
+	//Theme 1 Colors
 	int redTextureID;
 	int blueTextureID;
 	int yellowTextureID;
 	int greenTextureID;
 	int orangeTextureID;
 	int purpleTextureID;
+
+	//Theme 2 Sports
+	int baseballTextureID;
+	int basketballTextureID;
+	int hockeyTextureID;
+	int soccerTextureID;
+	int tennisTextureID;
+	int bowlingballTextureID;
+	
+	//Theme 3 Music
+	int drumTextureID;
+	int fluteTextureID;
+	int guitaurTextureID;
+	int pianoTextureID;
+	int triangleTextureID;
+	int trumpetTextureID;
+	
+	//Theme 4 Logos
+	int Logo1TextureID;
+	int Logo2TextureID;
+	int Logo3TextureID;
+	int Logo4TextureID;
+	int Logo5TextureID;
+	int Logo6TextureID;
+
+
+
 	//etc
 };
 //has info on all settings to render.
@@ -2310,12 +2341,41 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 	int cloverTextureID = renderInfo.textures.cloverTextureID;
 	int jaguarTextureID = renderInfo.textures.jaguarTextureID;
 	int woodTextureID = renderInfo.textures.woodTextureID;
+
+	//Theme 1 Colors
 	int redTextureID = renderInfo.textures.redTextureID;
 	int blueTextureID = renderInfo.textures.blueTextureID;
 	int yellowTextureID = renderInfo.textures.yellowTextureID;
 	int greenTextureID = renderInfo.textures.greenTextureID;
 	int orangeTextureID = renderInfo.textures.orangeTextureID;
 	int purpleTextureID = renderInfo.textures.purpleTextureID;
+
+	//Theme 2 Sports
+	int baseballTextureID = renderInfo.textures.baseballTextureID;
+	int basketballTextureID = renderInfo.textures.basketballTextureID;
+	int hockeyTextureID = renderInfo.textures.hockeyTextureID;
+	int soccerTextureID = renderInfo.textures.soccerTextureID;
+	int tennisTextureID = renderInfo.textures.tennisTextureID;
+	int bowlingballTextureID = renderInfo.textures.bowlingballTextureID;
+
+	//Theme 3 Music 
+	int drumTextureID = renderInfo.textures.drumTextureID;
+	int fluteTextureID = renderInfo.textures.fluteTextureID;
+	int guitaurTextureID = renderInfo.textures.guitaurTextureID;
+	int pianoTextureID = renderInfo.textures.pianoTextureID;
+	int triangleTextureID = renderInfo.textures.triangleTextureID;
+	int trumpetTextureID = renderInfo.textures.trumpetTextureID;
+
+	//Theme 4 Logos
+	int Logo1TextureID = renderInfo.textures.Logo1TextureID;
+	int Logo2TextureID = renderInfo.textures.Logo2TextureID;
+	int Logo3TextureID = renderInfo.textures.Logo3TextureID;
+	int Logo4TextureID = renderInfo.textures.Logo4TextureID;
+	int Logo5TextureID = renderInfo.textures.Logo5TextureID;
+	int Logo6TextureID = renderInfo.textures.Logo6TextureID;
+
+
+
 
 	int cubeVAOa = renderInfo.cubeVAOa;
 	int cubeVAOFront = renderInfo.cubeVAOFront;
@@ -2332,27 +2392,116 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 
 	//front
 	glBindVertexArray(cubeVAOFront);
-	glBindTexture(GL_TEXTURE_2D, yellowTextureID);
+	switch (textureTheme)
+	{
+	case 1:
+		glBindTexture(GL_TEXTURE_2D, redTextureID);
+		break;
+	case 2:
+		glBindTexture(GL_TEXTURE_2D, baseballTextureID);
+		break;
+	case 3:
+		glBindTexture(GL_TEXTURE_2D, drumTextureID);
+		break;
+	case 4:
+		glBindTexture(GL_TEXTURE_2D, Logo1TextureID);
+		break;
+
+	}
 	CharModel::draw(models);
 	//back
-	glBindVertexArray(cubeVAOBack);
-	glBindTexture(GL_TEXTURE_2D, blueTextureID);
+	glBindVertexArray(cubeVAOBack); switch (textureTheme)
+	{
+	case 1:
+		glBindTexture(GL_TEXTURE_2D, blueTextureID);
+		break;
+	case 2:
+		glBindTexture(GL_TEXTURE_2D, basketballTextureID);
+		break;
+	case 3:
+		glBindTexture(GL_TEXTURE_2D, fluteTextureID);
+		break;
+	case 4:
+		glBindTexture(GL_TEXTURE_2D, Logo2TextureID);
+		break;
+
+	}
 	CharModel::draw(models);
 	//left
 	glBindVertexArray(cubeVAOLeft);
-	glBindTexture(GL_TEXTURE_2D, redTextureID);
+	switch (textureTheme)
+	{
+	case 1:
+		glBindTexture(GL_TEXTURE_2D, greenTextureID);
+		break;
+	case 2:
+		glBindTexture(GL_TEXTURE_2D, hockeyTextureID);
+		break;
+	case 3:
+		glBindTexture(GL_TEXTURE_2D, guitaurTextureID);
+		break;
+	case 4:
+		glBindTexture(GL_TEXTURE_2D, Logo3TextureID);
+		break;
+
+	}
 	CharModel::draw(models);
 	//right
 	glBindVertexArray(cubeVAORight);
-	glBindTexture(GL_TEXTURE_2D, greenTextureID);
+	switch (textureTheme)
+	{
+	case 1:
+		glBindTexture(GL_TEXTURE_2D, yellowTextureID);
+		break;
+	case 2:
+		glBindTexture(GL_TEXTURE_2D, soccerTextureID);
+		break;
+	case 3:
+		glBindTexture(GL_TEXTURE_2D, pianoTextureID);
+		break;
+	case 4:
+		glBindTexture(GL_TEXTURE_2D, Logo4TextureID);
+		break;
+
+	}
 	CharModel::draw(models);
 	//top
 	glBindVertexArray(cubeVAOTop);
-	glBindTexture(GL_TEXTURE_2D, orangeTextureID);
+	switch (textureTheme)
+	{
+	case 1:
+		glBindTexture(GL_TEXTURE_2D, purpleTextureID);
+		break;
+	case 2:
+		glBindTexture(GL_TEXTURE_2D, tennisTextureID);
+		break;
+	case 3:
+		glBindTexture(GL_TEXTURE_2D, triangleTextureID);
+		break;
+	case 4:
+		glBindTexture(GL_TEXTURE_2D, Logo5TextureID);
+		break;
+
+	}
 	CharModel::draw(models);
 	//bottom
 	glBindVertexArray(cubeVAOBottom);
-	glBindTexture(GL_TEXTURE_2D, purpleTextureID);
+	switch (textureTheme)
+	{
+	case 1:
+		glBindTexture(GL_TEXTURE_2D, orangeTextureID);
+		break;
+	case 2:
+		glBindTexture(GL_TEXTURE_2D, bowlingballTextureID);
+		break;
+	case 3:
+		glBindTexture(GL_TEXTURE_2D, trumpetTextureID);
+		break;
+	case 4:
+		glBindTexture(GL_TEXTURE_2D, Logo6TextureID);
+		break;
+
+	}
 	CharModel::draw(models);
 
 	glBindVertexArray(cubeVAOa);
@@ -2415,18 +2564,46 @@ int main(int argc, char* argv[])
 	// Load Textures
 #if defined(PLATFORM_OSX)
 	GLuint tiledTextureID = loadTexture("Textures/brick2.jpg");
-	GLuint cementTextureID = loadTexture("Textures/cement.jpg");
-	GLuint metalTextureID = loadTexture("Textures/metal.jpg");
-	GLuint boxTextureID = loadTexture("Textures/box.jpg");
-	GLuint cloverTextureID = loadTexture("Textures/clover.jpg");
+	//GLuint cementTextureID = loadTexture("Textures/cement.jpg");
+	//GLuint metalTextureID = loadTexture("Textures/metal.jpg");
+	//GLuint boxTextureID = loadTexture("Textures/box.jpg");
+	//GLuint cloverTextureID = loadTexture("Textures/clover.jpg");
 	GLuint jaguarTextureID = loadTexture("Textures/jaguar.jpg");
 	GLuint woodTextureID = loadTexture("Textures/wood.jpg");
+
+	//Theme 1: Colors
 	GLuint redTextureID = loadTexture("Textures/red.jpg");
 	GLuint blueTextureID = loadTexture("Textures/blue.jpg");
 	GLuint yellowTextureID = loadTexture("Textures/yellow.jpg");
 	GLuint greenTextureID = loadTexture("Textures/green.jpg");
 	GLuint orangeTextureID = loadTexture("Textures/orange.jpg");
 	GLuint purpleTextureID = loadTexture("Textures/purple.jpg");
+
+	//Theme 2: Sports
+	GLuint baseballTextureID = loadTexture("Textures/baseball.jpg");
+	GLuint basketballTextureID = loadTexture("Textures/basketball.jpg");
+	GLuint hockeyTextureID = loadTexture("Textures/hockey.jpg");
+	GLuint soccerTextureID = loadTexture("Textures/soccer.jpg");
+	GLuint tennisTextureID = loadTexture("Textures/tennis.jpg");
+	GLuint bowlingballTextureID = loadTexture("Textures/bowlingball.jpg");
+
+	//Theme 3: Music
+	GLuint drumTextureID = loadTexture("Textures/drum.jpg");
+	GLuint fluteTextureID = loadTexture("Textures/flute.jpg");
+	GLuint guitaurTextureID = loadTexture("Textures/guitaur.jpg");
+	GLuint pianoTextureID = loadTexture("Textures/piano.jpg");
+	GLuint triangleTextureID = loadTexture("Textures/triangle.jpg");
+	GLuint trumpetTextureID = loadTexture("Textures/trumpet.jpg");
+
+	//Theme 4: Logos
+	GLuint Logo1TextureID = loadTexture("Textures/ProgrammingLogo1.jpg");
+	GLuint Logo2TextureID = loadTexture("Textures/ProgrammingLogo2.jpg");
+	GLuint Logo3TextureID = loadTexture("Textures/ProgrammingLogo3.jpg");
+	GLuint Logo4TextureID = loadTexture("Textures/ProgrammingLogo4.jpg");
+	GLuint Logo5TextureID = loadTexture("Textures/ProgrammingLogo5.jpg");
+	GLuint Logo6TextureID = loadTexture("Textures/ProgrammingLogo6.jpg");
+
+
 
 #else
 	//GLuint tiledTextureID = loadTexture("../Assets/Textures/brick.jpg");
@@ -2442,11 +2619,13 @@ int main(int argc, char* argv[])
 
 	GLuint brickTextureID = loadTexture("../Assets/Textures/brick.jpg");
 	GLuint tiledTextureID = loadTexture("../Assets/Textures/tiled.jpg");
-	GLuint cementTextureID = loadTexture("../Assets/Textures/cement.jpg");
-	GLuint metalTextureID = loadTexture("../Assets/Textures/metal.jpg");
-	GLuint boxTextureID = loadTexture("../Assets/Textures/box.jpg");
-	GLuint cloverTextureID = loadTexture("../Assets/Textures/clover.jpg");
-	GLuint jaguarTextureID = loadTexture("../Assets/Textures/jaguar.jpg");
+	//GLuint cementTextureID = loadTexture("../Assets/Textures/cement.jpg");
+	//GLuint metalTextureID = loadTexture("../Assets/Textures/metal.jpg");
+	//GLuint boxTextureID = loadTexture("../Assets/Textures/box.jpg");
+	//GLuint cloverTextureID = loadTexture("../Assets/Textures/clover.jpg");
+	//GLuint jaguarTextureID = loadTexture("../Assets/Textures/jaguar.jpg");
+	
+	//Theme 1 : Color
 	GLuint woodTextureID = loadTexture("../Assets/Textures/wood.jpg");
 	GLuint redTextureID = loadTexture("../Assets/Textures/red.jpg");
 	GLuint blueTextureID = loadTexture("../Assets/Textures/blue.jpg");
@@ -2454,6 +2633,30 @@ int main(int argc, char* argv[])
 	GLuint greenTextureID = loadTexture("../Assets/Textures/green.jpg");
 	GLuint orangeTextureID = loadTexture("../Assets/Textures/orange.jpg");
 	GLuint purpleTextureID = loadTexture("../Assets/Textures/purple.jpg");
+
+	//Theme 2: Sports
+	GLuint baseballTextureID = loadTexture("../Assets/Textures/baseball.jpg");
+	GLuint basketballTextureID = loadTexture("../Assets/Textures/basketball.jpg");
+	GLuint hockeyTextureID = loadTexture("../Assets/Textures/hockey.jpg");
+	GLuint soccerTextureID = loadTexture("../Assets/Textures/soccer.jpg");
+	GLuint tennisTextureID = loadTexture("../Assets/Textures/tennis.jpg");
+	GLuint bowlingballTextureID = loadTexture("../Assets/Textures/bowlingball.jpg");
+
+	//Theme 3: Music
+	GLuint drumTextureID = loadTexture("../Assets/Textures/drum.jpg");
+	GLuint fluteTextureID = loadTexture("../Assets/Textures/flute.jpg");
+	GLuint guitaurTextureID = loadTexture("../Assets/Textures/guitaur.jpg");
+	GLuint pianoTextureID = loadTexture("../Assets/Textures/piano.jpg");
+	GLuint triangleTextureID = loadTexture("../Assets/Textures/triangle.jpg");
+	GLuint trumpetTextureID = loadTexture("../Assets/Textures/trumpet.jpg");
+
+	//Theme 4: Logos
+	GLuint Logo1TextureID = loadTexture("../Assets/Textures/ProgrammingLogo1.jpg");
+	GLuint Logo2TextureID = loadTexture("../Assets/Textures/ProgrammingLogo2.jpg");
+	GLuint Logo3TextureID = loadTexture("../Assets/Textures/ProgrammingLogo3.jpg");
+	GLuint Logo4TextureID = loadTexture("../Assets/Textures/ProgrammingLogo4.jpg");
+	GLuint Logo5TextureID = loadTexture("../Assets/Textures/ProgrammingLogo5.jpg");
+	GLuint Logo6TextureID = loadTexture("../Assets/Textures/ProgrammingLogo6.jpg");
 
 #endif
 	// Grey background
@@ -2495,10 +2698,10 @@ int main(int argc, char* argv[])
 	//toggle texture location
 	GLuint enableTextureLocation = glGetUniformLocation(shaderProgram, "hasTexture");
 	int enableTexture = 1;	//1 for on, 0 for off
-	//toggle shadow location
+							//toggle shadow location
 	GLuint enableShadowLocation = glGetUniformLocation(shaderProgram, "hasShadow");
 	int enableShadow = 1;//1 for on, 0 for off
-	// Used to set light position for shadow calculation in shader
+						 // Used to set light position for shadow calculation in shader
 	GLuint lightSpaceMatrixLocation = glGetUniformLocation(shaderProgram, "lightSpaceMatrix");
 
 	// Camera parameters for view transform
@@ -2540,9 +2743,9 @@ int main(int argc, char* argv[])
 		800.0f / 600.0f,  // aspect ratio
 		0.01f, 100.0f);   // near and far (near > 0)
 
-	//glm::mat4 projectionMatrix = glm::ortho(-40.0f, 40.0f,    // left/right
-	//    -40.0f, 40.0f,    // bottom/top
-	//    -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
+						  //glm::mat4 projectionMatrix = glm::ortho(-40.0f, 40.0f,    // left/right
+						  //    -40.0f, 40.0f,    // bottom/top
+						  //    -100.0f, 100.0f);  // near/far (near == 0 is ok for ortho)
 
 	GLuint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
 	glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
@@ -2699,18 +2902,50 @@ int main(int argc, char* argv[])
 
 	renderInfo.textures.depthMap = depthMap;
 	renderInfo.textures.tiledTextureID = tiledTextureID;
-	renderInfo.textures.boxTextureID = boxTextureID;
-	renderInfo.textures.metalTextureID = metalTextureID;
+	//renderInfo.textures.boxTextureID = boxTextureID;
+	//renderInfo.textures.metalTextureID = metalTextureID;
 	renderInfo.textures.brickTextureID = brickTextureID;
-	renderInfo.textures.cloverTextureID = cloverTextureID;
-	renderInfo.textures.jaguarTextureID = jaguarTextureID;
-	renderInfo.textures.woodTextureID = woodTextureID;
+	//renderInfo.textures.cloverTextureID = cloverTextureID;
+	//renderInfo.textures.jaguarTextureID = jaguarTextureID;
+	//renderInfo.textures.woodTextureID = woodTextureID;
+
+	//Theme 1 Color
 	renderInfo.textures.redTextureID = redTextureID;
 	renderInfo.textures.blueTextureID = blueTextureID;
 	renderInfo.textures.yellowTextureID = yellowTextureID;
 	renderInfo.textures.greenTextureID = greenTextureID;
 	renderInfo.textures.orangeTextureID = orangeTextureID;
 	renderInfo.textures.purpleTextureID = purpleTextureID;
+
+	//Theme 2 Sports
+	renderInfo.textures.baseballTextureID = baseballTextureID;
+	renderInfo.textures.basketballTextureID = basketballTextureID;
+	renderInfo.textures.hockeyTextureID = hockeyTextureID;
+	renderInfo.textures.soccerTextureID = soccerTextureID;
+	renderInfo.textures.tennisTextureID = tennisTextureID;
+	renderInfo.textures.bowlingballTextureID = bowlingballTextureID;
+
+	//Theme 3 Music 
+	renderInfo.textures.drumTextureID = drumTextureID;
+	renderInfo.textures.fluteTextureID = fluteTextureID;
+	renderInfo.textures.guitaurTextureID = guitaurTextureID;
+	renderInfo.textures.pianoTextureID = pianoTextureID;
+	renderInfo.textures.triangleTextureID = triangleTextureID;
+	renderInfo.textures.trumpetTextureID = trumpetTextureID;
+
+	//Theme 4 Logos
+	renderInfo.textures.Logo1TextureID = Logo1TextureID;
+	renderInfo.textures.Logo2TextureID = Logo2TextureID;
+	renderInfo.textures.Logo3TextureID = Logo3TextureID;
+	renderInfo.textures.Logo5TextureID = Logo5TextureID;
+	renderInfo.textures.Logo4TextureID = Logo4TextureID;
+	renderInfo.textures.Logo6TextureID = Logo6TextureID;
+
+
+
+
+
+
 
 	renderInfo.cubeVAOa = cubeVAOa;
 	renderInfo.cubeVAOFront = cubeVAOFront;
@@ -2735,7 +2970,7 @@ int main(int argc, char* argv[])
 
 		//https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
 		// 1. render depth of scene to texture (from light's perspective)
-	   // --------------------------------------------------------------
+		// --------------------------------------------------------------
 		glm::mat4 lightProjection, lightView;
 		glm::mat4 lightSpaceMatrix;
 		float near_plane = 0.0f, far_plane = 35.0f;
@@ -2774,7 +3009,7 @@ int main(int argc, char* argv[])
 		glViewport(0, 0, window_width, window_height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//
-				// 2. render scene as normal using the generated depth/shadow map  
+		// 2. render scene as normal using the generated depth/shadow map  
 		// --------------------------------------------------------------
 
 		glBindVertexArray(planeVAO);
@@ -2830,6 +3065,25 @@ int main(int argc, char* argv[])
 
 		//Draw ground
 		renderDecor(renderInfo);
+
+		//switch texture themes
+		if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) // move camera down
+		{
+			switch (textureTheme) 
+			{
+			case 1:
+			case 2:
+			case 3:
+				textureTheme++;
+				break;
+			case 4:
+			default:
+				textureTheme = 1;
+				break;
+			
+			}
+
+		}
 
 		//update and draw control and models
 		{
@@ -3104,7 +3358,7 @@ int main(int argc, char* argv[])
 		// Press right mouse button -> pan left and right (yaw)
 		if (rightMouseButton)
 			cameraHorizontalAngle -= dx * cameraAngularSpeed * dt; // taken from Lab 3
-		// Press middle mouse button -> tilt up and down (pitch)
+																   // Press middle mouse button -> tilt up and down (pitch)
 		if (middleMouseButton)
 			cameraVerticalAngle -= dy * cameraAngularSpeed * dt; // taken from Lab 3
 
