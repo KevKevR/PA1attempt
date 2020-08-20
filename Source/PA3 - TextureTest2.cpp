@@ -1998,7 +1998,10 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
 	inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_3, 2));
 	inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_4, 3));
 	inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_5, 4));
-
+	inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_6, 5));
+	inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_7, 6));
+	inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_8, 7));
+	inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_9, 8));
 	//default return value
 	GLchar selectedMode = previousModelIndex;
 
@@ -2222,21 +2225,59 @@ void randomPosModel(CharModel* selectedModel) {
 
 //individual fields are id of textures.
 struct TextureId {
+
 	int depthMap;
+	//Source: https://www.3dxo.com/textures/tiles
 	int tiledTextureID;
-	int boxTextureID;
-	int metalTextureID;
-	int brickTextureID;
-	int cloverTextureID;
-	int jaguarTextureID;
-	int woodTextureID;
+	//Source: https://www.ottawaguitarsociety.ca/red-picture-7/
 	int redTextureID;
+	//Source: https://www.theguardian.com/music/musicblog/2013/aug/01/readers-recommend-songs-colour-blue-results
 	int blueTextureID;
+	//Source: https://www.photos-public-domain.com/2013/11/07/bumpy-yellow-plastic-texture/
 	int yellowTextureID;
+	//Source: https://www.htmlcsscolor.com/hex/2EF429
 	int greenTextureID;
+	//Source: http://promotiontag.com/orange/
 	int orangeTextureID;
+	//Source: https://www.economist.com/babbage/2014/06/23/the-colour-purple
 	int purpleTextureID;
-	//etc
+	//Source: https://www.pinterest.ca/pin/626915210601538895/
+	int pianoTextureID;
+	//Source: https://www.vectorstock.com/royalty-free-vectors/trumpet-drawing-vectors
+	int trumpetTextureID;
+	//Source: https://www.amazon.ca/Yamaha-YFL-222-Student-Closed-hole-Flute/dp/B01DD4MIPY
+	int fluteTextureID;
+	//Source: https://www.long-mcquade.com/79466/Drums/Concert---Marching-Percussion/Remo/Crown-Percussion-Triangle---Chrome.htm
+	int triangleTextureID;
+	//Source: https://www.wikihow.com/Draw-an-Acoustic-Guitar
+	int guitarTextureID;
+	//Source: https://www.cleanpng.com/free/tenor-drum.html
+	int drumTextureID;
+	//Source: https://www.britannica.com/technology/computer
+	int laptopTextureID;
+	//Source: https://www.pngfuel.com/free-png/gokzb
+	int glassTextureID;
+	//Source: https://www.technologynetworks.com/genomics/news/visualizing-differences-in-rna-biology-between-single-cells-332469
+	int doublehelixTextureID;
+	//Source: https://www.eurekalert.org/pub_releases/2019-11/tuos-sdh111419.php
+	int cellsTextureID;
+	//Source: https://www.popularmechanics.com/space/telescopes/reviews/a25198/best-telescopes-for-stargazing/
+	int telescopeTextureID;
+	//Source: https://www.theverge.com/2012/4/28/2982883/oracle-direct-java-support-os-x-security-updates
+	int javaTextureID;
+	//Source: https://www.iheartradio.ca/newstalk-1010/news/exclusive-families-out-thousands-of-dollars-after-youth-soccer-program-abruptly-shuts-down-1.12350662
+	int soccerTextureID;
+	//Source: https://www.walmart.ca/en/ip/hathaway-games-7-in-mini-basketball/6000142541034
+	int basketballTextureID;
+	//Source: https://www.theweek.in/news/sports/2020/07/24/wta-atp-cancel-all-international-tennis-events-in-china-over-covid-19.html
+	int tennisTextureID;
+	//Source: https://www.cigaraficionado.com/article/baseball-at-150-five-problems
+	int baseballTextureID;
+    //Source: https://www.hiclipart.com/free-transparent-background-png-clipart-iewnp
+	int hockeyTextureID;
+	//Source: https://www.stadiumtalk.com/s/greatest-bowlers-all-time-88680f8780af4b9b
+	int bowlingTextureID;
+	
 };
 //has info on all settings to render.
 struct RenderInfo {
@@ -2305,19 +2346,33 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 	GLuint enableTextureLocation = renderInfo.enableTextureLocation;
 	GLuint worldMatrixLocation = renderInfo.worldMatrixLocation;
 	int enableTexture = renderInfo.enableTexture;
-	int boxTextureID = renderInfo.textures.boxTextureID;
+	int enableShadow = renderInfo.enableShadow;
+
 	int tiledTextureID = renderInfo.textures.tiledTextureID;
-	int metalTextureID = renderInfo.textures.metalTextureID;
-	int brickTextureID = renderInfo.textures.brickTextureID;
-	int cloverTextureID = renderInfo.textures.cloverTextureID;
-	int jaguarTextureID = renderInfo.textures.jaguarTextureID;
-	int woodTextureID = renderInfo.textures.woodTextureID;
 	int redTextureID = renderInfo.textures.redTextureID;
 	int blueTextureID = renderInfo.textures.blueTextureID;
 	int yellowTextureID = renderInfo.textures.yellowTextureID;
 	int greenTextureID = renderInfo.textures.greenTextureID;
 	int orangeTextureID = renderInfo.textures.orangeTextureID;
 	int purpleTextureID = renderInfo.textures.purpleTextureID;
+	int pianoTextureID = renderInfo.textures.pianoTextureID;
+	int trumpetTextureID = renderInfo.textures.trumpetTextureID;
+	int fluteTextureID = renderInfo.textures.fluteTextureID;
+	int triangleTextureID = renderInfo.textures.triangleTextureID;
+	int guitarTextureID = renderInfo.textures.guitarTextureID;
+	int drumTextureID = renderInfo.textures.drumTextureID;
+	int laptopTextureID = renderInfo.textures.laptopTextureID;
+	int glassTextureID = renderInfo.textures.glassTextureID;
+	int doublehelixTextureID = renderInfo.textures.doublehelixTextureID;
+	int cellsTextureID = renderInfo.textures.cellsTextureID;
+	int telescopeTextureID = renderInfo.textures.telescopeTextureID;
+	int javaTextureID = renderInfo.textures.javaTextureID;
+	int soccerTextureID = renderInfo.textures.soccerTextureID;
+	int basketballTextureID = renderInfo.textures.basketballTextureID;
+	int tennisTextureID = renderInfo.textures.tennisTextureID;
+	int baseballTextureID = renderInfo.textures.baseballTextureID;
+	int hockeyTextureID = renderInfo.textures.hockeyTextureID;
+	int bowlingTextureID = renderInfo.textures.bowlingTextureID;
 
 	int cubeVAOa = renderInfo.cubeVAOa;
 	int cubeVAOFront = renderInfo.cubeVAOFront;
@@ -2340,13 +2395,13 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 		glBindTexture(GL_TEXTURE_2D, redTextureID);
 		break;
 	case 2:
-		glBindTexture(GL_TEXTURE_2D, blueTextureID);
+		glBindTexture(GL_TEXTURE_2D, pianoTextureID);
 		break;
 	case 3:
-		glBindTexture(GL_TEXTURE_2D, greenTextureID);
+		glBindTexture(GL_TEXTURE_2D, laptopTextureID);
 		break;
 	case 4:
-		glBindTexture(GL_TEXTURE_2D, purpleTextureID);
+		glBindTexture(GL_TEXTURE_2D, soccerTextureID);
 		break;
 
 	}
@@ -2355,16 +2410,16 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 	glBindVertexArray(cubeVAOBack); switch (textureTheme)
 	{
 	case 1:
-		glBindTexture(GL_TEXTURE_2D, redTextureID);
-		break;
-	case 2:
 		glBindTexture(GL_TEXTURE_2D, blueTextureID);
 		break;
+	case 2:
+		glBindTexture(GL_TEXTURE_2D, drumTextureID);
+		break;
 	case 3:
-		glBindTexture(GL_TEXTURE_2D, greenTextureID);
+		glBindTexture(GL_TEXTURE_2D, glassTextureID);
 		break;
 	case 4:
-		glBindTexture(GL_TEXTURE_2D, purpleTextureID);
+		glBindTexture(GL_TEXTURE_2D, basketballTextureID);
 		break;
 
 	}
@@ -2374,16 +2429,16 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 	switch (textureTheme)
 	{
 	case 1:
-		glBindTexture(GL_TEXTURE_2D, redTextureID);
+		glBindTexture(GL_TEXTURE_2D, yellowTextureID);
 		break;
 	case 2:
-		glBindTexture(GL_TEXTURE_2D, blueTextureID);
+		glBindTexture(GL_TEXTURE_2D, trumpetTextureID);
 		break;
 	case 3:
-		glBindTexture(GL_TEXTURE_2D, greenTextureID);
+		glBindTexture(GL_TEXTURE_2D, doublehelixTextureID);
 		break;
 	case 4:
-		glBindTexture(GL_TEXTURE_2D, purpleTextureID);
+		glBindTexture(GL_TEXTURE_2D, tennisTextureID);
 		break;
 
 	}
@@ -2393,16 +2448,16 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 	switch (textureTheme)
 	{
 	case 1:
-		glBindTexture(GL_TEXTURE_2D, redTextureID);
+		glBindTexture(GL_TEXTURE_2D, orangeTextureID);
 		break;
 	case 2:
-		glBindTexture(GL_TEXTURE_2D, blueTextureID);
+		glBindTexture(GL_TEXTURE_2D, fluteTextureID);
 		break;
 	case 3:
-		glBindTexture(GL_TEXTURE_2D, greenTextureID);
+		glBindTexture(GL_TEXTURE_2D, cellsTextureID);
 		break;
 	case 4:
-		glBindTexture(GL_TEXTURE_2D, purpleTextureID);
+		glBindTexture(GL_TEXTURE_2D, baseballTextureID);
 		break;
 
 	}
@@ -2412,16 +2467,16 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 	switch (textureTheme)
 	{
 	case 1:
-		glBindTexture(GL_TEXTURE_2D, redTextureID);
-		break;
-	case 2:
-		glBindTexture(GL_TEXTURE_2D, blueTextureID);
-		break;
-	case 3:
 		glBindTexture(GL_TEXTURE_2D, greenTextureID);
 		break;
+	case 2:
+		glBindTexture(GL_TEXTURE_2D, guitarTextureID);
+		break;
+	case 3:
+		glBindTexture(GL_TEXTURE_2D, telescopeTextureID);
+		break;
 	case 4:
-		glBindTexture(GL_TEXTURE_2D, purpleTextureID);
+		glBindTexture(GL_TEXTURE_2D, hockeyTextureID);
 		break;
 
 	}
@@ -2431,30 +2486,22 @@ void renderModels(RenderInfo renderInfo, CharModel* models[numMainModels]) {
 	switch (textureTheme)
 	{
 	case 1:
-		glBindTexture(GL_TEXTURE_2D, redTextureID);
+		glBindTexture(GL_TEXTURE_2D, purpleTextureID);
 		break;
 	case 2:
-		glBindTexture(GL_TEXTURE_2D, blueTextureID);
+		glBindTexture(GL_TEXTURE_2D, triangleTextureID);
 		break;
 	case 3:
-		glBindTexture(GL_TEXTURE_2D, greenTextureID);
+		glBindTexture(GL_TEXTURE_2D, javaTextureID);
 		break;
 	case 4:
-		glBindTexture(GL_TEXTURE_2D, purpleTextureID);
+		glBindTexture(GL_TEXTURE_2D, bowlingTextureID);
 		break;
 
 	}
 	CharModel::draw(models);
 
 	glBindVertexArray(cubeVAOa);
-	//number
-	glBindTexture(GL_TEXTURE_2D, metalTextureID);
-	CharModel::drawNumber(models);
-	//Sphere has no texture for now.
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glUniform1i(enableTextureLocation, 0);
-	CharModel::drawSphere(models);
-	glUniform1i(enableTextureLocation, enableTexture);
 
 	//swap back
 	CharModel::swapWorldMatrixLocation(models, temp);
@@ -2506,45 +2553,83 @@ int main(int argc, char* argv[])
 	// Load Textures
 #if defined(PLATFORM_OSX)
 	GLuint tiledTextureID = loadTexture("Textures/brick2.jpg");
-	GLuint cementTextureID = loadTexture("Textures/cement.jpg");
-	GLuint metalTextureID = loadTexture("Textures/metal.jpg");
-	GLuint boxTextureID = loadTexture("Textures/box.jpg");
-	GLuint cloverTextureID = loadTexture("Textures/clover.jpg");
-	GLuint jaguarTextureID = loadTexture("Textures/jaguar.jpg");
-	GLuint woodTextureID = loadTexture("Textures/wood.jpg");
 	GLuint redTextureID = loadTexture("Textures/red.jpg");
 	GLuint blueTextureID = loadTexture("Textures/blue.jpg");
 	GLuint yellowTextureID = loadTexture("Textures/yellow.jpg");
 	GLuint greenTextureID = loadTexture("Textures/green.jpg");
 	GLuint orangeTextureID = loadTexture("Textures/orange.jpg");
 	GLuint purpleTextureID = loadTexture("Textures/purple.jpg");
+	GLuint pianoTextureID = loadTexture("Textures/piano.jpg");
+	GLuint trumpetTextureID = loadTexture("Textures/trumpet.jpg");
+	GLuint fluteTextureID = loadTexture("Textures/flute.jpg");
+	GLuint triangleTextureID = loadTexture("Textures/triangle.jpg");
+	GLuint guitarTextureID = loadTexture("Textures/guitar.jpg");
+	GLuint drumTextureID = loadTexture("Textures/drum.jpg");
+	GLuint laptopTextureID = loadTexture("Textures/laptop.jpg");
+	GLuint glassTextureID = loadTexture("Textures/glass.jpg");
+	GLuint doublehelixTextureID = loadTexture("Textures/doublehelix.jpg");
+	GLuint cellsTextureID = loadTexture("Textures/cells.jpg");
+	GLuint telescopeTextureID = loadTexture("Textures/telescope.jpg");
+	GLuint javaTextureID = loadTexture("Textures/java.jpg");
+	GLuint soccerTextureID = loadTexture("Textures/soccer.jpg");
+	GLuint basketballTextureID = loadTexture("Textures/basketball.jpg");
+	GLuint tennisTextureID = loadTexture("Textures/tennis.jpg");
+	GLuint baseballTextureID = loadTexture("Textures/baseball.jpg");
+	GLuint hockeyTextureID = loadTexture("Textures/hockey.jpg");
+	GLuint bowlingTextureID = loadTexture("Textures/bowling.jpg");
 
 #else
 	//GLuint tiledTextureID = loadTexture("../Assets/Textures/brick.jpg");
-	//GLuint cementTextureID = loadTexture("../Assets/Textures/cement.jpg");
-	//GLuint metalTextureID = loadTexture("../Assets/Textures/metal.jpg");
-	//GLuint boxTextureID = loadTexture("../Assets/Textures/box.jpg");
 	//GLuint redTextureID = loadTexture("../Assets/Textures/red.jpg");
 	//GLuint blueTextureID = loadTexture("../Assets/Textures/blue.jpg");
 	//GLuint yellowTextureID = loadTexture("../Assets/Textures/yellow.jpg");
 	//GLuint greenTextureID = loadTexture("../Assets/Textures/green.jpg");
 	//GLuint orangeTextureID = loadTexture("../Assets/Textures/orange.jpg");
 	//GLuint purpleTextureID = loadTexture("../Assets/Textures/purple.jpg");
+	//GLuint pianoTextureID = loadTexture("../Assets/Textures/piano.jpg");
+	//GLuint trumpetTextureID = loadTexture("../Assets/Textures/trumpet.jpg");
+	//GLuint fluteTextureID = loadTexture("../Assets/Textures/flute.jpg");
+	//GLuint triangleTextureID = loadTexture("../Assets/Textures/triangle.jpg");
+	//GLuint guitarTextureID = loadTexture("../Assets/Textures/guitar.jpg");
+	//GLuint drumTextureID = loadTexture("../Assets/Textures/drum.jpg");
+	//GLuint laptopTextureID = loadTexture("../Assets/Textures/laptop.jpg");
+	//GLuint glassTextureID = loadTexture("../Assets/Textures/glass.jpg");
+	//GLuint doublehelixTextureID = loadTexture("../Assets/Textures/doublehelix.jpg");
+	//GLuint cellsTextureID = loadTexture("../Assets/Textures/cells.jpg");
+	//GLuint telescopeTextureID = loadTexture("../Assets/Textures/telescope.jpg");
+	//GLuint javaTextureID = loadTexture("../Assets/Textures/java.jpg");
+	//GLuint soccerTextureID = loadTexture("../Assets/Textures/soccer.jpg");
+	//GLuint basketballTextureID = loadTexture("../Assets/Textures/basketball.jpg");
+	//GLuint tennisTextureID = loadTexture("../Assets/Textures/tennis.jpg");
+	//GLuint baseballTextureID = loadTexture("../Assets/Textures/baseball.jpg");
+	//GLuint hockeyTextureID = loadTexture("../Assets/Textures/hockey.jpg");
+	//GLuint bowlingTextureID = loadTexture("../Assets/Textures/bowling.jpg");
 
-	GLuint brickTextureID = loadTexture("../Assets/Textures/brick.jpg");
 	GLuint tiledTextureID = loadTexture("../Assets/Textures/tiled.jpg");
-	GLuint cementTextureID = loadTexture("../Assets/Textures/cement.jpg");
-	GLuint metalTextureID = loadTexture("../Assets/Textures/metal.jpg");
-	GLuint boxTextureID = loadTexture("../Assets/Textures/box.jpg");
-	GLuint cloverTextureID = loadTexture("../Assets/Textures/clover.jpg");
-	GLuint jaguarTextureID = loadTexture("../Assets/Textures/jaguar.jpg");
-	GLuint woodTextureID = loadTexture("../Assets/Textures/wood.jpg");
 	GLuint redTextureID = loadTexture("../Assets/Textures/red.jpg");
 	GLuint blueTextureID = loadTexture("../Assets/Textures/blue.jpg");
 	GLuint yellowTextureID = loadTexture("../Assets/Textures/yellow.jpg");
 	GLuint greenTextureID = loadTexture("../Assets/Textures/green.jpg");
 	GLuint orangeTextureID = loadTexture("../Assets/Textures/orange.jpg");
 	GLuint purpleTextureID = loadTexture("../Assets/Textures/purple.jpg");
+	GLuint pianoTextureID = loadTexture("../Assets/Textures/piano.jpg");
+	GLuint trumpetTextureID = loadTexture("../Assets/Textures/trumpet.jpg");
+	GLuint fluteTextureID = loadTexture("../Assets/Textures/flute.jpg");
+	GLuint triangleTextureID = loadTexture("../Assets/Textures/triangle.jpg");
+	GLuint guitarTextureID = loadTexture("../Assets/Textures/guitar.jpg");
+	GLuint drumTextureID = loadTexture("../Assets/Textures/drum.jpg");
+	GLuint laptopTextureID = loadTexture("../Assets/Textures/laptop.jpg");
+	GLuint glassTextureID = loadTexture("../Assets/Textures/glass.jpg");
+	GLuint doublehelixTextureID = loadTexture("../Assets/Textures/doublehelix.jpg");
+	GLuint cellsTextureID = loadTexture("../Assets/Textures/cells.jpg");
+	GLuint telescopeTextureID = loadTexture("../Assets/Textures/telescope.jpg");
+	GLuint javaTextureID = loadTexture("../Assets/Textures/java.jpg");
+	GLuint soccerTextureID = loadTexture("../Assets/Textures/soccer.jpg");
+	GLuint basketballTextureID = loadTexture("../Assets/Textures/basketball.jpg");
+	GLuint tennisTextureID = loadTexture("../Assets/Textures/tennis.jpg");
+	GLuint baseballTextureID = loadTexture("../Assets/Textures/baseball.jpg");
+	GLuint hockeyTextureID = loadTexture("../Assets/Textures/hockey.jpg");
+	GLuint bowlingTextureID = loadTexture("../Assets/Textures/bowling.jpg");
 
 #endif
 	// Grey background
@@ -2665,6 +2750,7 @@ int main(int argc, char* argv[])
 	//model y-axis rotations
 	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_A, { GLFW_RELEASE , false }));
 	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_D, { GLFW_RELEASE , false }));
+	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_Z, { GLFW_RELEASE , false }));
 	//model scalings
 	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_U, { GLFW_RELEASE , true }));
 	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_J, { GLFW_RELEASE , true }));
@@ -2790,18 +2876,30 @@ int main(int argc, char* argv[])
 
 	renderInfo.textures.depthMap = depthMap;
 	renderInfo.textures.tiledTextureID = tiledTextureID;
-	renderInfo.textures.boxTextureID = boxTextureID;
-	renderInfo.textures.metalTextureID = metalTextureID;
-	renderInfo.textures.brickTextureID = brickTextureID;
-	renderInfo.textures.cloverTextureID = cloverTextureID;
-	renderInfo.textures.jaguarTextureID = jaguarTextureID;
-	renderInfo.textures.woodTextureID = woodTextureID;
 	renderInfo.textures.redTextureID = redTextureID;
 	renderInfo.textures.blueTextureID = blueTextureID;
 	renderInfo.textures.yellowTextureID = yellowTextureID;
 	renderInfo.textures.greenTextureID = greenTextureID;
 	renderInfo.textures.orangeTextureID = orangeTextureID;
 	renderInfo.textures.purpleTextureID = purpleTextureID;
+	renderInfo.textures.pianoTextureID = pianoTextureID;
+	renderInfo.textures.trumpetTextureID = trumpetTextureID;
+	renderInfo.textures.fluteTextureID = fluteTextureID;
+	renderInfo.textures.triangleTextureID = triangleTextureID;
+	renderInfo.textures.guitarTextureID = guitarTextureID;
+	renderInfo.textures.drumTextureID = drumTextureID;
+	renderInfo.textures.laptopTextureID = laptopTextureID;
+	renderInfo.textures.glassTextureID = glassTextureID;
+	renderInfo.textures.doublehelixTextureID = doublehelixTextureID;
+	renderInfo.textures.cellsTextureID = cellsTextureID;
+	renderInfo.textures.telescopeTextureID = telescopeTextureID;
+	renderInfo.textures.javaTextureID = javaTextureID;
+	renderInfo.textures.soccerTextureID = soccerTextureID;
+	renderInfo.textures.basketballTextureID = basketballTextureID;
+	renderInfo.textures.tennisTextureID = tennisTextureID;
+	renderInfo.textures.baseballTextureID = baseballTextureID;
+	renderInfo.textures.hockeyTextureID = hockeyTextureID;
+	renderInfo.textures.bowlingTextureID = bowlingTextureID;
 
 	renderInfo.cubeVAOa = cubeVAOa;
 	renderInfo.cubeVAOFront = cubeVAOFront;
@@ -2925,7 +3023,7 @@ int main(int argc, char* argv[])
 		//switch texture themes
 		if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) // move camera down
 		{
-			switch (textureTheme) 
+			switch (textureTheme)
 			{
 			case 1:
 			case 2:
@@ -2936,7 +3034,7 @@ int main(int argc, char* argv[])
 			default:
 				textureTheme = 1;
 				break;
-			
+
 			}
 
 		}
@@ -2961,8 +3059,7 @@ int main(int argc, char* argv[])
 			if (selectedSetting[0] || selectedSetting[1]) {
 				//reset TRS matrices
 				selectedModel->resetInitialRelativeMatrices();
-				//reset walk state.
-				selectedModel->walkState.setState(0);
+
 				//reset camera too.
 				cameraPosition = initial_cameraPosition;
 				//cameraLookAt = initial_cameraLookAt;
@@ -2974,13 +3071,6 @@ int main(int argc, char* argv[])
 			//X key has been pressed, so toggle textures.
 			if (selectedSetting[2]) {
 				enableTexture = enableTexture * -1 + 1;
-
-
-				//manual toggle shear movement.
-				//ToDo: delete this comment.
-				//int temp = selectedModel->walkState.getState();
-				//temp = (temp ==1) ? 2: 1;
-				//selectedModel->walkState.setState(temp);
 			}
 			//B key has been pressed, so toggle shadows.
 			if (selectedSetting[3]) {
@@ -2997,21 +3087,12 @@ int main(int argc, char* argv[])
 			selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
 
 			//checks whether the models move
-			if (hasMovement) {
-				//start walking
-				selectedModel->walkState.setState(1);
-			}
-			else if (prevHadMovement) {
-				//stop walking
-				selectedModel->walkState.setState(2);
-			}
+
+
 			prevHadMovement = hasMovement;
 
-			//makes previous model stop walking
-			if (prevModel != selectedModel && prevModel && prevModel->walkState.getState() != 0) {
 
-				prevModel->walkState.setState(2);
-			}
+
 		}
 
 		//misc
