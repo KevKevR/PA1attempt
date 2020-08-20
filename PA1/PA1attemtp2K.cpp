@@ -64,6 +64,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 // Forward declare CharModel class in order to declare a pointer to selected model to manipulate
 class CharModel;
 CharModel* selectedModel;
+CharModel* selectedPartModel;
 
 struct SphereOffset {
     float xOffset;
@@ -151,22 +152,21 @@ struct KeyState {
     bool needShiftPressed;
     bool prevWithShiftPressed;
 };
-//class MatrixHolder {
-//    ~MatrixHolder() {
-//        mat4 matrix = mat4(1.0f);
-//    }
-//    mat4 getMatrix() {
-//        return matrix;
-//    }
-//    void setMatrix(mat4 m) {
-//        matrix = m;
-//    }
-//    void addMatrix(mat4 m) {
-//        matrix = m * matrix;
-//    }
-//private:
-//    mat4 matrix;
-//};
+struct Color {
+    float red;
+    float green;
+    float blue;
+    Color() {
+        red = 0;
+        green = 0;
+        blue = 0;
+    }
+    Color(float r, float g, float b) {
+        red = r;
+        green = g;
+        blue = b;
+    }
+};
 class WalkCycle {
 public:
     WalkCycle(float tPerState = 1) {
@@ -211,7 +211,7 @@ public:
     }
 
     //allow walkState to change.
-    void setState(int s) {
+    virtual void setState(int s) {
         walkState = s;
         timeInState = 0;
         stopWalkPosition = currentPosition;
@@ -292,14 +292,24 @@ public:
     RotateCycle(float tPerState = 1) : WalkCycle(tPerState) { }
 
     float getPosition() {
+        //float a = 2*currentPosition - 1;
+        //const float smoothPos = a / (1 + a);
+        //const float smoothPos = 2 * currentPosition / (1 + currentPosition);
+        //const float smoothPos = 2 * currentPosition - currentPosition * currentPosition;
+        //derivative is parabola with value 0 at pos 0 and 1.
+        const float smoothPos = 3 * currentPosition * currentPosition - 2 * currentPosition * currentPosition * currentPosition;
         //positive modulo 
         //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
         const float mod = -1;
-        const float pos = fmodf(mod + fmodf(currentPosition, mod), mod);
+        const float pos = fmodf(mod + fmodf(smoothPos, mod), mod);
         return pos;
         //return currentPosition;
     }
-
+    void setState(int s) {
+        WalkCycle::setState(s);
+        //also reset position, to skip previous rotate and do from beginning.
+        currentPosition = 0;
+    }
     void walk(float dt) {
         WalkCycle::walk(dt);
 
@@ -353,7 +363,7 @@ struct MotionData {
 };
 class CharModel {
 public:
-    CharModel(int shaderProgram, TRSMatricesHolder init_relTRSMatrices = TRSMatricesHolder()) {
+    CharModel(int shaderProgram, TRSMatricesHolder init_relTRSMatrices = TRSMatricesHolder()) : color(Color()){
         init(init_relTRSMatrices);
         worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
         colorLocation = glGetUniformLocation(shaderProgram, "objectColor");
@@ -362,7 +372,7 @@ public:
 
         //walking
         walkState = WalkCycle(1.0f);
-        sphereOffset = { 0,0 };
+        sphereOffset = { 0,0, 1 };
 
         //attached models
         cumulativeTRS = TRSMatricesHolder();
@@ -370,12 +380,19 @@ public:
         numAttachedModels = 0;
 
         //modeMotion = true;
-        //data used in motion
+        //data used in motion. For now, here is only for axis of rotation.
         motionD = {vec3(0,0,-1)};
     }
 
-    //temp, will move later
-    MotionData motionD;
+    //set color for model to use.
+    void setColor(Color colorRGB) {
+        color = colorRGB;
+    }
+
+    MotionData getMotionData() {
+        return motionD;
+    }
+    //set information relevant to motion.
     void setAttachedMotionData(MotionData md) {
         vector<CharModel*>::iterator it;
         for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
@@ -884,6 +901,8 @@ protected:
     mat4 initial_relativeScaleMatrix;       //Initial scale matrix, value to take when reset.
     float initY;                            // Initial y-position in initial translate matrix (note: value assigned to child constructor)
 
+    MotionData motionD;
+    Color color;
     SphereOffset sphereOffset;
     TRSMatricesHolder cumulativeTRS;
     vector<CharModel*> attachedModels;
@@ -900,7 +919,7 @@ public:
         
         //replace motion with rotation
         // or could use own attribute instead.
-        rotateState = RotateCycle(2.0f);
+        rotateState = RotateCycle(0.8f);
 
         //angle to rotate towards.
         targetAngle = 0;
@@ -910,7 +929,8 @@ public:
     }
     void draw() {
         //pass arguments stored in parent class.
-        glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
+        //glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
+        glUniform3f(colorLocation, color.red, color.green, color.blue);
         drawCube(worldMatrixLocation, colorLocation, getRelativeWorldMatrix() * cubeOffset);
         //drawCube(worldMatrixLocation, colorLocation, getRelativeWorldMatrix() * cubeOffset * cumulativeTRS.trs());
     }
@@ -3863,8 +3883,8 @@ int main(int argc, char* argv[])
 
     // Set initial view matrix
     mat4 viewMatrix = lookAt(cameraPosition,  // eye
-                             cameraPosition + cameraLookAt,  // center
-                             cameraUp ); // up
+        cameraPosition + cameraLookAt,  // center
+        cameraUp); // up
     GLuint viewMatrixLocation = glGetUniformLocation(shaderProgram, "viewMatrix");
     //glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
 
@@ -3905,8 +3925,8 @@ int main(int argc, char* argv[])
     //toggle skybox
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_O, { GLFW_RELEASE , true }));
 
-	double lastMousePosX, lastMousePosY;
-	glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
+    double lastMousePosX, lastMousePosY;
+    glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
 
     // Other OpenGL states to set once
     // Enable Backface culling
@@ -3923,11 +3943,11 @@ int main(int argc, char* argv[])
     vector<mat4> init_T(0);
     vector<mat4>::iterator init_T_itr;
     const float boxSideLength = 3.0f;
-    const float boxSpacing = boxSideLength * 0.10f*5;
+    const float boxSpacing = boxSideLength * 0.10f *5;
     const int boxPerSide = 3;
     const float cubeLength = boxPerSide / 2 * (boxSideLength + boxSpacing);
     //const float cubeLengtha = boxPerSide / 2 * (boxSideLength + boxSpacing);
-    const float cubeCenterHeight = boxPerSide / 2 * boxSideLength + boxSideLength*2;
+    const float cubeCenterHeight = boxPerSide / 2 * boxSideLength + boxSideLength;
     // indexes 0 to 2 is back bottom row
     // indexes 0 to 8 is back wall
     for (int i = 0; i < boxPerSide; i++) {
@@ -4021,30 +4041,30 @@ int main(int argc, char* argv[])
     //                                   [x       y       z]
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 1];
     //CharModel boxCore     (shaderProgram, tempinit_TRS);
-    CharModel boxCore(shaderProgram, TRSMatricesHolder(mat4(1.0f), translate(mat4(1.0f),vec3(0, cubeCenterHeight,0)), mat4(1.0f)));
+    CharModel boxCore(shaderProgram, TRSMatricesHolder(mat4(1.0f), translate(mat4(1.0f), vec3(0, cubeCenterHeight, 0)), mat4(1.0f)));
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 2 + 9 * 1];
     //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(90.0f), vec3(1.0f, 0.0f, 0.0f));
-    ModelFace boxTop      (shaderProgram, tempinit_TRS);
+    ModelFace boxTop(shaderProgram, tempinit_TRS);
     tempinit_TRS = TRSMatricesHolder();
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 0 + 9 * 1];
     //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(90.0f - 180), vec3(1.0f, 0.0f, 0.0f));
-    ModelFace boxBot      (shaderProgram, tempinit_TRS);
+    ModelFace boxBot(shaderProgram, tempinit_TRS);
     tempinit_TRS = TRSMatricesHolder();
     //tempinit_TRS.translateMatrix = init_T[2 + 3 * 1 + 9 * 1];
     //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, -1.0f, 0.0f));
-    ModelFace boxPort     (shaderProgram, tempinit_TRS);
+    ModelFace boxPort(shaderProgram, tempinit_TRS);
     //tempinit_TRS.translateMatrix = init_T[0 + 3 * 1 + 9 * 1];
     //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(270.0f), vec3(0.0f, -1.0f, 0.0f));
     ModelFace boxStarboard(shaderProgram, tempinit_TRS);
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 2];
     //tempinit_TRS.rotateMatrix = rotate(mat4(1.0f), radians(-90.0f), vec3(0.0f, -1.0f, 0.0f));
-    ModelFace boxFront    (shaderProgram, tempinit_TRS);
+    ModelFace boxFront(shaderProgram, tempinit_TRS);
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 0];
     tempinit_TRS = TRSMatricesHolder();
-    ModelFace boxBack     (shaderProgram, tempinit_TRS);
+    ModelFace boxBack(shaderProgram, tempinit_TRS);
 
     //tempinit_TRS.translateMatrix = init_T[1 + 3 * 1 + 9 * 1];
-    CharModel boxRotater  (shaderProgram, tempinit_TRS);
+    CharModel boxRotater(shaderProgram, tempinit_TRS);
     ////                                         [x,      y,      z]
     //CharModel boxCore     (shaderProgram, init_T[1 + 3 * 1 + 9 * 1]);
     //CharModel boxTop      (shaderProgram, init_T[1 + 3 * 2 + 9 * 1]);
@@ -4076,7 +4096,7 @@ int main(int argc, char* argv[])
 
 
     ModelV9 v9(shaderProgram);
-    ModelS3 s3(shaderProgram, TRSMatricesHolder(translate(mat4(1.0f), vec3(100)),mat4(1.0f),mat4(1.0f)));
+    ModelS3 s3(shaderProgram, TRSMatricesHolder(translate(mat4(1.0f), vec3(100)), mat4(1.0f), mat4(1.0f)));
     ModelA9 a9(shaderProgram);
     ModelN2 n2(shaderProgram);
     ModelN4 n4(shaderProgram);
@@ -4102,6 +4122,7 @@ int main(int argc, char* argv[])
     vModels.push_back(&v9);
 
     //parts
+    vector<CharModel*>::iterator itBox;
     ModelN2 n2a(shaderProgram);
     ModelA9 a9a(shaderProgram);
     ModelS3 s3a(shaderProgram);
@@ -4114,7 +4135,7 @@ int main(int argc, char* argv[])
     s3.setAttachedModels(attachedToS3);
     n2.setAttachedModels(attachedToN2);
 
-    
+
     //for some reason, keeps sending the same object reference.
     //for (init_T_itr = init_T.begin(); init_T_itr != init_T.end(); init_T_itr++) {
     //    TRSMatricesHolder tempTMatrix = TRSMatricesHolder(*init_T_itr, mat4(1.0f), mat4(1.0f));
@@ -4132,7 +4153,7 @@ int main(int argc, char* argv[])
     ModelBox C7(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 2 + 9 * 0]);
     ModelBox C8(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 0]);
     ModelBox C9(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 2 + 9 * 0]);
-    
+
     ModelBox B1(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 0 + 9 * 1]);
     ModelBox B2(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 1]);
     ModelBox B3(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 0 + 9 * 1]);
@@ -4142,7 +4163,7 @@ int main(int argc, char* argv[])
     ModelBox B7(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 2 + 9 * 1]);
     ModelBox B8(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 2 + 9 * 1]);
     ModelBox B9(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 2 + 9 * 1]);
-    
+
     ModelBox A1(shaderProgram, TRSMatricesHolder(), init_T[0 + 3 * 0 + 9 * 2]);
     ModelBox A2(shaderProgram, TRSMatricesHolder(), init_T[1 + 3 * 0 + 9 * 2]);
     ModelBox A3(shaderProgram, TRSMatricesHolder(), init_T[2 + 3 * 0 + 9 * 2]);
@@ -4335,6 +4356,22 @@ int main(int argc, char* argv[])
     boxCore.setAttachedModels(attachedToCore);
     boxRotater.setAttachedModels(attachedToRotater);
 
+    const Color initialBoxColor = { 1,1,1 };
+    Color selectedBoxColor = { 1,0.8,0.8 };
+    //set color of boxes
+    {
+        //set color of all boxes
+        for (itBox = attachedToCore.begin(); itBox != attachedToCore.end(); itBox++) {
+            (*itBox)->setColor(initialBoxColor);
+        }
+        //set color of initial selection
+        selectedPartModel = boxRotater.getAttachedModels()[partIndex];
+        vector<CharModel*> attached;
+        attached = selectedPartModel->getAttachedModels();
+        for (itBox = attached.begin(); itBox != attached.end(); itBox++) {
+            (*itBox)->setColor(selectedBoxColor);
+        }
+    }
     //CharModel::setOffset(boxTop.getAttachedModels(), rotate(mat4(1.0f), radians(-90.0f), vec3(1.0f, 0.0f, 0.0f)));
     //CharModel::setOffset(boxBot.getAttachedModels(), rotate(mat4(1.0f), radians(90.0f), vec3(1.0f, 0.0f, 0.0f)));
     //CharModel::setOffset(boxFront.getAttachedModels(), rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, -1.0f, 0.0f)));
@@ -4539,7 +4576,8 @@ int main(int argc, char* argv[])
             CharModel* prevModel = selectedModel;
             selectedModel = vModels[modelIndex];
             //CharModel* selectedPartModel = selectedModel->getAttachedModels()[partIndex];
-            CharModel* selectedPartModel = boxRotater.getAttachedModels()[partIndex];
+            CharModel* prevSelectedPartModel = selectedPartModel;
+            selectedPartModel = boxRotater.getAttachedModels()[partIndex];
             //Control model key presses.
             mat4* relativeWorldMatrix = modelControl(window, dt, previousKeyStates);
             bool hasMovement = checkModelMovement(window, previousKeyStates);
@@ -4554,6 +4592,21 @@ int main(int argc, char* argv[])
                 //reset whole cube
                 rubik.reset();
                 attachBoxToCube(attachedToRotater, rubik);
+                //set color of boxes
+                {
+                    //set color of all boxes
+                    for (itBox = attachedToCore.begin(); itBox != attachedToCore.end(); itBox++) {
+                        (*itBox)->setColor(initialBoxColor);
+                    }
+                    //set color of selection
+                    selectedPartModel = boxRotater.getAttachedModels()[partIndex];
+                    vector<CharModel*> attached;
+                    attached = selectedPartModel->getAttachedModels();
+                    for (itBox = attached.begin(); itBox != attached.end(); itBox++) {
+                        (*itBox)->setColor(selectedBoxColor);
+                    }
+                }
+
                 //reset camera too.
                 cameraPosition = initial_cameraPosition;
                 //cameraLookAt = initial_cameraLookAt;
@@ -4590,7 +4643,7 @@ int main(int argc, char* argv[])
                 //attachBoxToCube(attachedToRotater, rubik);
 
                 //make selected part model display next mode (rotation)
-                selectedPartModel->setAttachedMotionData(selectedPartModel->motionD);
+                selectedPartModel->setAttachedMotionData(selectedPartModel->getMotionData());
                 selectedPartModel->attachedNext();
                 
                 //rotate internal model, and apply to cube.
@@ -4610,7 +4663,7 @@ int main(int argc, char* argv[])
                 //attachBoxToCube(attachedToRotater, rubik);
 
                 //make selected part model display previous mode (rotation)
-                selectedPartModel->setAttachedMotionData(selectedPartModel->motionD);
+                selectedPartModel->setAttachedMotionData(selectedPartModel->getMotionData());
                 selectedPartModel->attachedPrev();
 
                 //rotate internal model, and apply to cube.
@@ -4636,6 +4689,21 @@ int main(int argc, char* argv[])
                 prevModel->updateWalkProgress(0, 2);
             }
             //TODO selected color: reset color of other boxes, when prev part is not selected part. Also change color of selected part.
+            
+            //when selecting different faces,
+            if (prevSelectedPartModel != selectedPartModel && prevSelectedPartModel) {
+                //reset color of previous selection
+                vector<CharModel*> attached;
+                attached = prevSelectedPartModel->getAttachedModels();
+                for (itBox = attached.begin(); itBox != attached.end(); itBox++) {
+                    (*itBox)->setColor({ 1,1,1 });
+                }
+                //set color of selection
+                attached = selectedPartModel->getAttachedModels();
+                for (itBox = attached.begin(); itBox != attached.end(); itBox++) {
+                    (*itBox)->setColor(selectedBoxColor);
+                }
+            }
 
             renderModels(renderInfo, vModels);
             //update
