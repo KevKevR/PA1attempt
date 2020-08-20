@@ -7,7 +7,7 @@
 //    Gia-Khang Ernest Nguyen (40091426)
 //    Wing-Fei Jason Tiu (40048495)
 //    Kevin Rao (40095427)
-// due August 21th, 2020.
+// due August 21st, 2020.
 //
 
 //cube controls (temporary)
@@ -15,7 +15,8 @@
 // - - - - - - - - - - - - - - - - - - - - - - 
 // - cv to rotate selected side
 // - fg to select side to rotate
-//
+// - r to make a random rotation
+// - ctrl+r to make many random rotations (press again or wait 100 turns to stop)
 // - home to reset
 
 
@@ -41,6 +42,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include <vector>
+#include <time.h>
 
 using namespace glm;
 using namespace std;
@@ -3239,6 +3241,9 @@ bool* customControl(GLFWwindow * window, map<int, KeyState> previousKeyStates) {
         //signal to go to previous mode
         {GLFW_KEY_V},
         {GLFW_KEY_V, true},
+        //signal to make random turn (Rubik)
+        {GLFW_KEY_R},
+        {GLFW_KEY_R, true},
         //signal toggle lights  //not implemented
         {GLFW_KEY_L, true},
         //signal toggle skybox  //not implemented
@@ -3757,6 +3762,25 @@ void attachBoxToCube(vector<CharModel*> attachedToRotater, RubikCube rCube) {
     //starboard
     attachedToRotater[5]->setAttachedModels(rCube.getStarboard());
 }
+//Make a random turn on RubikCube.
+int randomTurn(vector<CharModel*> attachedToRotater, RubikCube* rCube) {
+    const int randNum = rand();
+    const int randPartIndex = randNum % attachedToRotater.size();
+    const int randDirection = (randNum/10) % 2;
+    //make selected part model display next mode
+    attachedToRotater[randPartIndex]->setAttachedMotionData(attachedToRotater[randPartIndex]->getMotionData());
+    //rotate internal model, and apply to cube.
+    if (randDirection) {
+        attachedToRotater[randPartIndex]->attachedNext();
+        rCube->rotateFace(1, randPartIndex);
+    }
+    else {
+        attachedToRotater[randPartIndex]->attachedPrev();
+        rCube->rotateFace(-1, randPartIndex);
+    }
+    attachBoxToCube(attachedToRotater, *rCube);
+    return randPartIndex;
+}
 
 int main(int argc, char* argv[])
 {
@@ -3820,6 +3844,8 @@ int main(int argc, char* argv[])
     GLuint boxTextureID = loadTexture("Assets/Textures/box.jpg");
 
 #endif
+    //randomize rand();
+    srand(time(0));
     // Grey background
     //glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
     glClearColor(164 / 255.0f, 173 / 255.0f, 176 / 255.0f, 1.0f);
@@ -3948,6 +3974,8 @@ int main(int argc, char* argv[])
     //select part mode
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_C, { GLFW_RELEASE , false }));
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_V, { GLFW_RELEASE , false }));
+    //make random turn (Rubik)
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_R, { GLFW_RELEASE , false }));
     //toggle lights //not implemented
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_L, { GLFW_RELEASE , true }));
     //toggle skybox //not implemented
@@ -4169,7 +4197,11 @@ int main(int argc, char* argv[])
 
     //previous frame, if valid input to model.
     bool prevHadMovement = false;
-
+    
+    //tracks number of random turns to make.
+    int turnNum = 0;
+    float timeThreshold = 0;
+    const float timeTurnThreshold = 0.15f;
     //float time = 0;
     GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix");
     GLuint shadowWorldMatrixLocation = glGetUniformLocation(shaderProgramShadow, "model");
@@ -4179,6 +4211,7 @@ int main(int argc, char* argv[])
         // Frame time calculation
         float dt = glfwGetTime() - lastFrameTime;
         lastFrameTime += dt;
+        timeThreshold += dt;
         // Each frame, reset color of each pixel to glClearColor
         // @TODO 1 - Clear Depth Buffer Bit as well
         // ...
@@ -4383,6 +4416,39 @@ int main(int argc, char* argv[])
                 rubik.rotateFace(-1, partIndex);
                 attachBoxToCube(attachedToRotater, rubik);
             }
+            //r pressed, so do random turn
+            if (selectedSetting[8] || selectedSetting[9]) {
+                //if control is also held, make many random turns.
+                if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS)
+                {
+                    timeThreshold = 0 + timeTurnThreshold;  //make first turn immediately
+                    //toggle many random turns
+                    if (turnNum) {
+                        turnNum = 0;
+                    }
+                    else {
+                        turnNum = 100;
+                    }
+                }
+                //otherwise, make a random turn per input.
+                else {
+                    int randIndex = randomTurn(attachedToRotater, &rubik);//set color of selection
+                    //reset and set colors
+                    boxRotater.getAttachedModels()[randIndex]->setAttachedColor(initialBoxColor);
+                    selectedPartModel->setAttachedColor(selectedBoxColor);
+                }
+            }
+            //many random turns made over period of time.
+            //also make time in-between turns vary a bit.
+            if (turnNum > 0 && (1 + 0.2f*sin(lastFrameTime*2))*timeThreshold > timeTurnThreshold) {
+                turnNum--;
+                timeThreshold -= timeTurnThreshold;
+                int randIndex = randomTurn(attachedToRotater, &rubik);//set color of selection
+                //reset and set colors
+                boxRotater.getAttachedModels()[randIndex]->setAttachedColor(initialBoxColor);
+                selectedPartModel->setAttachedColor(selectedBoxColor);
+            }
+
             //Adjust selected model accordingly.
             selectedModel->addRelativeWorldMatrix(relativeWorldMatrix[0], relativeWorldMatrix[1], relativeWorldMatrix[2]);
 
