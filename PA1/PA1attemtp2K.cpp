@@ -2102,16 +2102,18 @@ const char* getVertexShaderSource()
 		"out vec2 vertexUV;"
         "out vec4 fragPosLightSpace;"                   //shadow
         "out vec3 objectC;"     //object inherent color
+        "flat out int face_s;"
         "void main()"
         "{"
         "   normalVec = mat3(transpose(inverse(worldMatrix[gl_InstanceID]))) * aNormal;"
         "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix[gl_InstanceID];"
         "   gl_Position = modelViewProjection * vec4(aPos + instanceVec, 1.0);"
-		"   vertexUV = aUV;"
         "   fragPos = vec3(worldMatrix[gl_InstanceID] * vec4(aPos + instanceVec, 1.0));"
         //fragPos from light's view
         "   fragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);"
         "   objectC = objectColor[gl_InstanceID];"
+        "   face_s = mainFace[gl_InstanceID];"
+        "   vertexUV = vec2(aUV.x/3 + (gl_InstanceID%3)/3.0f + 0* mod(gl_InstanceID/9, 3)/3.0f, aUV.y/3 +  mod(gl_InstanceID/3, 3)/3.0f);"
         "}";
 }
 const char* getFragmentShaderSource()
@@ -2120,15 +2122,16 @@ const char* getFragmentShaderSource()
     "#version 330 core\n"
     "uniform vec3 lightPos;"        //light properties
     "uniform vec3 viewPos;"
-	"uniform sampler2D textureSampler;" //texture properties
+	"uniform sampler2D textureSampler[7];" //texture properties
 	"uniform bool hasTexture;"
     "uniform sampler2D shadowMap;"  //shadow
     "uniform bool hasShadow;"
 
     "vec3 lightColor = vec3(1.0, 1.0, 1.0);"    //light property
     "vec4 textureColor;"                        //texture property
-
+        
     "in vec3 objectC;"     //object inherent color
+    "flat in int face_s;"     //texture to use
     "in vec3 fragPos;"
     "in vec3 normalVec;"    //light properties
 	"in vec2 vertexUV;"     //texture properties
@@ -2182,7 +2185,7 @@ const char* getFragmentShaderSource()
         //Texture
         //assign texture color
 		"   if (hasTexture){"
-		"      textureColor = texture( textureSampler, vertexUV );"
+		"      textureColor = texture( textureSampler[face_s], vertexUV );"
 		"   }"
         //if it shouldn't have a texture, do not modify its color
         "   else {"
@@ -3943,7 +3946,13 @@ int main(int argc, char* argv[])
     //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
     glUseProgram(shaderProgram);
     glUniform1i(glGetUniformLocation(shaderProgram, "shadowmap"), 0);
-    glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler"), 1);
+    glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler[0]"), 1);
+    glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler[1]"), 2);
+    glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler[2]"), 3);
+    glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler[3]"), 4);
+    glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler[4]"), 5);
+    glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler[5]"), 6);
+    glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler[6]"), 7);
 
     vector<int> depth = configureDepthMap();
     int depthMapFBO = depth[0];
@@ -4405,6 +4414,19 @@ int main(int argc, char* argv[])
         renderInfo.textures.boxTextureID = boxTextureID;
         renderInfo.textures.metalTextureID = metalTextureID;
 
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, boxTextureID);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, boxTextureID);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, boxTextureID);
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, boxTextureID);
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_2D, boxTextureID);
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_2D, metalTextureID);
+        glActiveTexture(GL_TEXTURE0);
         renderInfo.vao.cubeVAO = cubeVAOa;
         renderInfo.vao.sphereVAO = sphereVAOa;
         //renderScene(shaderProgramShadow, cubeVAOa);
