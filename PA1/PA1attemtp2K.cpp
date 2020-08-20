@@ -3381,10 +3381,27 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models) {
 }
 
 //index of box at cooridnates, 3x3x3 only
+int getCoordB(int x, int y, int z) {
+    //return 1 * x + 3 * y + 9 * z;
+    int arr[3][3][3] = {
+        { {19,  0,  1}, {21,  2,  3}, {23,  4 , 5} },
+        { {18, 25,  6}, {20, 26,  8}, {22, 24 ,10} },
+        { {13, 12,  7}, {15, 14,  9}, {17, 16 ,11} }
+    };
+    int a= arr[z][y][x];
+    return a;
+}
+//index of box at cooridnates, 3x3x3 only
 int getCoord(int x, int y, int z) {
     return 1 * x + 3 * y + 9 * z;
+    //int arr[3][3][3] = {
+    //    { {19,  0,  1}, {21,  2,  3}, {23,  4 , 5} },
+    //    { {18, 25,  6}, {20, 26,  8}, {22, 24 ,10} },
+    //    { {13, 12,  7}, {15, 14,  9}, {17, 16 ,11} }
+    //};
+    //int a = arr[z][y][x];
+    //return a;
 }
-
 bool DEBUG_RUBIKCUBE_FRONT = false;
 bool DEBUG_RUBIKCUBE_TOP= false;
 class RubikCube {
@@ -3394,9 +3411,23 @@ public:
     }
     //reset positions
     void reset() {
+        //for (int i = 0; i < 3; i++) {
+        //    for (int j = 0; j < 3; j++) {
+        //        for (int k = 0; k < 3; k++) {
+        //            positionsIndex[1 * k + 3 * j + 9 * i] = getCoord(k,j,i);
+        //        }
+        //    }
+        //}
         for (int i = 0; i < 27; i++) {
             positionsIndex[i] = i;
         }
+        //for (int i = 0; i < 3; i++) {
+        //    for (int j = 0; j < 3; j++) {
+        //        for (int k = 0; k < 3; k++) {
+        //            positionsIndex[getCoord(k, j, i)] = 1 * k + 3 * j + 9 * i;
+        //        }
+        //    }
+        //}
     }
 
     //returns boxes located on corresponding face.
@@ -3999,22 +4030,73 @@ int main(int argc, char* argv[])
     const float boxSideLength = 3.0f;
     const float boxSpacing = boxSideLength * 0.10f;
     const int boxPerSide = 3;
-    const float cubeLength = boxPerSide / 2 * (boxSideLength + boxSpacing);
+    float cubeLength = boxPerSide / 2 * (boxSideLength + boxSpacing);
     const float cubeCenterHeight = boxPerSide / 2 * boxSideLength + boxSideLength;
-    // indexes 0 to 2 is back bottom row
-    // indexes 0 to 8 is back wall
-    for (int i = 0; i < boxPerSide; i++) {
-        for (int j = 0; j < boxPerSide; j++) {
-            for (int k = 0; k < boxPerSide; k++) {
-                mat4 tempInit_T = translate(mat4(1.0f),
-                    vec3(-(cubeLength * (boxPerSide - 1) / 2) + k * cubeLength,
-                        -(cubeLength * (boxPerSide - 1) / 2) + j * cubeLength,
-                        -(cubeLength * (boxPerSide - 1) / 2) + i * cubeLength));
-                init_T.push_back(tempInit_T);
+    //// indexes 0 to 2 is back bottom row
+    //// indexes 0 to 8 is back wall
+    //for (int i = 0; i < boxPerSide; i++) {
+    //    for (int j = 0; j < boxPerSide; j++) {
+    //        for (int k = 0; k < boxPerSide; k++) {
+    //            mat4 tempInit_T = translate(mat4(1.0f),
+    //                vec3(-(cubeLength * (boxPerSide - 1) / 2) + k * cubeLength,
+    //                    -(cubeLength * (boxPerSide - 1) / 2) + j * cubeLength,
+    //                    -(cubeLength * (boxPerSide - 1) / 2) + i * cubeLength));
+    //            init_T.push_back(tempInit_T);
+    //        }
+    //    }
+    //}
+
+    //indexes 0 to 5 are 6 left-most cells of tall 3x3 in the back.
+    //construct initial positions for sides
+    //i from [0,3] are sides, [4,5] are top/bot, [6] center
+    for (int i = 0; i < 7; i++) {
+        mat4 rotateM;
+        switch (i) {
+        case 0: case 1: case 2: case 3:
+        {
+            for (int j = 0; j < boxPerSide; j++) {
+                for (int k = 1; k < boxPerSide; k++) {
+                    mat4 tempInit_T = 
+                        rotate(mat4(1.0f), radians(90.0f * i), vec3(0.0f, -1.0f, 0.0f)) *
+                        translate(mat4(1.0f),
+                            vec3(-(cubeLength * (boxPerSide - 1) / 2) + k * cubeLength,
+                                -(cubeLength * (boxPerSide - 1) / 2) + j * cubeLength,
+                                -(cubeLength * (boxPerSide - 1) / 2)));
+                    //TRSMatricesHolder tempinit_TRS = TRSMatricesHolder(tempInit_T, mat4(1.0f), mat4(1.0f));
+                    //init_T.push_back(tempinit_TRS);
+                    init_T.push_back(tempInit_T);
+                }
             }
         }
+        break;
+        case 4: case 5:
+        {
+            mat4 tempInit_T =
+                 rotate(mat4(1.0f), radians(90.0f + 180 * i), vec3(1.0f, 0.0f, 0.0f)) *
+                 translate(mat4(1.0f),
+                    vec3(0,
+                        0,
+                        -(cubeLength * (boxPerSide - 1) / 2)));
+            //TRSMatricesHolder tempinit_TRS = TRSMatricesHolder(tempInit_T, mat4(1.0f), mat4(1.0f));
+            //init_T.push_back(tempinit_TRS);
+            init_T.push_back(tempInit_T);
+        }
+        break;
+        case 6:
+        {
+            mat4 tempInit_T =
+                translate(mat4(1.0f),
+                    vec3(0,
+                        0,
+                        0));
+            //TRSMatricesHolder tempinit_TRS = TRSMatricesHolder(tempInit_T, mat4(1.0f), mat4(1.0f));
+            //init_T.push_back(tempinit_TRS);
+            init_T.push_back(tempInit_T);
+        }
+        break;
+        }
+        //cubeLength *= 1.2f;
     }
-
     //Models
     //CharModel* selectedModel;
     //CharModel* models[numMainModels];
@@ -4076,35 +4158,35 @@ int main(int argc, char* argv[])
     //    attachedToBox.push_back(&tempBox);
     //}
     //do it manually instead
-    ModelBox C1(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,0,0)]);
-    ModelBox C2(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,0,0)]);
-    ModelBox C3(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,0,0)]);
-    ModelBox C4(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,1,0)]);
-    ModelBox C5(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,1,0)]);
-    ModelBox C6(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,1,0)]);
-    ModelBox C7(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,2,0)]);
-    ModelBox C8(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,2,0)]);
-    ModelBox C9(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,2,0)]);
-    
-    ModelBox B1(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,0,1)]);
-    ModelBox B2(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,0,1)]);
-    ModelBox B3(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,0,1)]);
-    ModelBox B4(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,1,1)]);
-    ModelBox B5(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,1,1)]);
-    ModelBox B6(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,1,1)]);
-    ModelBox B7(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,2,1)]);
-    ModelBox B8(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,2,1)]);
-    ModelBox B9(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,2,1)]);
-    
-    ModelBox A1(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,0,2)]);
-    ModelBox A2(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,0,2)]);
-    ModelBox A3(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,0,2)]);
-    ModelBox A4(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,1,2)]);
-    ModelBox A5(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,1,2)]);
-    ModelBox A6(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,1,2)]);
-    ModelBox A7(shaderProgram, TRSMatricesHolder(), init_T[getCoord(0,2,2)]);
-    ModelBox A8(shaderProgram, TRSMatricesHolder(), init_T[getCoord(1,2,2)]);
-    ModelBox A9(shaderProgram, TRSMatricesHolder(), init_T[getCoord(2,2,2)]);
+    ModelBox C1(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(0,0,0)]);
+    ModelBox C2(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(1,0,0)]);
+    ModelBox C3(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(2,0,0)]);
+    ModelBox C4(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(0,1,0)]);
+    ModelBox C5(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(1,1,0)]);
+    ModelBox C6(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(2,1,0)]);
+    ModelBox C7(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(0,2,0)]);
+    ModelBox C8(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(1,2,0)]);
+    ModelBox C9(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(2,2,0)]);
+                                                                   
+    ModelBox B1(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(0,0,1)]);
+    ModelBox B2(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(1,0,1)]);
+    ModelBox B3(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(2,0,1)]);
+    ModelBox B4(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(0,1,1)]);
+    ModelBox B5(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(1,1,1)]);
+    ModelBox B6(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(2,1,1)]);
+    ModelBox B7(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(0,2,1)]);
+    ModelBox B8(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(1,2,1)]);
+    ModelBox B9(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(2,2,1)]);
+                                                                   
+    ModelBox A1(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(0,0,2)]);
+    ModelBox A2(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(1,0,2)]);
+    ModelBox A3(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(2,0,2)]);
+    ModelBox A4(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(0,1,2)]);
+    ModelBox A5(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(1,1,2)]);
+    ModelBox A6(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(2,1,2)]);
+    ModelBox A7(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(0,2,2)]);
+    ModelBox A8(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(1,2,2)]);
+    ModelBox A9(shaderProgram, TRSMatricesHolder(), init_T[getCoordB(2,2,2)]);
 
     vector<CharModel*> attachedToCore(0);
     attachedToCore.push_back(&C1);
