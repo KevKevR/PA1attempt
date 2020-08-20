@@ -1,5 +1,5 @@
 //
-// Concordia University COMP 371 Programming Assignment 2, Summer 2020.
+// Concordia University COMP 371 Programming Assignment 3, Summer 2020.
 //
 // Created by :
 //    Jason Beccherini (40130107)
@@ -7,15 +7,16 @@
 //    Gia-Khang Ernest Nguyen (40091426)
 //    Wing-Fei Jason Tiu (40048495)
 //    Kevin Rao (40095427)
-// due July 27th, 2020.
+// due August 21th, 2020.
 //
 
 //cube controls (temporary)
-// select model 1 - WASD to move cube, ad also.
-// select model 2 - cv to "rotate" (not fully completed yet, all the sides rotate the same axis.)
-//                - fg to select side to rotate
+// select model 1 - WASD to move cube, ad to rotate.
+// - - - - - - - - - - - - - - - - - - - - - - 
+// - cv to rotate selected side
+// - fg to select side to rotate
 //
-// beware that the cube doesn't like wasd with model 2. home to reset.
+// - home to reset
 
 
 
@@ -2024,7 +2025,7 @@ int createTexturedCubeVertexArrayObject()
 
     return vertexArrayObject;
 }
-
+//main shaders for program.
 const char* getVertexShaderSource()
 {
     return
@@ -2230,6 +2231,7 @@ int compileAndLinkShaders()
     return shaderProgram;
 }
 
+//left-over code from online resource/tutorial. Kept for quick shadow debugging.
 //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
 int createPlaneVertexArrayObject()
 {
@@ -2275,6 +2277,7 @@ int createPlaneVertexArrayObject()
     
     return planeVAO;
 }
+//left-over code to test shader for shadows
 //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
 const char* getVertexShaderSourceTest()
 {
@@ -2372,6 +2375,7 @@ int compileAndLinkShadersTest()
 
     return shaderProgram;
 }
+//left-over code to test shader for shadows
 //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
 const char* getVertexShaderSourceTest2()
 {
@@ -2488,6 +2492,7 @@ const char* getFragmentShaderSourceTest2()
         "    FragColor = vec4(lighting, 1.0);"
         "}";
 }
+//left-over code to test shader for shadows
 int compileAndLinkShadersTest2()
 {
     // compile and link shader program
@@ -2542,6 +2547,7 @@ int compileAndLinkShadersTest2()
 
     return shaderProgram;
 }
+//shader for shadows
 //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
 const char* getVertexShaderSourceShadow()
 {
@@ -2566,6 +2572,7 @@ const char* getFragmentShaderSourceShadow()
         "   gl_FragDepth = gl_FragCoord.z;"
         "}";
 }
+//boiler-plate code to like shaders.
 int compileAndLinkShadersShadow()
 {
     // compile and link shader program
@@ -2621,6 +2628,7 @@ int compileAndLinkShadersShadow()
     return shaderProgram;
 }
 
+//creates depth map for shadow.
 //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
 const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 vector<int> configureDepthMap() {
@@ -2651,6 +2659,7 @@ vector<int> configureDepthMap() {
     depth[1] = depthMap;
     return depth;
 }
+//left-over code from online resource/tutorial. Kept for quick shadow debugging.
 //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
 // renderCube() renders a 1x1 3D cube in NDC.
 // -------------------------------------------------
@@ -2728,6 +2737,7 @@ void renderCube()
 }
 
 //float fakeTime = 0;
+//left-over code from online resource/tutorial. Kept for quick shadow debugging.
 //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
 // renders the 3D scene
 // --------------------
@@ -2765,6 +2775,8 @@ void renderScene(int shaderProgram, int planeVAO)
     //glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &model[0][0]);
     //renderCube();
 }
+
+//left-over code from online resource/tutorial. Kept for quick shadow debugging.
 //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
 // renderQuad() renders a 1x1 XY quad in NDC
 // -----------------------------------------
@@ -2818,6 +2830,7 @@ void renderQuad()
     glBindVertexArray(0);
 }
 
+//boiler-plate to load textures from file name.
 GLuint loadTexture(const char* filename)
 {
 	// Step1 Create and bind textures
@@ -2940,7 +2953,7 @@ void drawTileGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.
 
 // Draws x, y, z axis at the center of the grid
 // Input is location of worldMatrix and location of colorLocation
-void drawAxis(GLuint worldMatrixLocation, GLuint colorLocation) {
+void drawAxes(GLuint worldMatrixLocation, GLuint colorLocation) {
     const float height = 0, cellLength = 1; // values from drawGrid
     mat4 lineWorldMatrix;
 
@@ -2959,21 +2972,23 @@ void drawAxis(GLuint worldMatrixLocation, GLuint colorLocation) {
     glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &lineWorldMatrix[0][0]);
     glUniform3f(colorLocation, 0.0f, 0.0f, 1.0f);
     glDrawArrays(GL_TRIANGLES, 0, 36);
-
 }
 
+//checks if a shift key is being pressed.
 bool isShiftPressed(GLFWwindow* window) {
     return glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
 }
 
+//checks what should the previous state be of tracked keys.
 int returnPreviousKeyState(GLFWwindow* window, int key, map<int, KeyState> previousKeyStates) {
-    ////////////////
-       //get previous key state if tracked, otherwise default release (true).
-       //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
-       //default released if not tracked
+    //get previous key state if tracked, otherwise default release (true).
+    //default released if not tracked
     int previousState = GLFW_RELEASE;
+
+    //https://stackoverflow.com/questions/4527686/how-to-update-stdmap-after-using-the-find-method
     map<int, KeyState>::iterator it = previousKeyStates.find(key);
-    if (it != previousKeyStates.end()) {        //key is a tracked one
+    //when key is a tracked one,
+    if (it != previousKeyStates.end()) {        
         //toggling shift should not activate the key again.
         //So as long the shift was pressed at least once while holding the key, toggling the shift button further will not release the key.
         if ((it->second.needShiftPressed == isShiftPressed(window)) && it->second.prevWithShiftPressed) {
@@ -2991,9 +3006,9 @@ int returnPreviousKeyState(GLFWwindow* window, int key, map<int, KeyState> previ
         }
 
     }
-    ////////////////
     return previousState;
 }
+//checks if a key related to movement is being pressed.
 bool checkModelMovement(GLFWwindow* window, map<int, KeyState> previousKeyStates) {
     vector<GLuint> inputs;
     vector<GLuint>::iterator itr;
@@ -3056,7 +3071,6 @@ void drawControl(GLFWwindow* window) {
         }
     }
 }
-
 //function will return a model index on correct key presses.
 //note: undefined priority in case multiple correct keys are pressed (but will select a model).
 int selectModelControl(GLFWwindow* window, int previousModelIndex) {
@@ -3082,7 +3096,6 @@ int selectModelControl(GLFWwindow* window, int previousModelIndex) {
     }
     return selectedModelIndex;
 }
-
 //function will return a matrix for corresponding transformation of inputted keys.
 //note: undefined order priority in case multiple correct keys are pressed (but will select a matrix).
 mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyStates) {
@@ -3329,7 +3342,7 @@ void renderDecor(RenderInfo renderInfo) {
     glUniform1i(enableTextureLocation, 0);
     drawGrid(worldMatrixLocation, colorLocation, mat4(1.0f));
     // draw axis
-    drawAxis(worldMatrixLocation, colorLocation);
+    drawAxes(worldMatrixLocation, colorLocation);
     glBindVertexArray(cubeVAOa);
     glUniform1i(enableTextureLocation, enableTexture);
 
@@ -3391,6 +3404,8 @@ public:
             positionsIndex[i] = i;
         }
     }
+
+    //returns boxes located on corresponding face.
     vector<CharModel*> getFront() {
         vector<CharModel*> result(0);
         if (DEBUG_RUBIKCUBE_FRONT)cout << "Front:\n";
@@ -3464,6 +3479,7 @@ public:
         return result;
     }
 
+    //returns a rotated 2d-array.
     vector<vector<int>> rotateFaceCW(vector<vector<int>> arr) {
         //vector<vector<int>> result;
         //3x3 vector array
@@ -3493,6 +3509,9 @@ public:
         return result;
     }
 
+    //some redundancy in code.
+
+    //rotate along face.
     //direction negative makes rotation CCW, otherwise rotation is CW.
     void rotateFront(float direction) {
         //3x3 vector array
@@ -3669,6 +3688,7 @@ public:
         }
     }
 
+    //outside can just call a single method, side is determined with argument.
     void rotateFace(float direction, int face) {
         switch (face) {
         case 0:
@@ -3711,14 +3731,28 @@ public:
         }
     }
 
+private:
     //boxes indexed in order
     vector<CharModel*> boxes;
-
-    //index points to box that should be in cell position.
+    //index points to box that should be in cell position, according to specific order.
     int positionsIndex[27];
 
+    //box indexes order (if it'd start from 1)
+    //Back to Front
+    //  7  8  9
+    //  4  5  6
+    //  1  2  3
+
+    // 16 17 18
+    // 13 14 15
+    // 10 11 12
+
+    // 25 26 27
+    // 22 23 24
+    // 19 20 21
 };
 
+//attaches rubik internal model to actual cube.
 //attachedToRotater has sides of cube (front, back, top, bot, port, starboard).
 void attachBoxToCube(vector<CharModel*> attachedToRotater, RubikCube rCube) {
     //front
@@ -3733,7 +3767,6 @@ void attachBoxToCube(vector<CharModel*> attachedToRotater, RubikCube rCube) {
     attachedToRotater[4]->setAttachedModels(rCube.getPort());
     //starboard
     attachedToRotater[5]->setAttachedModels(rCube.getStarboard());
-
 }
 int main(int argc, char* argv[])
 {
@@ -4533,20 +4566,6 @@ int main(int argc, char* argv[])
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         //renderQuad();
-//        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-//        // -------------------------------------------------------------------------------
-//        glfwSwapBuffers(window);
-//        glfwPollEvents();
-//    }
-//
-//    // optional: de-allocate all resources once they've outlived their purpose:
-//    // ------------------------------------------------------------------------
-//    //glDeleteVertexArrays(1, &planeVAO);
-//    //glDeleteBuffers(1, &planeVBO);
-//
-//    glfwTerminate();
-//    return 0;
-//}
 
         glUseProgram(shaderProgram);
         glUniform3fv(glGetUniformLocation(shaderProgram, "lightPos"), 1, &lightPos[0]);
@@ -4560,8 +4579,6 @@ int main(int argc, char* argv[])
         //bind shadow map
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, tiledTextureID);
-
-
 
         renderInfo.shaderProgram = shaderProgram;
         renderInfo.worldMatrixLocation = worldMatrixLocation;
@@ -4613,51 +4630,24 @@ int main(int argc, char* argv[])
             //X key has been pressed, so toggle textures.
             if (selectedSetting[2]) {
                 enableTexture = enableTexture * -1 + 1;
-
-                //
-                rubik.rotateFront(1);
-                rubik.getFront();
-                attachBoxToCube(attachedToRotater, rubik);
-
-                //manual toggle shear movement.
-                //ToDo: delete this comment.
-                //int temp = selectedModel->getCycle()->getState();
-                //temp = (temp ==1) ? 2: 1;
-                //selectedModel->updateWalkProgress(0, temp);
             }
             //B key has been pressed, so toggle shadows.
             if (selectedSetting[3]) {
                 enableShadow = enableShadow * -1 + 1;
             }
-            //c pressed, so go to next mode
+            //c pressed, so go to next mode (rotation)
             if (selectedSetting[4] || selectedSetting[5]) {
-                
-                //temp debug
-                //rubik.rotateFront(1);
-                //rubik.getFront();
-                //attachBoxToCube(attachedToRotater, rubik);
-
-                //make selected part model display next mode (rotation)
+                //make selected part model display next mode
                 selectedPartModel->setAttachedMotionData(selectedPartModel->getMotionData());
                 selectedPartModel->attachedNext();
                 
                 //rotate internal model, and apply to cube.
                 rubik.rotateFace(1, partIndex);
                 attachBoxToCube(attachedToRotater, rubik);
-
-                //selectedModel->getAttachedModels()[partIndex]->next();
-                //selectedModel->getAttachedModels()[partIndex]->updateWalkProgress(0, 1);
-                //selectedModel->getAttachedModels()[partIndex]->addRelativeWorldMatrix(translate(mat4(1.0f), vec3(dt * 100, 0.0f,0.0f)), relativeWorldMatrix[1], relativeWorldMatrix[2]);
-
             }
-            //v pressed, so go to prev mode
+            //v pressed, so go to prev mode (rotation)
             if (selectedSetting[6] || selectedSetting[7]) {
-                //temp debug
-                //rubik.rotateFront(-1);
-                //rubik.getFront();
-                //attachBoxToCube(attachedToRotater, rubik);
-
-                //make selected part model display previous mode (rotation)
+                //make selected part model display previous mode
                 selectedPartModel->setAttachedMotionData(selectedPartModel->getMotionData());
                 selectedPartModel->attachedPrev();
 
@@ -4679,8 +4669,8 @@ int main(int argc, char* argv[])
             }
             prevHadMovement = hasMovement;
 
-            //makes previous model stop walking
-            if (prevModel != selectedModel && prevModel) {
+            //makes previous model stop walking, if it is walking.
+            if (prevModel != selectedModel && prevModel && prevModel->getCycle()->getState() != 0) {
                 prevModel->updateWalkProgress(0, 2);
             }
             
@@ -4816,9 +4806,9 @@ int main(int argc, char* argv[])
             foV = 120.0f;
         
         // Recompute projection matrix depending on FoV
-        projectionMatrix = glm::perspective(radians(foV),            // field of view in degrees
-        (float) window_width / (float) window_height,  // aspect ratio
-        0.01f, 100.0f);   // near and far (near > 0)
+        projectionMatrix = glm::perspective(radians(foV),   // field of view in degrees
+            (float)window_width / (float)window_height,     // aspect ratio
+            0.01f, 100.0f);                                 // near and far (near > 0)
         glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
 
         // @TODO 5 = use camera lookat and side vectors to update positions with HNBM
@@ -4929,18 +4919,3 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
         randomPosModel(selectedModel);
 }
-
-//box indexes (start from 1)
-//Back to Front
-//  7  8  9
-//  4  5  6
-//  1  2  3
-
-// 16 17 18
-// 13 14 15
-// 10 11 12
-
-// 25 26 27
-// 22 23 24
-// 19 20 21
-
