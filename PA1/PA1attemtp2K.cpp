@@ -1813,62 +1813,62 @@ int createTexturedCubeVertexArrayObject()
 {
     // Cube model (used for models and axis)
 
-    vec3 vertexArray[] = {  // position and normal
+    vec3 vertexArray[] = {  // position and normal and uv
         //cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
         //left
-        vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f,-0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, 0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),vec3(0.0f, 0.0f,0),
+        vec3(-0.5f,-0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),vec3(0.0f, 1.0f,0),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),vec3(1.0f, 1.0f,0),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),vec3(0.0f, 0.0f,0),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),vec3(1.0f, 1.0f,0),
+        vec3(-0.5f, 0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),vec3(1.0f, 0.0f,0),
         // far
-        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
+        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f), vec3(1.0f, 1.0f,0),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),vec3(0.0f, 0.0f,0),
+        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),vec3(0.0f, 1.0f,0),
+        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f), vec3(1.0f, 1.0f,0),
+        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f), vec3(1.0f, 0.0f,0),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),vec3(0.0f, 0.0f,0),
         // bottom
-        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f), vec3(1.0f, 1.0f,0),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),vec3(0.0f, 0.0f,0),
+        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f), vec3(1.0f, 0.0f,0),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f), vec3(1.0f, 1.0f,0),
+        vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),vec3(0.0f, 1.0f,0),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),vec3(0.0f, 0.0f,0),
         // near
-        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f,0),
+        vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 0.0f,0),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),  vec3(1.0f, 0.0f,0),
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),  vec3(1.0f, 1.0f,0),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f,0),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),  vec3(1.0f, 0.0f,0),
         // right
-        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),  vec3(1.0f, 1.0f,0),
+        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),  vec3(0.0f, 0.0f,0),
+        vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),  vec3(1.0f, 0.0f,0),
+        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),  vec3(0.0f, 0.0f,0),
+        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),  vec3(1.0f, 1.0f,0),
+        vec3(0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),  vec3(0.0f, 1.0f,0),
         // top
-        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),  vec3(1.0f, 1.0f,0),
+        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),  vec3(1.0f, 0.0f,0),
+        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f,0),
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),  vec3(1.0f, 1.0f,0),
+        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f,0),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 1.0f,0),
 
         //line (0,0,-0.5)to(0,0,0.5)
-        vec3(0.0f, 0.0f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.0f, 0.0f, -0.5f), vec3(0.0f, 1.0f, 0.0f), vec3(1.0f, 1.0f,0),
+        vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),  vec3(0.0f, 0.0f,0),
 
         //Square (-0.5,0,-0.5) to (0.5,0,0.5)
-        vec3(0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.5f, 0.0f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.0f,-0.5f),vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.5f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.0f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),   vec3(1.0f, 1.0f,0),
+        vec3(0.5f, 0.0f,-0.5f), vec3(0.0f, 1.0f, 0.0f),  vec3(1.0f, 0.0f,0),
+        vec3(-0.5f, 0.0f,-0.5f),vec3(0.0f, 1.0f, 0.0f),  vec3(0.0f, 0.0f,0),
+        vec3(0.5f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),  vec3(1.0f, 1.0f,0),
+        vec3(-0.5f, 0.0f,-0.5f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f,0),
+        vec3(-0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),  vec3(0.0f, 1.0f,0),
     };
 
     //create instancing array for tile grid. 
@@ -1899,10 +1899,10 @@ int createTexturedCubeVertexArrayObject()
     // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
     //Have multiple arrays/buffer.
     //https://www.khronos.org/opengl/wiki/Tutorial2:_VAOs,_VBOs,_Vertex_and_Fragment_Shaders_(C_/_SDL)
-    GLuint vertexBufferObject[3];
-    glGenBuffers(3, vertexBufferObject);
+    GLuint vertexBufferObject[2];
+    glGenBuffers(2, vertexBufferObject);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(texturedCubeVertexArray), texturedCubeVertexArray, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
 
     //// unused location
     //glVertexAttribPointer(1,                            // attribute 1 matches aColor in Vertex Shader
@@ -1918,25 +1918,17 @@ int createTexturedCubeVertexArrayObject()
         2,
         GL_FLOAT,
         GL_FALSE,
-        sizeof(TexturedColoredVertex),
+        3* sizeof(vec3),
         (void*)(2 * sizeof(vec3))      // uv is offseted by 2 vec3 (comes after position and color)
     );
     glEnableVertexAttribArray(2);
 
 
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
-    // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
-    //GLuint vertexBufferObject;
-    //glGenBuffers(1, &vertexBufferObject);
-    //glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
-
     glVertexAttribPointer(0,                   // attribute 0 matches aPos in Vertex Shader
         3,                   // size
         GL_FLOAT,            // type
         GL_FALSE,            // normalized?
-        2 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        3 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
         (void*)0             // array buffer offset
     );
     glEnableVertexAttribArray(0);
@@ -1945,7 +1937,7 @@ int createTexturedCubeVertexArrayObject()
         3,                   // size
         GL_FLOAT,            // type
         GL_FALSE,            // normalized?
-        2 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        3 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
         (void*)sizeof(vec3)  // array buffer offset
     );
     glEnableVertexAttribArray(4);
@@ -1953,7 +1945,7 @@ int createTexturedCubeVertexArrayObject()
     //https://learnopengl.com/Advanced-OpenGL/Instancing
     //Setting up the instance array
     glEnableVertexAttribArray(3);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[2]);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(offsetArray), offsetArray, GL_STATIC_DRAW);
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -1972,8 +1964,8 @@ int createTexturedSphereVertexArrayObject()
     // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
     //Have multiple arrays/buffer.
     //https://www.khronos.org/opengl/wiki/Tutorial2:_VAOs,_VBOs,_Vertex_and_Fragment_Shaders_(C_/_SDL)
-    GLuint vertexBufferObject[3];
-    glGenBuffers(3, vertexBufferObject);
+    GLuint vertexBufferObject[2];
+    glGenBuffers(2, vertexBufferObject);
     //glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[0]);
     //glBufferData(GL_ARRAY_BUFFER, sizeof(texturedCubeVertexArray), texturedCubeVertexArray, GL_STATIC_DRAW);
 
@@ -1994,7 +1986,7 @@ int createTexturedSphereVertexArrayObject()
         vertexArr2[i] = vertexArraySphere[i];
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[0]);
     //glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
     // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
     //GLuint vertexBufferObject;
@@ -2034,7 +2026,77 @@ int createTexturedSphereVertexArrayObject()
     //https://learnopengl.com/Advanced-OpenGL/Instancing
     //Setting up the instance array
     glEnableVertexAttribArray(3);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[2]);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(offsetArray), offsetArray, GL_STATIC_DRAW);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribDivisor(3, 1);
+
+    return vertexArrayObject;
+}
+
+int createTexturedFaceVertexArrayObject(vec3 faceArray[6*3])
+{
+    // Create a vertex array
+    GLuint vertexArrayObject;
+    glGenVertexArrays(1, &vertexArrayObject);
+    glBindVertexArray(vertexArrayObject);
+
+    // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
+    //Have multiple arrays/buffer.
+    //https://www.khronos.org/opengl/wiki/Tutorial2:_VAOs,_VBOs,_Vertex_and_Fragment_Shaders_(C_/_SDL)
+    GLuint vertexBufferObject[2];
+    glGenBuffers(3, vertexBufferObject);
+    //glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[0]);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(texturedCubeVertexArray), texturedCubeVertexArray, GL_STATIC_DRAW);
+
+    vec3 vertexArr2[6*3];
+    //convert it to array
+    for (int i = 0; i < 18; i++) {
+        vertexArr2[i] = faceArray[i];
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[0]);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArray), vertexArray, GL_STATIC_DRAW);
+    // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
+    //GLuint vertexBufferObject;
+    //glGenBuffers(1, &vertexBufferObject);
+    //glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArr2), vertexArr2, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0,                   // attribute 0 matches aPos in Vertex Shader
+        3,                   // size
+        GL_FLOAT,            // type
+        GL_FALSE,            // normalized?
+        3 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        (void*)0             // array buffer offset
+    );
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(2,                            // attribute 2 matches aUV in Vertex Shader
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        3 * sizeof(vec3),
+        (void*)(2 * sizeof(vec3))      // uv is offseted by 2 vec3 (comes after position and normal)
+    );
+    glEnableVertexAttribArray(2);
+
+    glVertexAttribPointer(4,                   // attribute 1 matches aNormal in Vertex Shader
+        3,                   // size
+        GL_FLOAT,            // type
+        GL_FALSE,            // normalized?
+        3 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        (void*)sizeof(vec3)  // array buffer offset
+    );
+    glEnableVertexAttribArray(4);
+
+
+    vec3 offsetArray[1] = { vec3(0) };
+    //https://learnopengl.com/Advanced-OpenGL/Instancing
+    //Setting up the instance array
+    glEnableVertexAttribArray(3);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(offsetArray), offsetArray, GL_STATIC_DRAW);
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
