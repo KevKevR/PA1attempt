@@ -2158,11 +2158,14 @@ bool* customControl(GLFWwindow* window, map<int, KeyState> previousKeyStates) {
 		//{KEY, shift requirement(default false)}
 		//signal to reset position and orientation
 		{ GLFW_KEY_HOME },
-	{ GLFW_KEY_HOME, true },
-	//signal to toggle textures
-	{ GLFW_KEY_X, true },
-	//signal to toggle shadows
-	{ GLFW_KEY_B, true }
+		{ GLFW_KEY_HOME, true },
+		//signal to toggle textures
+		{ GLFW_KEY_X, true },
+		//signal to toggle shadows
+		{ GLFW_KEY_B, true },
+		//signal to cycle through textures
+		{ GLFW_KEY_Z },
+		{ GLFW_KEY_Z, true }
 	};
 
 	//all below is automatic
@@ -2787,6 +2790,8 @@ int main(int argc, char* argv[])
 	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_X, { GLFW_RELEASE , true }));
 	//toggle shadows
 	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_B, { GLFW_RELEASE , true }));
+	//cycle through textures
+	previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_Z, { GLFW_RELEASE , false }));
 
 	double lastMousePosX, lastMousePosY;
 	glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
@@ -3066,25 +3071,6 @@ int main(int argc, char* argv[])
 		//Draw ground
 		renderDecor(renderInfo);
 
-		//switch texture themes
-		if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) // move camera down
-		{
-			switch (textureTheme) 
-			{
-			case 1:
-			case 2:
-			case 3:
-				textureTheme++;
-				break;
-			case 4:
-			default:
-				textureTheme = 1;
-				break;
-			
-			}
-
-		}
-
 		//update and draw control and models
 		{
 			//get key inputs
@@ -3129,6 +3115,22 @@ int main(int argc, char* argv[])
 			//B key has been pressed, so toggle shadows.
 			if (selectedSetting[3]) {
 				enableShadow = enableShadow * -1 + 1;
+			}
+			//z key has been pressed, so cycle through textures.
+			if (selectedSetting[4] || selectedSetting[5]) {
+				switch (textureTheme)
+				{
+				case 1:
+				case 2:
+				case 3:
+					textureTheme++;
+					break;
+				case 4:
+				default:
+					textureTheme = 1;
+					break;
+
+				}
 			}
 
 			//draw models
