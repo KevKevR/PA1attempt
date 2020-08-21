@@ -73,10 +73,10 @@ Rubik's Cube Controls
 - f/g     Select face to rotate (cycle)
 - c/v     Rotate selected face
 - z       Change texture theme (cycle)
-
-Note: Hold SHIFT for the control to take at every frame
+- ctrl+r  Scramble the cube (makes 100 random rotations)
 
 Timer Controls
 ------
 - 9    Pause/resume timer
 - 0    Reset timer
+
