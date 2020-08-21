@@ -1850,61 +1850,74 @@ int createTexturedCubeVertexArrayObject()
     vec3 vertexArray[] = {  // position and normal
         //cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
         //left
-        vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f,-0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        vec3(-0.5f, 0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f),
-        // far
-        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
-        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),
-        // bottom
-        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),
-        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),
-        // near
-        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),
-        // right
-        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-        vec3(0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),
-        // top
-        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f), vec3(5, 0.0f, 0.0f),
+        vec3(-0.5f,-0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f), vec3(5, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f), vec3(5, 0.0f, 0.0f),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f), vec3(5, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(-1.0f, 0.0f, 0.0f), vec3(5, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f), vec3(5, 0.0f, 0.0f),
+        // far                                            vec3(-1.0f, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),  vec3(1, 0.0f, 0.0f),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f), vec3(1, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f), vec3(1, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),  vec3(1, 0.0f, 0.0f),
+        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f),  vec3(1, 0.0f, 0.0f),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, 0.0f, -1.0f), vec3(1, 0.0f, 0.0f),
+        // bottom                                         vec3(-1.0f, 0.0f, 0.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),  vec3(2, 0.0f, 0.0f),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f), vec3(2, 0.0f, 0.0f),
+        vec3(0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f),  vec3(2, 0.0f, 0.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f),  vec3(2, 0.0f, 0.0f),
+        vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, -1.0f, 0.0f), vec3(2, 0.0f, 0.0f),
+        vec3(-0.5f,-0.5f,-0.5f), vec3(0.0f, -1.0f, 0.0f), vec3(2, 0.0f, 0.0f),
+        // near                                           vec3(-1.0f, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),  vec3(0, 0.0f, 0.0f),
+        vec3(-0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),  vec3(0, 0.0f, 0.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),   vec3(0, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),   vec3(0, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),  vec3(0, 0.0f, 0.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(0.0f, 0.0f, 1.0f),   vec3(0, 0.0f, 0.0f),
+        // right                                          vec3(-1.0f, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),   vec3(4, 0.0f, 0.0f),
+        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),   vec3(4, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),   vec3(4, 0.0f, 0.0f),
+        vec3(0.5f,-0.5f,-0.5f), vec3(1.0f, 0.0f, 0.0f),   vec3(4, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),   vec3(4, 0.0f, 0.0f),
+        vec3(0.5f,-0.5f, 0.5f), vec3(1.0f, 0.0f, 0.0f),   vec3(4, 0.0f, 0.0f),
+        // top                                            vec3(-1.0f, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),   vec3(3, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),   vec3(3, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),  vec3(3, 0.0f, 0.0f),
+        vec3(0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),   vec3(3, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f,-0.5f), vec3(0.0f, 1.0f, 0.0f),  vec3(3, 0.0f, 0.0f),
+        vec3(-0.5f, 0.5f, 0.5f), vec3(0.0f, 1.0f, 0.0f),  vec3(3, 0.0f, 0.0f),
 
         //line (0,0,-0.5)to(0,0,0.5)
-        vec3(0.0f, 0.0f, -0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.0f, 0.0f, -0.5f), vec3(0.0f, 1.0f, 0.0f), vec3(0, 0.0f, 0.0f),
+        vec3(0.0f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),  vec3(0, 0.0f, 0.0f),
 
         //Square (-0.5,0,-0.5) to (0.5,0,0.5)
-        vec3(0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.5f, 0.0f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.0f,-0.5f),vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.5f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.0f,-0.5f), vec3(0.0f, 1.0f, 0.0f),
-        vec3(-0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),   vec3(0, 0.0f, 0.0f),
+        vec3(0.5f, 0.0f,-0.5f), vec3(0.0f, 1.0f, 0.0f),  vec3(0, 0.0f, 0.0f),
+        vec3(-0.5f, 0.0f,-0.5f),vec3(0.0f, 1.0f, 0.0f),  vec3(0, 0.0f, 0.0f),
+        vec3(0.5f, 0.0f, 0.5f), vec3(0.0f, 1.0f, 0.0f),  vec3(0, 0.0f, 0.0f),
+        vec3(-0.5f, 0.0f,-0.5f), vec3(0.0f, 1.0f, 0.0f), vec3(0, 0.0f, 0.0f),
+        vec3(-0.5f, 0.0f, 0.5f),vec3(0.0f, 1.0f, 0.0f),  vec3(0, 0.0f, 0.0f)
     };
-
+    //int faceArray[] = {
+    //    //left
+    //    5,5,5, 5,5,5,
+    //    // far
+    //    1,1,1, 1,1,1,
+    //    // bottom
+    //    2,2,2, 2,2,2,
+    //    // near
+    //    0,0,0, 0,0,0,
+    //    // right
+    //    4,4,4, 4,4,4,
+    //    // top
+    //    3,3,3, 3,3,3
+    //};
     //create instancing array for tile grid. 
     const int sideLength = 100;
     const float cellLength = 1.0f;
@@ -1972,19 +1985,30 @@ int createTexturedCubeVertexArrayObject()
         3,                   // size
         GL_FLOAT,            // type
         GL_FALSE,            // normalized?
-        2 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        3 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
         (void*)0             // array buffer offset
     );
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(4,                   // attribute 1 matches aNormal in Vertex Shader
+    glVertexAttribPointer(4,                   // attribute 4 matches aNormal in Vertex Shader
         3,                   // size
         GL_FLOAT,            // type
         GL_FALSE,            // normalized?
-        2 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        3 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
         (void*)sizeof(vec3)  // array buffer offset
     );
     glEnableVertexAttribArray(4);
+
+    //Setting up the face array
+    glVertexAttribPointer(5,                   // attribute 5 matches face in Vertex Shader
+        3,                   // size
+        GL_FLOAT,            // type
+        GL_FALSE,            // normalized?
+        3 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        (void*)(2* sizeof(vec3))  // array buffer offset
+    );
+    glEnableVertexAttribArray(5);
+
 
     //https://learnopengl.com/Advanced-OpenGL/Instancing
     //Setting up the instance array
@@ -2088,7 +2112,7 @@ const char* getVertexShaderSource()
 		"layout (location = 2) in vec2 aUV;"            //vertex texture location
         "layout (location = 3) in vec3 instanceVec; "   // instancing https://learnopengl.com/Advanced-OpenGL/Instancing
         "layout (location = 4) in vec3 aNormal;"        //vertex normal
-        "layout (location = 5) in int face;"            //int face orientation
+        "layout (location = 5) in vec3 face;"            //int face orientation
         ""
         "uniform vec3 objectColor[27];"     //object inherent color
         "uniform mat4 worldMatrix[27];"
@@ -2107,13 +2131,25 @@ const char* getVertexShaderSource()
         "{"
         "   normalVec = mat3(transpose(inverse(worldMatrix[gl_InstanceID]))) * aNormal;"
         "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix[gl_InstanceID];"
-        "   gl_Position = modelViewProjection * vec4(aPos + instanceVec, 1.0);"
+        //"   gl_Position = modelViewProjection * vec4(aPos + instanceVec, 1.0);"
+        "   gl_Position = modelViewProjection * vec4(aPos.x, aPos.y, aPos.z, 1.0);"
         "   fragPos = vec3(worldMatrix[gl_InstanceID] * vec4(aPos + instanceVec, 1.0));"
         //fragPos from light's view
         "   fragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);"
         "   objectC = objectColor[gl_InstanceID];"
         "   face_s = mainFace[gl_InstanceID];"
+        "vertexUV  = aUV;"
+        "switch (int(face.x)) {"
+        "case 0:"
+        "   break;"
+        "case 1:"
         "   vertexUV = vec2(aUV.x/3 + (gl_InstanceID%3)/3.0f + 0* mod(gl_InstanceID/9, 3)/3.0f, aUV.y/3 +  mod(gl_InstanceID/3, 3)/3.0f);"
+        "	break;"
+        "case 2:"
+        //"	vertexUV = vec2(vertexUV.x -2/3.0f, vertexUV.y);"
+        "	break;"
+        "}"
+        //"   vertexUV = vec2(aUV.x/3 , aUV.y/3 );"
         "}";
 }
 const char* getFragmentShaderSource()
@@ -3428,7 +3464,7 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models, vector<CharM
     glUniform1i(enableTextureLocation, 0);
     //CharModel::draw(models);
     glBindVertexArray(sphereVAOa);
-    CharModel::drawSphere(models);
+    //CharModel::drawSphere(models);
     glUniform1i(enableTextureLocation, enableTexture);
 
     //swap back
@@ -3954,6 +3990,15 @@ int main(int argc, char* argv[])
     GLuint baseballTextureID = loadTexture("../Assets/Textures/baseball.jpg");
     GLuint hockeyTextureID = loadTexture("../Assets/Textures/hockey.jpg");
     GLuint bowlingTextureID = loadTexture("../Assets/Textures/bowling.jpg");
+
+
+    GLuint a = loadTexture("../Assets/Textures/ProgrammingLogo1.jpg");
+    GLuint b = loadTexture("../Assets/Textures/ProgrammingLogo2.jpg");
+    GLuint c = loadTexture("../Assets/Textures/ProgrammingLogo3.jpg");
+    GLuint d = loadTexture("../Assets/Textures/ProgrammingLogo4.jpg");
+    GLuint e = loadTexture("../Assets/Textures/ProgrammingLogo5.jpg");
+    GLuint f = loadTexture("../Assets/Textures/ProgrammingLogo6.jpg");
+    tiledTextureID = soccerTextureID;
 #endif
     //randomize rand();
     srand(time(0));
@@ -4116,7 +4161,7 @@ int main(int argc, char* argv[])
     //vector<mat4> init_T(0);
     //vector<mat4>::iterator init_T_itr;
     const float boxSideLength = 3.0f;
-    const float boxSpacing = boxSideLength * 0.10f;
+    const float boxSpacing = boxSideLength * 0.10f*3;
     const int boxPerSide = 3;
     const float cubeLength = boxPerSide / 2 * (boxSideLength + boxSpacing);
     const float cubeCenterHeight = boxPerSide / 2 * boxSideLength + boxSideLength;
@@ -4448,17 +4493,17 @@ int main(int argc, char* argv[])
         renderInfo.textures.metalTextureID = metalTextureID;
 
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, drumTextureID);
+        glBindTexture(GL_TEXTURE_2D, a);
         glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, pianoTextureID);
+        glBindTexture(GL_TEXTURE_2D, b);
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, trumpetTextureID);
+        glBindTexture(GL_TEXTURE_2D, c);
         glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, bowlingTextureID);
+        glBindTexture(GL_TEXTURE_2D, d);
         glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, boxTextureID);
+        glBindTexture(GL_TEXTURE_2D, e);
         glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, metalTextureID);
+        glBindTexture(GL_TEXTURE_2D, f);
         glActiveTexture(GL_TEXTURE0);
         renderInfo.vao.cubeVAO = cubeVAOa;
         renderInfo.vao.sphereVAO = sphereVAOa;
