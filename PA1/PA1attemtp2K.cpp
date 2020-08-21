@@ -755,6 +755,17 @@ public:
         return faces;
     }
     //used for instancing
+    static vector<int> getPosIndex(vector<CharModel*> arr) {
+        vector<CharModel*>::iterator it;
+        vector<int> pos(0);
+        for (it = arr.begin(); it != arr.end(); it++) {
+            if (*it) {
+                pos.push_back((*it)->posIndex);
+            }
+        }
+        return pos;
+    }
+    //used for instancing
     static vector<vec3> getColor(vector<CharModel*> arr) {
         vector<CharModel*>::iterator it;
         vector<vec3> colors(0);
@@ -768,6 +779,9 @@ public:
     }
     void setFace(int f) {
         face = f;
+    }
+    void setPosIndex(int pos) {
+        posIndex = pos;
     }
 
     static GLuint swapWorldMatrixLocation(vector<CharModel*> arr, GLuint wml) {
@@ -956,6 +970,7 @@ protected:
     mat4 initial_relativeScaleMatrix;       //Initial scale matrix, value to take when reset.
     float initY;                            // Initial y-position in initial translate matrix (note: value assigned to child constructor)
     int face;       //boxes' face
+    int posIndex;   //boxes' position index
 
     MotionData motionD;
     Color color;
@@ -2108,22 +2123,23 @@ const char* getVertexShaderSource()
     return
         "#version 330 core\n"
         "layout (location = 0) in vec3 aPos;"           //vertex position
-		//"layout (location = 1) in vec3 aColor;"         //vertex color    (unused)
-		"layout (location = 2) in vec2 aUV;"            //vertex texture location
+        //"layout (location = 1) in vec3 aColor;"         //vertex color    (unused)
+        "layout (location = 2) in vec2 aUV;"            //vertex texture location
         "layout (location = 3) in vec3 instanceVec; "   // instancing https://learnopengl.com/Advanced-OpenGL/Instancing
         "layout (location = 4) in vec3 aNormal;"        //vertex normal
         "layout (location = 5) in vec3 face;"            //int face orientation
         ""
         "uniform vec3 objectColor[27];"     //object inherent color
         "uniform mat4 worldMatrix[27];"
-		"uniform int mainFace[27];"
+        "uniform int mainFace[27];"
+        "uniform int position[27];"
         "uniform mat4 viewMatrix = mat4(1.0);"  // default value for view matrix (identity)
         "uniform mat4 projectionMatrix = mat4(1.0);"
         "uniform mat4 lightSpaceMatrix;"                //shadow
         ""
         "out vec3 normalVec;"
         "out vec3 fragPos;"
-		"out vec2 vertexUV;"
+        "out vec2 vertexUV;"
         "out vec4 fragPosLightSpace;"                   //shadow
         "out vec3 objectC;"     //object inherent color
         "flat out int face_s;"
@@ -2138,17 +2154,54 @@ const char* getVertexShaderSource()
         "   fragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);"
         "   objectC = objectColor[gl_InstanceID];"
         "   face_s = mainFace[gl_InstanceID];"
+        "   int x = position[gl_InstanceID]%3;"
+        "   int y = position[gl_InstanceID]/3;"
         "vertexUV  = aUV;"
         "switch (int(face.x)) {"
         "case 0:"
         "   break;"
         "case 1:"
-        "   vertexUV = vec2(aUV.x/3 + (gl_InstanceID%3)/3.0f + 0* mod(gl_InstanceID/9, 3)/3.0f, aUV.y/3 +  mod(gl_InstanceID/3, 3)/3.0f);"
+        //"   vertexUV = vec2(aUV.x/3 + (gl_InstanceID%3)/3.0f + 0* mod(gl_InstanceID/9, 3)/3.0f, aUV.y/3 +  mod(gl_InstanceID/3, 3)/3.0f);"
+        "   vertexUV = vec2(aUV.x/3 + x/3.0f, aUV.y/3 + y/3.0f);"
+        "	break;"
+        "case 4:"
+        "face_s = int(mod(face_s + 1 , 4));"
+        //"	vertexUV = vec2(vertexUV.x -2/3.0f, vertexUV.y);"
+        "	break;"
+        "case 3:"
+        "face_s = 4;"
+        //"	vertexUV = vec2(vertexUV.x -2/3.0f, vertexUV.y);"
         "	break;"
         "case 2:"
+        "face_s = 5;"
         //"	vertexUV = vec2(vertexUV.x -2/3.0f, vertexUV.y);"
         "	break;"
         "}"
+
+        //"switch (face_s) {"
+        //"case 0:"
+        //    "switch (int(face.x)) {"
+        //    "case 4:"
+        //    "   face_s = 3;"
+        //    "   break;"
+        //    "case 1:"
+        //    //"   vertexUV = vec2(aUV.x/3 + (gl_InstanceID%3)/3.0f + 0* mod(gl_InstanceID/9, 3)/3.0f, aUV.y/3 +  mod(gl_InstanceID/3, 3)/3.0f);"
+        //    "   vertexUV = vec2(aUV.x/3 + x/3.0f, aUV.y/3 + y/3.0f);"
+        //    "	break;"
+        //    "case 2:"
+        //    //"	vertexUV = vec2(vertexUV.x -2/3.0f, vertexUV.y);"
+        //    "	break;"
+        //    "}"
+        //"   break;"
+        //"case 1:"
+        ////"   vertexUV = vec2(aUV.x/3 + (gl_InstanceID%3)/3.0f + 0* mod(gl_InstanceID/9, 3)/3.0f, aUV.y/3 +  mod(gl_InstanceID/3, 3)/3.0f);"
+        //"   vertexUV = vec2(aUV.x/3 + x/3.0f, aUV.y/3 + y/3.0f);"
+        //"	break;"
+        //"case 2:"
+        ////"	vertexUV = vec2(vertexUV.x -2/3.0f, vertexUV.y);"
+        //"	break;"
+        //"}"
+
         //"   vertexUV = vec2(aUV.x/3 , aUV.y/3 );"
         "}";
 }
@@ -3444,11 +3497,13 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models, vector<CharM
 
     //boxes
     vector<mat4> trsMatrices = CharModel::getTRS(attachedToCore);
-    vector<int> face = CharModel::getFace(attachedToCore);
+    vector<int> mainFace = CharModel::getFace(attachedToCore);
+    vector<int> posIndex = CharModel::getPosIndex(attachedToCore);
     vector<vec3> colors = CharModel::getColor(attachedToCore);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "worldMatrix"), 27, false, &trsMatrices[0][0][0]);
     //glUniform1i(glGetUniformLocation(shaderProgram, "mainFace"), 0);
-    glUniform1iv(glGetUniformLocation(shaderProgram, "mainFace"), 27, &face[0]);
+    glUniform1iv(glGetUniformLocation(shaderProgram, "mainFace"), 27, &mainFace[0]);
+    glUniform1iv(glGetUniformLocation(shaderProgram, "position"), 27, &posIndex[0]);
     glUniform3fv(colorLocation, 27, &colors[0][0]);
     glDrawArraysInstanced(GL_TRIANGLES, 0, 36, 27);
 
@@ -4158,6 +4213,7 @@ int main(int argc, char* argv[])
     //configure initialized positions for boxes
     vector<TRSMatricesHolder> init_T(0);
     vector<int> faces(0);
+    vector<int> posIndex(0);
     //vector<mat4> init_T(0);
     //vector<mat4>::iterator init_T_itr;
     const float boxSideLength = 3.0f;
@@ -4199,6 +4255,7 @@ int main(int argc, char* argv[])
                     init_T.push_back(tempinit_TRS);
                     //init_T.push_back(tempInit_T);
                     faces.push_back(i);
+                    posIndex.push_back(j * 3 + k);
                 }
             }
         }
@@ -4215,6 +4272,7 @@ int main(int argc, char* argv[])
             init_T.push_back(tempinit_TRS);
             //init_T.push_back(tempInit_T);
             faces.push_back(i);
+            posIndex.push_back(1 * 3 + 1);
         }
         break;
         case 6:
@@ -4228,6 +4286,7 @@ int main(int argc, char* argv[])
             init_T.push_back(tempinit_TRS);
             //init_T.push_back(tempInit_T);
             faces.push_back(i);
+            posIndex.push_back(1 * 3 + 1);
         }
         break;
         }
@@ -4372,6 +4431,7 @@ int main(int argc, char* argv[])
         for (int j = 0; j < 3; j++) {
             for (int k = 0; k < 3; k++) {
                 attachedToCore[getCoord(k, j, i)]->setFace(faces[getCoordB(k, j, i)]);
+                attachedToCore[getCoord(k, j, i)]->setPosIndex(posIndex[getCoordB(k, j, i)]);
             }
         }
     }
