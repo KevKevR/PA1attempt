@@ -74,6 +74,8 @@ Rubik's Cube Controls
 - c/v     Rotate selected face
 - z       Change texture theme (cycle)
 
+Note: Hold SHIFT for the control to take at every frame
+
 Timer Controls
 ------
 - 9    Pause/resume timer
