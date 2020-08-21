@@ -4017,16 +4017,16 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
     return selectedTransformation;
 }
 //function will return a partIndex increment on correct key presses.
-int partModelControl(GLFWwindow* window, int prevPartIndex, map<int, KeyState> previousKeyStates) {
+int indexControl(GLFWwindow* window, int prevPartIndex, int mod, map<int, int> inputsToIndexIncrement, map<int, KeyState> previousKeyStates) {
 
-    map<int, int> inputsToModelIndex;
+    //map<int, int> inputsToIndexIncrement;
     map<int, int>::iterator itr;
-    inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_F, -1));
-    inputsToModelIndex.insert(pair<int, GLchar>(GLFW_KEY_G, 1));
+    //inputsToIndexIncrement.insert(pair<int, GLchar>(GLFW_KEY_F, -1));
+    //inputsToIndexIncrement.insert(pair<int, GLchar>(GLFW_KEY_G, 1));
 
     int indexIncrement = 0;
     //iterate through all keys that could be pressed.
-    for (itr = inputsToModelIndex.begin(); itr != inputsToModelIndex.end(); ++itr) {
+    for (itr = inputsToIndexIncrement.begin(); itr != inputsToIndexIncrement.end(); ++itr) {
         int keyState = glfwGetKey(window, itr->first);
         int previousState = returnPreviousKeyState(window, itr->first, previousKeyStates);
         if (keyState == GLFW_PRESS && previousState == GLFW_RELEASE) // increment/decrement partIndex
@@ -4037,7 +4037,7 @@ int partModelControl(GLFWwindow* window, int prevPartIndex, map<int, KeyState> p
 
     //positive modulo 
     //https://stackoverflow.com/questions/14997165/fastest-way-to-get-a-positive-modulo-in-c-c
-    const float mod = numAttachedModelsPerMain;
+    //const float mod = numAttachedModelsPerMain;
     const int newPartIndex = fmodf(mod + fmodf(prevPartIndex + indexIncrement, mod), mod);
     return newPartIndex;
 }
@@ -4073,6 +4073,9 @@ bool* customControl(GLFWwindow * window, map<int, KeyState> previousKeyStates) {
         //signal to make random turn (Rubik)
         {GLFW_KEY_R},
         {GLFW_KEY_R, true},
+        //signal to cycle through textures
+        { GLFW_KEY_Z },
+        { GLFW_KEY_Z, true },
         //signal toggle lights  //not implemented
         {GLFW_KEY_L, true},
         //signal toggle skybox  //not implemented
@@ -4715,13 +4718,52 @@ int main(int argc, char* argv[])
     glfwSetWindowSizeCallback(window, window_size_callback);
     glfwSetKeyCallback(window, key_callback);
 
+#if defined(PLATFORM_OSX)
 
+#else
+#endif
     // Load Textures
 #if defined(PLATFORM_OSX)
     GLuint tiledTextureID = loadTexture("Textures/brick.jpg");
     GLuint cementTextureID = loadTexture("Textures/cement.jpg");
     GLuint metalTextureID = loadTexture("Textures/metal.jpg");
     GLuint boxTextureID = loadTexture("Textures/box.jpg");
+    GLuint jaguarTextureID = loadTexture("Textures/jaguar.jpg");
+    GLuint woodTextureID = loadTexture("Textures/wood.jpg");
+
+    //Theme 1: Colors
+    GLuint redTextureID = loadTexture("Textures/red.jpg");
+    GLuint blueTextureID = loadTexture("Textures/blue.jpg");
+    GLuint yellowTextureID = loadTexture("Textures/yellow.jpg");
+    GLuint greenTextureID = loadTexture("Textures/green.jpg");
+    GLuint orangeTextureID = loadTexture("Textures/orange.jpg");
+    GLuint purpleTextureID = loadTexture("Textures/purple.jpg");
+
+    //Theme 2: Sports
+    GLuint baseballTextureID = loadTexture("Textures/baseball.jpg");
+    GLuint basketballTextureID = loadTexture("Textures/basketball.jpg");
+    GLuint hockeyTextureID = loadTexture("Textures/hockey.jpg");
+    GLuint soccerTextureID = loadTexture("Textures/soccer.jpg");
+    GLuint tennisTextureID = loadTexture("Textures/tennis.jpg");
+    GLuint bowlingballTextureID = loadTexture("Textures/bowlingball.jpg");
+
+    //Theme 3: Music
+    GLuint drumTextureID = loadTexture("Textures/drum.jpg");
+    GLuint fluteTextureID = loadTexture("Textures/flute.jpg");
+    GLuint guitaurTextureID = loadTexture("Textures/guitaur.jpg");
+    GLuint pianoTextureID = loadTexture("Textures/piano.jpg");
+    GLuint triangleTextureID = loadTexture("Textures/triangle.jpg");
+    GLuint trumpetTextureID = loadTexture("Textures/trumpet.jpg");
+
+    //Theme 4: Logos
+    GLuint Logo1TextureID = loadTexture("Textures/ProgrammingLogo1.jpg");
+    GLuint Logo2TextureID = loadTexture("Textures/ProgrammingLogo2.jpg");
+    GLuint Logo3TextureID = loadTexture("Textures/ProgrammingLogo3.jpg");
+    GLuint Logo4TextureID = loadTexture("Textures/ProgrammingLogo4.jpg");
+    GLuint Logo5TextureID = loadTexture("Textures/ProgrammingLogo5.jpg");
+    GLuint Logo6TextureID = loadTexture("Textures/ProgrammingLogo6.jpg");
+
+
 
 #else
     //GLuint tiledTextureID = loadTexture("../Assets/Textures/brick.jpg");
@@ -4735,30 +4777,6 @@ int main(int argc, char* argv[])
     GLuint boxTextureID = loadTexture("Assets/Textures/box.jpg");
 
     GLuint tiledTextureID = loadTexture("../Assets/Textures/tiled.jpg");
-    GLuint redTextureID = loadTexture("../Assets/Textures/red.jpg");
-    GLuint blueTextureID = loadTexture("../Assets/Textures/blue.jpg");
-    GLuint yellowTextureID = loadTexture("../Assets/Textures/yellow.jpg");
-    GLuint greenTextureID = loadTexture("../Assets/Textures/green.jpg");
-    GLuint orangeTextureID = loadTexture("../Assets/Textures/orange.jpg");
-    GLuint purpleTextureID = loadTexture("../Assets/Textures/purple.jpg");
-    GLuint pianoTextureID = loadTexture("../Assets/Textures/piano.jpg");
-    GLuint trumpetTextureID = loadTexture("../Assets/Textures/trumpet.jpg");
-    GLuint fluteTextureID = loadTexture("../Assets/Textures/flute.jpg");
-    GLuint triangleTextureID = loadTexture("../Assets/Textures/triangle.jpg");
-    GLuint guitarTextureID = loadTexture("../Assets/Textures/guitar.jpg");
-    GLuint drumTextureID = loadTexture("../Assets/Textures/drum.jpg");
-    GLuint laptopTextureID = loadTexture("../Assets/Textures/laptop.jpg");
-    GLuint glassTextureID = loadTexture("../Assets/Textures/glass.jpg");
-    GLuint doublehelixTextureID = loadTexture("../Assets/Textures/doublehelix.jpg");
-    GLuint cellsTextureID = loadTexture("../Assets/Textures/cells.jpg");
-    GLuint telescopeTextureID = loadTexture("../Assets/Textures/telescope.jpg");
-    GLuint javaTextureID = loadTexture("../Assets/Textures/java.jpg");
-    GLuint soccerTextureID = loadTexture("../Assets/Textures/soccer.jpg");
-    GLuint basketballTextureID = loadTexture("../Assets/Textures/basketball.jpg");
-    GLuint tennisTextureID = loadTexture("../Assets/Textures/tennis.jpg");
-    GLuint baseballTextureID = loadTexture("../Assets/Textures/baseball.jpg");
-    GLuint hockeyTextureID = loadTexture("../Assets/Textures/hockey.jpg");
-    GLuint bowlingTextureID = loadTexture("../Assets/Textures/bowling.jpg");
 
 
     GLuint a = loadTexture("../Assets/Textures/ProgrammingLogo1.jpg");
@@ -4767,7 +4785,48 @@ int main(int argc, char* argv[])
     GLuint d = loadTexture("../Assets/Textures/ProgrammingLogo4.jpg");
     GLuint e = loadTexture("../Assets/Textures/ProgrammingLogo5.jpg");
     GLuint f = loadTexture("../Assets/Textures/ProgrammingLogo6.jpg");
+
+    GLuint woodTextureID = loadTexture("../Assets/Textures/wood.jpg");
+    //Theme 1 : Color
+    GLuint redTextureID     = loadTexture("../Assets/Textures/red.jpg");
+    GLuint blueTextureID    = loadTexture("../Assets/Textures/blue.jpg");
+    GLuint yellowTextureID  = loadTexture("../Assets/Textures/yellow.jpg");
+    GLuint greenTextureID   = loadTexture("../Assets/Textures/green.jpg");
+    GLuint orangeTextureID  = loadTexture("../Assets/Textures/orange.jpg");
+    GLuint purpleTextureID  = loadTexture("../Assets/Textures/purple.jpg");
+
+    //Theme 2: Sports
+    GLuint baseballTextureID    = loadTexture("../Assets/Textures/baseball.jpg");
+    GLuint basketballTextureID  = loadTexture("../Assets/Textures/basketball.jpg");
+    GLuint hockeyTextureID      = loadTexture("../Assets/Textures/hockey.jpg");
+    GLuint soccerTextureID      = loadTexture("../Assets/Textures/soccer.jpg");
+    GLuint tennisTextureID      = loadTexture("../Assets/Textures/tennis.jpg");
+    GLuint bowlingballTextureID = loadTexture("../Assets/Textures/bowlingball.jpg");
+
+    //Theme 3: Music
+    GLuint drumTextureID        = loadTexture("../Assets/Textures/drum.jpg");
+    GLuint fluteTextureID       = loadTexture("../Assets/Textures/flute.jpg");
+    GLuint guitaurTextureID     = loadTexture("../Assets/Textures/guitaur.jpg");
+    GLuint pianoTextureID       = loadTexture("../Assets/Textures/piano.jpg");
+    GLuint triangleTextureID    = loadTexture("../Assets/Textures/triangle.jpg");
+    GLuint trumpetTextureID     = loadTexture("../Assets/Textures/trumpet.jpg");
+
+    //Theme 4: Logos
+    GLuint Logo1TextureID = loadTexture("../Assets/Textures/ProgrammingLogo1.jpg");
+    GLuint Logo2TextureID = loadTexture("../Assets/Textures/ProgrammingLogo2.jpg");
+    GLuint Logo3TextureID = loadTexture("../Assets/Textures/ProgrammingLogo3.jpg");
+    GLuint Logo4TextureID = loadTexture("../Assets/Textures/ProgrammingLogo4.jpg");
+    GLuint Logo5TextureID = loadTexture("../Assets/Textures/ProgrammingLogo5.jpg");
+    GLuint Logo6TextureID = loadTexture("../Assets/Textures/ProgrammingLogo6.jpg");
+
 #endif
+    GLuint rubikFrontTexture     = redTextureID   ;
+    GLuint rubikBackTexture      = blueTextureID  ;
+    GLuint rubikTopTexture       = yellowTextureID;
+    GLuint rubikBotTexture       = greenTextureID ;
+    GLuint rubikPortTexture      = orangeTextureID;
+    GLuint rubikStarboardTexture = purpleTextureID;
+    GLuint rubikInnerTexture     = metalTextureID ;
     //randomize rand();
     srand(time(0));
     // Gull Grey background
@@ -4907,6 +4966,8 @@ int main(int argc, char* argv[])
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_V, { GLFW_RELEASE , false }));
     //make random turn (Rubik)
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_R, { GLFW_RELEASE , false }));
+    //cycle through textures
+    previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_Z, { GLFW_RELEASE , false }));
     //toggle lights //not implemented
     previousKeyStates.insert(pair<int, KeyState>(GLFW_KEY_L, { GLFW_RELEASE , true }));
     //toggle skybox //not implemented
@@ -5013,6 +5074,7 @@ int main(int argc, char* argv[])
     vector<CharModel*> modelsAndParts;
     int modelIndex = 0;
     int partIndex = 0;
+    int textureThemeIndex = 1;
 
 
     //Prepare initial positions of digits.
@@ -5259,6 +5321,16 @@ int main(int argc, char* argv[])
     //float time = 0;
     GLuint worldMatrixLocation = glGetUniformLocation(shaderProgram, "worldMatrix[0]");
     GLuint shadowWorldMatrixLocation = glGetUniformLocation(shaderProgramShadow, "model");
+
+
+    //inputs for index control
+    //part selection
+    map<int, int> inputsToIndexIncrement_Part;;
+    inputsToIndexIncrement_Part.insert(pair<int, GLchar>(GLFW_KEY_F, -1));
+    inputsToIndexIncrement_Part.insert(pair<int, GLchar>(GLFW_KEY_G, 1));
+    map<int, int> inputsToIndexIncrement_Theme;;
+    inputsToIndexIncrement_Theme.insert(pair<int, GLchar>(GLFW_KEY_Z, 1));
+    //theme selection
     // Entering Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -5336,21 +5408,64 @@ int main(int argc, char* argv[])
 
         //rubik textures
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, a);
+        glBindTexture(GL_TEXTURE_2D, rubikBackTexture);
         glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, b);
+        glBindTexture(GL_TEXTURE_2D, rubikPortTexture);
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, c);
+        glBindTexture(GL_TEXTURE_2D, rubikFrontTexture);
         glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, d);
+        glBindTexture(GL_TEXTURE_2D, rubikStarboardTexture);
         glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, e);
+        glBindTexture(GL_TEXTURE_2D, rubikTopTexture);
         glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, f);
+        glBindTexture(GL_TEXTURE_2D, rubikBotTexture);
         //inner
         glActiveTexture(GL_TEXTURE8);
-        glBindTexture(GL_TEXTURE_2D, metalTextureID);
+        glBindTexture(GL_TEXTURE_2D, rubikInnerTexture);
         glActiveTexture(GL_TEXTURE0);
+
+        //Theme sets
+        vector<GLuint> textureSet1(0);
+        //faces: front, back, top, bot, port, starboard.
+        //inner
+        textureSet1.push_back(redTextureID   );
+        textureSet1.push_back(blueTextureID  );
+        textureSet1.push_back(yellowTextureID);
+        textureSet1.push_back(greenTextureID );
+        textureSet1.push_back(orangeTextureID);
+        textureSet1.push_back(purpleTextureID);
+        textureSet1.push_back(metalTextureID);
+        vector<GLuint> textureSet2(0);
+        textureSet2.push_back(baseballTextureID   );
+        textureSet2.push_back(basketballTextureID );
+        textureSet2.push_back(hockeyTextureID     );
+        textureSet2.push_back(soccerTextureID     );
+        textureSet2.push_back(tennisTextureID     );
+        textureSet2.push_back(bowlingballTextureID);
+        textureSet2.push_back(metalTextureID);
+        vector<GLuint> textureSet3(0);
+        textureSet3.push_back(drumTextureID    );
+        textureSet3.push_back(fluteTextureID   );
+        textureSet3.push_back(guitaurTextureID );
+        textureSet3.push_back(pianoTextureID   );
+        textureSet3.push_back(triangleTextureID);
+        textureSet3.push_back(trumpetTextureID );
+        textureSet3.push_back(metalTextureID);
+        vector<GLuint> textureSet4(0);
+        textureSet4.push_back(Logo1TextureID);
+        textureSet4.push_back(Logo2TextureID);
+        textureSet4.push_back(Logo3TextureID);
+        textureSet4.push_back(Logo4TextureID);
+        textureSet4.push_back(Logo5TextureID);
+        textureSet4.push_back(Logo6TextureID);
+        textureSet4.push_back(metalTextureID);
+        vector<vector<GLuint>> textureSets(0);
+        textureSets.push_back(textureSet1);
+        textureSets.push_back(textureSet2);
+        textureSets.push_back(textureSet3);
+        textureSets.push_back(textureSet4);
+        
+
         renderInfo.vao.cubeVAO = cubeVAOa;
         renderInfo.vao.sphereVAO = sphereVAOa;
         //renderScene(shaderProgramShadow, cubeVAOa);
@@ -5442,7 +5557,8 @@ int main(int argc, char* argv[])
             //selection with keys.
             drawControl(window);
             modelIndex = selectModelControl(window, modelIndex);
-            partIndex = partModelControl(window, partIndex, previousKeyStates);
+            partIndex = indexControl(window, partIndex, numAttachedModelsPerMain, inputsToIndexIncrement_Part, previousKeyStates);
+            textureThemeIndex = indexControl(window, textureThemeIndex, textureSets.size(), inputsToIndexIncrement_Theme, previousKeyStates);
             CharModel* prevModel = selectedModel;
             selectedModel = vModels[modelIndex];
             //CharModel* selectedPartModel = selectedModel->getAttachedModels()[partIndex];
@@ -5528,6 +5644,16 @@ int main(int argc, char* argv[])
                     boxRotater.getAttachedModels()[randIndex]->setAttachedColor(initialBoxColor);
                     selectedPartModel->setAttachedColor(selectedBoxColor);
                 }
+            }
+            //z key has been pressed, so cycle through textures.
+            if (selectedSetting[10] || selectedSetting[11]) {
+                rubikFrontTexture     = textureSets[textureThemeIndex][0];
+                rubikBackTexture      = textureSets[textureThemeIndex][1];
+                rubikTopTexture       = textureSets[textureThemeIndex][2];
+                rubikBotTexture       = textureSets[textureThemeIndex][3];
+                rubikPortTexture      = textureSets[textureThemeIndex][4];
+                rubikStarboardTexture = textureSets[textureThemeIndex][5];
+                rubikInnerTexture     = textureSets[textureThemeIndex][6];
             }
             //many random turns made over period of time.
             //also make time in-between turns vary a bit.
