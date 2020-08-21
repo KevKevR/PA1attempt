@@ -65,7 +65,7 @@ int window_width = 1024, window_height = 768;
 
 // Position of light source
 //slightly offcenter, because the light doesn't like looking straight down.
-vec3 lightPos = vec3(0.0f, 30.0f, 0.001f);
+vec3 lightPos = vec3(-10.0f, 30.0f, 5);
 //vec3 lightPos = vec3(-2.0f, 4.0f, -1.0f);
 
 // Callback function for handling window resize and key input
@@ -396,8 +396,6 @@ public:
 
         //attached models
         cumulativeTRS = TRSMatricesHolder();
-        //*attachedModels = nullptr;
-        numAttachedModels = 0;
 
         //modeMotion = true;
         //data used in motion. For now, here is only for axis of rotation.
@@ -452,11 +450,12 @@ public:
         return temp;
     }
 
-    //lazy getter
+    //lazy getter. derived can overwrite this to return its own Cycle component.
     virtual WalkCycle* getCycle() {
         return &walkState;
     }
 
+    //attached parts functions
     vector<CharModel*> getAttachedModels() {
         return attachedModels;
     }
@@ -534,7 +533,7 @@ public:
         }
     }
 
-
+    //TRS functions
     mat4 getRelativeTranslateMatrix() {
         mat4 motion = getMotion(getCyclePosition()).translateMatrix;
         return relativeTranslateMatrix * motion;
@@ -610,7 +609,12 @@ public:
     mat4 getRelativeUndeformedWorldMatrix() {
         return cumulativeTRS.trs() * getRelativeTranslateMatrix() * getRelativeRotateMatrix() * getRelativeUndeformedScaleMatrix();
     }
+    //reverts TRS matrices back to initial settings.
+    void resetInitialRelativeMatrices() {
+        setRelativeWorldMatrix(initial_relativeTranslateMatrix, initial_relativeRotateMatrix, initial_relativeScaleMatrix);
+    }
 
+    //Derived class functions.
     virtual void next() {
         //implement in derived class please.
     }
@@ -620,17 +624,6 @@ public:
     virtual void draw() {
         //implement in derived class please.
     }
-
-    //Timer stuff: to display timer with passed string, or with chars, depending on implementation.
-    virtual void selectMode(string) {
-        //implement in derived class please.
-        //mostly for border model (contains digit models, so will decompose string into chars to distribute).
-    }
-    virtual void selectMode(char) {
-        //implement in derived class please.
-        //mostly for digit model.
-    }
-
 	virtual void drawLetter() {
 		//implement in derived class please.
 	}
@@ -650,6 +643,15 @@ public:
             }
         }
     }
+    //Timer stuff: to display timer with passed string, or with chars, depending on implementation.
+    virtual void selectMode(string) {
+        //implement in derived class please.
+        //mostly for border model (contains digit models, so will decompose string into chars to distribute).
+    }
+    virtual void selectMode(char) {
+        //implement in derived class please.
+        //mostly for digit model.
+    }
 
     void attachedNext() {
         vector<CharModel*>::iterator it;
@@ -667,9 +669,12 @@ public:
             }
         }
     }
-    //reverts TRS matrices back to initial settings.
-    void resetInitialRelativeMatrices() {
-        setRelativeWorldMatrix(initial_relativeTranslateMatrix, initial_relativeRotateMatrix, initial_relativeScaleMatrix);
+    //get rubik properties
+    void setFace(int f) {
+        face = f;
+    }
+    void setPosIndex(int pos) {
+        posIndex = pos;
     }
 
 	//Class method to draws all passed models. (issues when unloaded models).
@@ -737,7 +742,7 @@ public:
             }
         }
     }
-    //used for instancing
+    //used for instancing rubik
     static vector<mat4> getTRS(vector<CharModel*> arr) {
         vector<CharModel*>::iterator it;
         vector<mat4> trsMatrices(0);
@@ -748,7 +753,7 @@ public:
         }
         return trsMatrices;
     }
-    //used for instancing
+    //used for instancing rubik
     static vector<int> getFace(vector<CharModel*> arr) {
         vector<CharModel*>::iterator it;
         vector<int> faces(0);
@@ -759,7 +764,7 @@ public:
         }
         return faces;
     }
-    //used for instancing
+    //used for instancing rubik
     static vector<int> getPosIndex(vector<CharModel*> arr) {
         vector<CharModel*>::iterator it;
         vector<int> pos(0);
@@ -770,7 +775,7 @@ public:
         }
         return pos;
     }
-    //used for instancing
+    //used for instancing rubik
     static vector<vec3> getColor(vector<CharModel*> arr) {
         vector<CharModel*>::iterator it;
         vector<vec3> colors(0);
@@ -781,12 +786,6 @@ public:
             }
         }
         return colors;
-    }
-    void setFace(int f) {
-        face = f;
-    }
-    void setPosIndex(int pos) {
-        posIndex = pos;
     }
 
     static GLuint swapWorldMatrixLocation(vector<CharModel*> arr, GLuint wml) {
@@ -806,8 +805,6 @@ protected:
     float getCyclePosition() {
         return getCycle()->getPosition();
     }
-    //let other class handle walking.
-    WalkCycle walkState;
 
     //initializes some values.
     void init(TRSMatricesHolder ini_relTRSMatrices) {
@@ -858,15 +855,6 @@ protected:
         tempT.scaleMatrix = motion;
         return tempT;
     }
-    //mat4 followWalkMotion(mat4 motion) {
-    //    float sideMovement = motion[1].x;
-    //    float verticalMovement = motion[1].y;
-    //    mat4 follow = translate(mat4(1.0f),
-    //        vec3(sideMovement,
-    //            verticalMovement,
-    //            0));
-    //    return follow;
-    //}
     mat4 sphereFollow() {
         //untested besides scale component
         TRSMatricesHolder motion = getMotion(getCyclePosition());
@@ -956,6 +944,9 @@ protected:
     }
     //bool modeMotion;
 
+    //let other class handle walking.
+    WalkCycle walkState;
+
     GLuint worldMatrixLocation;
     GLuint colorLocation;
     mat4 initial_relativeTranslateMatrix;   //Initial translate matrix, value to take when reset.
@@ -965,12 +956,17 @@ protected:
     int face;       //boxes' face
     int posIndex;   //boxes' position index
 
+
+    //information for motion.
     MotionData motionD;
+    //object color
     Color color;
+
     SphereOffset sphereOffset;
+    //cumulating TRS of models this is attached to.
     TRSMatricesHolder cumulativeTRS;
+    //models attached to this.
     vector<CharModel*> attachedModels;
-    int numAttachedModels;
 private:
     mat4 relativeTranslateMatrix;   //Stored translate matrix
     mat4 relativeRotateMatrix;      //Stored rotate matrix
@@ -980,7 +976,6 @@ private:
 //placeholder border for now, can change stuff later.
 class Model_Border : public CharModel {
 public:
-
     Model_Border(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder()) : CharModel(shaderProgram, ini_relTRSMatrices) {
         //let super do the initializations.
     }
@@ -991,8 +986,7 @@ public:
         int i = 0;
         for (it = attachedModels.begin(); it != attachedModels.end(); it++, i++) {
             if (*it) {
-                //TODO Timer: separate string to char
-                //char digit = i % 10 + '0';
+                //separate string to char
                 char digit = time[i];
                 (*it)->selectMode(digit);
             }
@@ -1025,7 +1019,6 @@ private:
 
 class Model_DigitalFont : public CharModel {
 public:
-
     Model_DigitalFont(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder()) : CharModel(shaderProgram, ini_relTRSMatrices), toDrawTop{}, toDrawBot{} {
         //let super do the initializations.
         init_charToDraw = '0';   //default char to make compiler happy.
@@ -1037,7 +1030,7 @@ public:
         charToDraw = init_charToDraw;
         selectDraw(letter);
     }
-    //no need to change anything here, except drawModel's name if you feel like it.
+
     void drawNumber() {
         //set color to draw with, and texture.
         //glUniform3f(colorLocation, color.red, color.green, color.blue);
@@ -1644,13 +1637,14 @@ public:
         //angle to rotate towards.
         targetAngle = 0;
     }
-    //void draw() {
-    //    //pass arguments stored in parent class.
-    //    //glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
-    //    glUniform3f(colorLocation, color.red, color.green, color.blue);
-    //    drawCube(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
-    //    //drawCube(worldMatrixLocation, colorLocation, getRelativeWorldMatrix() * cubeOffset * cumulativeTRS.trs());
-    //}
+    //replaced with instanced draw inside main.
+    void draw() {
+        //pass arguments stored in parent class.
+        //glUniform3f(colorLocation, 0.0f, 233.0f / 255.0f, 1.0f);
+        glUniform3f(colorLocation, color.red, color.green, color.blue);
+        drawCube(worldMatrixLocation, colorLocation, getRelativeWorldMatrix());
+        //drawCube(worldMatrixLocation, colorLocation, getRelativeWorldMatrix() * cubeOffset * cumulativeTRS.trs());
+    }
     void next() {
         targetAngle = 90.0f;
         //start walking
@@ -1698,19 +1692,19 @@ protected:
         return tempR;
     }
 
-    //void drawCube(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
-    //    //code goes here
-    //    mat4 mWorldMatrix;
-    //    mat4 translationMatrix, scalingMatrix;
-    //    mat4 worldMatrix;
-
-    //    translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    //    scalingMatrix = mat4(1.0f);//glm::scale(glm::mat4(1.0f), glm::vec3(3.0f, 3.0f, 3.0f));
-    //    worldMatrix = translationMatrix * scalingMatrix;
-    //    mWorldMatrix = relativeWorldMatrix * worldMatrix;
-    //    glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
-    //    glDrawArrays(GL_TRIANGLES, 0, 36);
-    //}
+    void drawCube(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWorldMatrix) {
+        //code goes here
+        mat4 mWorldMatrix;
+        mat4 translationMatrix, scalingMatrix;
+        mat4 worldMatrix;
+    
+        translationMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+        scalingMatrix = mat4(1.0f);//glm::scale(glm::mat4(1.0f), glm::vec3(3.0f, 3.0f, 3.0f));
+        worldMatrix = translationMatrix * scalingMatrix;
+        mWorldMatrix = relativeWorldMatrix * worldMatrix;
+        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
 
     float targetAngle;
     RotateCycle rotateState;
@@ -1718,6 +1712,7 @@ private:
 };
 
 //only stores axis for rotation purposes.
+//honestly, this should be replaced by CharModel since it has no attributes of its own. Only purpose now is to distinguish its role.
 class ModelFace : public CharModel{
 public:
     ModelFace(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder(), vec3 axis = vec3(1.0f, 0, 0))
@@ -2122,7 +2117,6 @@ private:
         
 	}
 };
-
 class ModelA9 : public CharModel {
 public:
 
@@ -2229,7 +2223,6 @@ private:
     
 	}
 };
-
 class ModelN2 : public CharModel {
 public:
 
@@ -2352,7 +2345,6 @@ private:
         
 	}
 };
-
 class ModelN4 : public CharModel {
 public:
 
@@ -2772,7 +2764,6 @@ int createTexturedSphereVertexArrayObject()
 
 //glsl functions, thank you for making coding in strings slightly less trial and error.
 //https://www.shaderific.com/glsl-functions
-
 //main shaders for program.
 const char* getVertexShaderSource()
 {
@@ -2881,7 +2872,8 @@ const char* getVertexShaderSource()
         //translate
         "   vertexUV = vec2(vertexUV.x + 0.5f, vertexUV.y + 0.5f);"
         "	break;"
-        "}"
+        "}" //end switch
+
         "}";
 }
 const char* getFragmentShaderSource()
@@ -4139,7 +4131,7 @@ void renderDecor(RenderInfo renderInfo) {
 
     int cubeVAOa = renderInfo.vao.cubeVAO;
     glBindVertexArray(cubeVAOa);
-
+    glActiveTexture(GL_TEXTURE1);
     // Draw ground
     glUniform1i(enableShadowLocation, enableShadow);
     //draw grid
@@ -4156,7 +4148,7 @@ void renderDecor(RenderInfo renderInfo) {
     glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
     drawTileGrid(worldMatrixLocation, mat4(1.0f));
 }
-void renderModels(RenderInfo renderInfo, vector<CharModel*> models, vector<CharModel*> attachedToCore) {
+void renderModels(RenderInfo renderInfo, vector<CharModel*> models, vector<CharModel*> attachedToCore, bool shadow = false) {
     int shaderProgram = renderInfo.shaderProgram;
     GLuint colorLocation = renderInfo.colorLocation;
     GLuint enableTextureLocation = renderInfo.enableTextureLocation;
@@ -4170,6 +4162,8 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models, vector<CharM
     int sphereVAOa = renderInfo.vao.sphereVAO;
 
     glBindVertexArray(cubeVAOa);
+    glUniform1i(enableTextureLocation, enableTexture);
+    GLuint temp = CharModel::swapWorldMatrixLocation(models, worldMatrixLocation);
 
     //draw all models
 
@@ -4184,16 +4178,19 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models, vector<CharM
     glUniform3fv(colorLocation, 27, &colors[0][0]);
     glDrawArraysInstanced(GL_TRIANGLES, 0, 36, 27);
 
-    GLuint temp = CharModel::swapWorldMatrixLocation(models, worldMatrixLocation);
+    //remove textures from everything else
+    glUniform1i(enableTextureLocation, 0);
+
     //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
     glUniform3f(colorLocation, 0.2f, 0.2f, 1.0f);
-    glBindTexture(GL_TEXTURE_2D, boxTextureID);
+    //glBindTexture(GL_TEXTURE_2D, boxTextureID);
     CharModel::drawLetter(models);
-    glBindTexture(GL_TEXTURE_2D, metalTextureID);
+    //glBindTexture(GL_TEXTURE_2D, metalTextureID);
     CharModel::drawNumber(models);
     //Sphere has no texture for now.
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glUniform1i(enableTextureLocation, 0);
+    //glBindTexture(GL_TEXTURE_2D, 0);
+    //glUniform1i(enableTextureLocation, 0);
+    if(shadow)CharModel::draw(models);
     glBindVertexArray(sphereVAOa);
     CharModel::drawSphere(models);
     glUniform1i(enableTextureLocation, enableTexture);
@@ -4728,14 +4725,10 @@ int main(int argc, char* argv[])
 
     GLuint a = loadTexture("../Assets/Textures/ProgrammingLogo1.jpg");
     GLuint b = loadTexture("../Assets/Textures/ProgrammingLogo2.jpg");
-    //GLuint b = loadTexture("../Assets/Textures/9grid.png");
     GLuint c = loadTexture("../Assets/Textures/ProgrammingLogo3.jpg");
     GLuint d = loadTexture("../Assets/Textures/ProgrammingLogo4.jpg");
-    //GLuint d = loadTexture("../Assets/Textures/9grid.png");
     GLuint e = loadTexture("../Assets/Textures/ProgrammingLogo5.jpg");
-    //GLuint e = loadTexture("../Assets/Textures/9grid.png");
     GLuint f = loadTexture("../Assets/Textures/ProgrammingLogo6.jpg");
-    tiledTextureID = soccerTextureID;
 #endif
     //randomize rand();
     srand(time(0));
@@ -5149,7 +5142,7 @@ int main(int argc, char* argv[])
     boxCore.setAttachedModels(attachedToCore);
     boxRotater.setAttachedModels(attachedToRotater);
 
-    const Color initialBoxColor = { 1,1,1 };
+    const Color initialBoxColor = { 0.8f,0.8f,0.8f };
     Color selectedBoxColor = { 2,1,1 };
     //set color of boxes
     {
@@ -5197,10 +5190,16 @@ int main(int argc, char* argv[])
         vector<CharModel*> temp;
         vector<CharModel*>::iterator it;
         switch (i) {
-        case 0:
-            temp = attachedToS3;
+        case 0: 
+            temp = attachedToCore;
             break;
         case 1:
+            temp = attachedToBase;
+            break;
+        case 2:
+            temp = attachedToS3;
+            break;
+        case 3:
             temp = attachedToN2;
             break;
         }
@@ -5275,7 +5274,7 @@ int main(int argc, char* argv[])
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tiledTextureID); 
+        //glBindTexture(GL_TEXTURE_2D, tiledTextureID); 
         //avoid peter panning
         //glCullFace(GL_FRONT);
 
@@ -5315,7 +5314,7 @@ int main(int argc, char* argv[])
         //renderScene(shaderProgramShadow, cubeVAOa);
         glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
         renderDecor(renderInfo);
-        renderModels(renderInfo, modelsAndParts, attachedToCore);
+        renderModels(renderInfo, modelsAndParts, attachedToCore,true);
 
         //{
         //    // Draw sphere
