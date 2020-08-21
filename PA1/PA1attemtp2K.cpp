@@ -2117,6 +2117,10 @@ int createTexturedSphereVertexArrayObject()
 
     return vertexArrayObject;
 }
+
+//glsl functions, thank you for making coding in strings slightly less trial and error.
+//https://www.shaderific.com/glsl-functions
+
 //main shaders for program.
 const char* getVertexShaderSource()
 {
