@@ -5330,7 +5330,7 @@ int main(int argc, char* argv[])
         renderInfo.enableShadow = enableShadow;
 
         renderInfo.textures.depthMap = depthMap;
-        renderInfo.textures.tiledTextureID = depthMap;
+        renderInfo.textures.tiledTextureID = tiledTextureID;
         renderInfo.textures.boxTextureID = boxTextureID;
         renderInfo.textures.metalTextureID = metalTextureID;
 
@@ -5347,6 +5347,7 @@ int main(int argc, char* argv[])
         glBindTexture(GL_TEXTURE_2D, e);
         glActiveTexture(GL_TEXTURE7);
         glBindTexture(GL_TEXTURE_2D, f);
+        //inner
         glActiveTexture(GL_TEXTURE8);
         glBindTexture(GL_TEXTURE_2D, metalTextureID);
         glActiveTexture(GL_TEXTURE0);
