@@ -2143,6 +2143,15 @@ const char* getVertexShaderSource()
         "out vec4 fragPosLightSpace;"                   //shadow
         "out vec3 objectC;"     //object inherent color
         "flat out int face_s;"
+
+        //rotate for vec2 (uv purpose).
+        "vec2 rotate(float angle, vec2 uv) {"
+        "    float s = sin(radians(angle));"
+        "    float c = cos(radians(angle));"
+        "    mat2 rotateM = mat2(c, -s, s, c);"
+        "    return rotateM * uv;"
+        "}"
+
         "void main()"
         "{"
         "   normalVec = mat3(transpose(inverse(worldMatrix[gl_InstanceID]))) * aNormal;"
@@ -2156,16 +2165,16 @@ const char* getVertexShaderSource()
         "   face_s = mainFace[gl_InstanceID];"
         "   int x = position[gl_InstanceID]%3;"
         "   int y = position[gl_InstanceID]/3;"
-        "vertexUV  = aUV;"
-        "   vertexUV = vec2(aUV.x/3 + x/3.0f, aUV.y/3 + y/3.0f);"
+        "   vertexUV  = aUV;"
+
+        "   int angle = 0;"
         "switch (int(face.x)) {"
         //if drawing inside, //void? also maybe add void to mainface[center]
         "case 0:"
         "   break;"
         //if drawing outside,
         "case 1:"
-        //"   vertexUV = vec2(aUV.x/3 + (gl_InstanceID%3)/3.0f + 0* mod(gl_InstanceID/9, 3)/3.0f, aUV.y/3 +  mod(gl_InstanceID/3, 3)/3.0f);"
-
+        "   vertexUV = vec2(aUV.x/3 + x/3.0f, aUV.y/3 + y/3.0f);"
         "	break;"
         //if drawing right side, then draw right side texture
         "case 4:"
@@ -2173,22 +2182,13 @@ const char* getVertexShaderSource()
         "   vertexUV = vec2(aUV.x, aUV.y);"
         //translate
         "   vertexUV = vec2(vertexUV.x - 0.5f, vertexUV.y - 0.5f);"
-        //rotate
+        //rotate and flip
         "   vertexUV = vec2(vertexUV.y, vertexUV.x);"
         //translate
         "   vertexUV = vec2(vertexUV.x + 0.5f, vertexUV.y + 0.5f);"
-
         //shift
         "   x -=2;"
         "   vertexUV = vec2(vertexUV.x/3+ x/3.0f, vertexUV.y/3 + y/3.0f);"
-        //"   vertexUV = vec2(aUV.x/3 + x/3.0f, aUV.y/3 + y/3.0f);"
-        //"   vertexUV = vec2(aUV.x/3+ x/3.0f, aUV.y/3);"
-        //translate
-        //"   vertexUV = vec2(vertexUV.x - 0.5f, vertexUV.y - 0.5f);"
-        //rotate
-        //"   vertexUV = vec2(vertexUV.y, -vertexUV.x);"
-        //translate
-        //"   vertexUV = vec2(vertexUV.x + 0.5f, vertexUV.y + 0.5f);"
         "	break;"
         //if drawing left side, then draw left side texture //void?
         "case 5:"
@@ -2196,13 +2196,34 @@ const char* getVertexShaderSource()
         "	break;"
         "case 3:"
         //if drawing top, then choose top texture
-        "face_s = 4;"
-        //"	vertexUV = vec2(vertexUV.x -2/3.0f, vertexUV.y);"
+        "   face_s = 4;"
+
+        "   angle = mainFace[gl_InstanceID] * -90;"
+        //shift
+        "   y -=2;"
+        "   vertexUV = vec2(vertexUV.x/3+ x/3.0f, vertexUV.y/3 + y/3.0f);"
+        //translate
+        "   vertexUV = vec2(vertexUV.x - 0.5f, vertexUV.y - 0.5f);"
+        //rotate
+        "   vertexUV = rotate(angle, vertexUV);"
+        //translate
+        "   vertexUV = vec2(vertexUV.x + 0.5f, vertexUV.y + 0.5f);"
         "	break;"
+
         //if drawing bot, then choose bot texture
         "case 2:"
-        "face_s = 5;"
-        //"	vertexUV = vec2(vertexUV.x -2/3.0f, vertexUV.y);"
+        "   face_s = 5;"
+
+        "   angle = mainFace[gl_InstanceID] * 90;"
+        //flip and shift
+        "   vertexUV = vec2(aUV.x, -aUV.y);"
+        "   vertexUV = vec2(vertexUV.x/3+ x/3.0f, vertexUV.y/3 + y/3.0f);"
+        //translate
+        "   vertexUV = vec2(vertexUV.x - 0.5f, vertexUV.y - 0.5f);"
+        //rotate
+        "   vertexUV = rotate(angle, vertexUV);"
+        //translate
+        "   vertexUV = vec2(vertexUV.x + 0.5f, vertexUV.y + 0.5f);"
         "	break;"
         "}"
         //"switch (face_s) {"
@@ -4075,11 +4096,13 @@ int main(int argc, char* argv[])
 
 
     GLuint a = loadTexture("../Assets/Textures/ProgrammingLogo1.jpg");
-    //GLuint b = loadTexture("../Assets/Textures/ProgrammingLogo2.jpg");
-    GLuint b = loadTexture("../Assets/Textures/9grid.png");
+    GLuint b = loadTexture("../Assets/Textures/ProgrammingLogo2.jpg");
+    //GLuint b = loadTexture("../Assets/Textures/9grid.png");
     GLuint c = loadTexture("../Assets/Textures/ProgrammingLogo3.jpg");
     GLuint d = loadTexture("../Assets/Textures/ProgrammingLogo4.jpg");
+    //GLuint d = loadTexture("../Assets/Textures/9grid.png");
     GLuint e = loadTexture("../Assets/Textures/ProgrammingLogo5.jpg");
+    //GLuint e = loadTexture("../Assets/Textures/9grid.png");
     GLuint f = loadTexture("../Assets/Textures/ProgrammingLogo6.jpg");
     tiledTextureID = soccerTextureID;
 #endif
@@ -4245,7 +4268,7 @@ int main(int argc, char* argv[])
     //vector<mat4> init_T(0);
     //vector<mat4>::iterator init_T_itr;
     const float boxSideLength = 3.0f;
-    const float boxSpacing = boxSideLength * 0.10f*3;
+    const float boxSpacing = boxSideLength * 0.10f;
     const int boxPerSide = 3;
     const float cubeLength = boxPerSide / 2 * (boxSideLength + boxSpacing);
     const float cubeCenterHeight = boxPerSide / 2 * boxSideLength + boxSideLength;
