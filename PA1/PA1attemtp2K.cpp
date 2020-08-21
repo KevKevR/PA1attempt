@@ -39,6 +39,8 @@
 #include <map> 
 #include <vector>
 
+#include <string>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include <vector>
@@ -51,6 +53,12 @@ GLuint loadTexture(const char* filename);
 
 const int numMainModels = 6;
 const int numAttachedModelsPerMain = 6;
+const int numDigits = 11;
+
+// Timer variables
+int hours = 0, minutes = 0, seconds = 0, decimals = 0;
+float timePause = 0, timeResume = 0, totalTimePaused = 0, timeReset = 0, currentTime;
+bool paused = false;
 
 // Define (initial) window width and height
 int window_width = 1024, window_height = 768;
@@ -63,6 +71,12 @@ vec3 lightPos = vec3(0.0f, 30.0f, 0.001f);
 // Callback function for handling window resize and key input
 void window_size_callback(GLFWwindow* window, int width, int height);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+
+// Define timer-related functions
+string getTimerString();
+void adjustTimer();
+void handlePauseTimer();
+void resetTimer();
 
 // Forward declare CharModel class in order to declare a pointer to selected model to manipulate
 class CharModel;
@@ -178,12 +192,6 @@ public:
         walkState = 0;
         currentPosition = 0;
         stopWalkPosition = 0;
-
-        direction = 1;
-    }
-    //1 or -1 direction
-    void setDirection(int dir) {
-        direction = dir/labs(dir);
     }
     //increment time step
     void stepForward(float dt) {
@@ -236,6 +244,8 @@ public:
 protected:
     virtual void walk(float dt) {
         //walking, periodic movement from -0.5 to 0.5.
+        //direction -1 or 1;
+        const int direction = 1;
         currentPosition += dt / timePerState * direction;
     }
     /*virtual*/ void returnFromWalk(float dt) {
@@ -526,7 +536,7 @@ public:
 
 
     mat4 getRelativeTranslateMatrix() {
-        mat4 motion = getMotion(updateWalkProgress(0)).translateMatrix;
+        mat4 motion = getMotion(getCyclePosition()).translateMatrix;
         return relativeTranslateMatrix * motion;
     }
     void setRelativeTranslateMatrix(mat4 relTWM) {
@@ -537,7 +547,7 @@ public:
     }
 
     mat4 getRelativeRotateMatrix() {
-        mat4 motion = getMotion(updateWalkProgress(0)).rotateMatrix;
+        mat4 motion = getMotion(getCyclePosition()).rotateMatrix;
         return motion * relativeRotateMatrix;
     }
     void setRelativeRotateMatrix(mat4 relRWM) {
@@ -549,7 +559,7 @@ public:
 
     //return scale matrix without shear elements
     mat4 getRelativeUndeformedScaleMatrix() {
-        //mat4 motion = getMotion(updateWalkProgress(0));
+        //mat4 motion = getMotion(getCyclePosition());
         mat4 scale = relativeScaleMatrix/* * motion*/;
 
         //float heightOffset = sphereOffset.yOffset;
@@ -561,7 +571,7 @@ public:
         //        0));
 
         //float minScale = min(min(relativeScaleMatrix[0].x, relativeScaleMatrix[1].y), relativeScaleMatrix[2].z);
-        float minScale = min(min(scale[0].x, scale[1].y), scale[2].z);
+        float minScale = fmin(fmin(scale[0].x, scale[1].y), scale[2].z);
         mat4 diagonal = mat4(minScale, 0, 0, 0,
             0, minScale, 0, 0,
             0, 0, minScale, 0,
@@ -570,7 +580,7 @@ public:
         return diagonal/* * follow*/;
     }
     mat4 getRelativeScaleMatrix() {
-        mat4 motion = getMotion(updateWalkProgress(0)).scaleMatrix;
+        mat4 motion = getMotion(getCyclePosition()).scaleMatrix;
         return relativeScaleMatrix * motion;
     }
     void setRelativeScaleMatrix(mat4 relSWM) {
@@ -600,16 +610,6 @@ public:
     mat4 getRelativeUndeformedWorldMatrix() {
         return cumulativeTRS.trs() * getRelativeTranslateMatrix() * getRelativeRotateMatrix() * getRelativeUndeformedScaleMatrix();
     }
-    ////temp
-    //virtual void applyOffset(mat4){}
-    //static void setOffset(vector<CharModel*> arr, mat4 off) {
-    //    vector<CharModel*>::iterator it;
-    //    for (it = arr.begin(); it != arr.end(); it++) {
-    //        if (*it) {
-    //            (*it)->applyOffset(off);
-    //        }
-    //    }
-    //}
 
     virtual void next() {
         //implement in derived class please.
@@ -620,10 +620,20 @@ public:
     virtual void draw() {
         //implement in derived class please.
     }
+
+    //Timer stuff: to display timer with passed string, or with chars, depending on implementation.
+    virtual void selectMode(string) {
+        //implement in derived class please.
+        //mostly for border model (contains digit models, so will decompose string into chars to distribute).
+    }
+    virtual void selectMode(char) {
+        //implement in derived class please.
+        //mostly for digit model.
+    }
+
 	virtual void drawLetter() {
 		//implement in derived class please.
 	}
-
 	virtual void drawNumber() {
 		//implement in derived class please.
 	}
@@ -641,14 +651,11 @@ public:
         }
     }
 
-
     void attachedNext() {
         vector<CharModel*>::iterator it;
         for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
             if (*it) {
                 (*it)->next();
-                //temp to start
-                (*it)->updateWalkProgress(0, 1);
             }
         }
     }
@@ -657,8 +664,6 @@ public:
         for (it = attachedModels.begin(); it != attachedModels.end(); it++) {
             if (*it) {
                 (*it)->prev();
-                //temp to start
-                (*it)->updateWalkProgress(0, 1);
             }
         }
     }
@@ -796,7 +801,11 @@ public:
     }
     // Return initial y-position of model
     float getInitY() {return initY;}
+    
 protected:
+    float getCyclePosition() {
+        return getCycle()->getPosition();
+    }
     //let other class handle walking.
     WalkCycle walkState;
 
@@ -836,10 +845,10 @@ protected:
     //shear motion when walking
     TRSMatricesHolder walkMotion(float position) {
         const float amplitude = 4;
-        //const float position = updateWalkProgress(0);
+        //const float position = getCyclePosition();
 
         //shear side-to-side + vertical scaling.
-        mat4 motion = 
+        mat4 motion =
             mat4(1, 0, 0, 0,  // first column
             //amplitude * sinf(radians(180.0f*position)), 1, 0, 0,  // second column
             amplitude * position, 1 + sqrt(amplitude) * powf(position, 2), 0, 0,  // second column
@@ -849,22 +858,6 @@ protected:
         tempT.scaleMatrix = motion;
         return tempT;
     }
-    ////rotation
-    //TRSMatricesHolder rotateMotion(float position) {
-    //    //position should be between 0 to 1.
-    //    const float amplitude = 4;
-    //    const float rotationAngle = 90.0f;
-    //    //const float position = updateWalkProgress(0);
-
-    //    //shear side-to-side + vertical scaling.
-    //    mat4 motion =
-    //        rotate(mat4(1.0f),
-    //            radians(90.0f) * position,
-    //            vec3(0.0f, 0.0f, -1.0f));
-    //    TRSMatricesHolder(tempR);
-    //    tempR.rotateMatrix = motion;
-    //    return tempR;
-    //}
     //mat4 followWalkMotion(mat4 motion) {
     //    float sideMovement = motion[1].x;
     //    float verticalMovement = motion[1].y;
@@ -876,7 +869,7 @@ protected:
     //}
     mat4 sphereFollow() {
         //untested besides scale component
-        TRSMatricesHolder motion = getMotion(updateWalkProgress(0));
+        TRSMatricesHolder motion = getMotion(getCyclePosition());
 
         float heightOffset = sphereOffset.yOffset;
         float sideMovement = motion.scaleMatrix[1].x * heightOffset;
@@ -983,6 +976,663 @@ private:
     mat4 relativeRotateMatrix;      //Stored rotate matrix
     mat4 relativeScaleMatrix;       //Stored scale matrix
 };
+
+//placeholder border for now, can change stuff later.
+class Model_Border : public CharModel {
+public:
+
+    Model_Border(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder()) : CharModel(shaderProgram, ini_relTRSMatrices) {
+        //let super do the initializations.
+    }
+
+    void selectMode(string time) {
+        vector<CharModel*>::iterator it;
+        //index i from 0 to number of digits attached to iterate on, in case needed. delete if not necessary. 
+        int i = 0;
+        for (it = attachedModels.begin(); it != attachedModels.end(); it++, i++) {
+            if (*it) {
+                //TODO Timer: separate string to char
+                //char digit = i % 10 + '0';
+                char digit = time[i];
+                (*it)->selectMode(digit);
+            }
+        }
+    }
+
+    void draw() {
+
+        //border's constants
+        //for now, hard-coded constants
+        const float width_base_model = 2;
+        const float spacing = (0.24f + 0.2f) * width_base_model;
+        const float total_width = width_base_model * numDigits + spacing * (numDigits);
+        const float total_height = 2 * width_base_model + spacing;
+        const float border_thickness = width_base_model / 5;
+        const float correctiveXOffset = -1.4f;
+        //skate constant
+        const float skate_height = border_thickness;
+        mat4 borderPosition = translate(mat4(1.0f),
+            vec3(-total_width / 2 + (numDigits + 1) / 2 * (width_base_model + spacing) + correctiveXOffset,
+                total_height / 2 + border_thickness + skate_height,
+                0))
+            //lessen the depth
+            * scale(mat4(1.0f),
+                vec3(1.0f, 1.0f, 0.25f));
+        drawBorder(total_height, total_width, border_thickness, border_thickness, mat4(1.0f), getRelativeWorldMatrix() * borderPosition);
+    }
+protected:
+private:
+};
+
+class Model_DigitalFont : public CharModel {
+public:
+
+    Model_DigitalFont(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder()) : CharModel(shaderProgram, ini_relTRSMatrices), toDrawTop{}, toDrawBot{} {
+        //let super do the initializations.
+        init_charToDraw = '0';   //default char to make compiler happy.
+        charToDraw = init_charToDraw;
+    }
+    Model_DigitalFont(int shaderProgram, char letter, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder()) : CharModel(shaderProgram, ini_relTRSMatrices) {
+        //let super do the initializations.
+        init_charToDraw = letter;
+        charToDraw = init_charToDraw;
+        selectDraw(letter);
+    }
+    //no need to change anything here, except drawModel's name if you feel like it.
+    void draw() {
+        //set color to draw with, and texture.
+        //glUniform3f(colorLocation, color.red, color.green, color.blue);
+        //glBindTexture(GL_TEXTURE_2D, textureID);
+        drawDigitalFont();
+    }
+    //select display next character 
+    void next() {
+        selectNext();
+        selectDraw(charToDraw);
+    }
+    //select display previous character
+    void prev() {
+        selectPrev();
+        selectDraw(charToDraw);
+    }
+    void reset() {
+        charToDraw = init_charToDraw;
+        resetInitialRelativeMatrices();
+        selectDraw(charToDraw);
+    }
+    //select display character
+    void selectMode(char cTD) {
+        setCharToDraw(cTD);
+        selectDraw(charToDraw);
+    }
+protected:
+
+    //set char to draw
+    void setCharToDraw(char cTD) {
+        charToDraw = cTD;
+    }
+    void selectNext() {
+        if (charToDraw == '9') {
+            charToDraw = 'A';
+        }
+        else if (toupper(charToDraw) != 'Z') {
+            charToDraw += 1;
+        }
+    }
+    void selectPrev() {
+        if (toupper(charToDraw) == 'A') {
+            charToDraw = '9';
+        }
+        else if (charToDraw != '0') {
+            charToDraw -= 1;
+        }
+    }
+    //void Model_DigitalFont::drawBar(mat4 inertialWorldMatrix);
+    //void Model_DigitalFont::drawBarWithSlits(mat4 inertialWorldMatrix);
+    void drawBar(mat4 inertialWorldMatrix);
+    void drawBarWithSlits(mat4 inertialWorldMatrix);
+    //Draw "8"-styled digital clock placements. bool array inputs to control which portions to draw.
+    void drawDigitalFont() {
+        //bool toDrawTop[6] = {true, true , true , true , true , true }; //order: 0top, 1right, 2bottom, 3left, 4main diagonal, 5secondary diagonal. Top half.
+        //bool toDrawBot[6] = {};                                        //order: 0top, 1right, 2bottom, 3left, 4main diagonal, 5secondary diagonal. Bottom half.
+        // ^ ^ ^ note that top's 2bottom and bottom's 0top will draw the same location.
+        // That's why bottom's 0top will be hard-coded skipped, regardless of value inputted.
+
+        mat4 relativeWorldMatrix = getRelativeWorldMatrix();
+        //code goes here
+        const float dimensionMult = 1.2f; //Since, for the bars (with or without slits), the diagonals allow shorter lengths than grid length (when taking width into consideration), the bars will touch when this value is below (0.75*sqrt(2) ~ 1.061f).
+        //(x, y, z), x is base bar + 2 * slits (even though slit takes 1/4 square surface (1/2 in 1D), treat is as whole square to overlap easier)
+        const float objectDimensions[3] = { (1 + 0.5f * 2) * dimensionMult, 0.5f * dimensionMult, 0.25f * dimensionMult }; //Treat as if the bars were dimensionMult% as large. (creates spacing in real model if these were to touch)
+        const int corners = 4;      //Square shape
+
+
+        //Draw "8"-styled digital clock placements.
+        //total height is objectDimensions[0] * 2 - objectDimensions[1].
+        //total width is objectDimensions[0] + objectDimensions[1]
+
+        //recycling function to draw the '9' of V9 model(mine) from PA1 
+        //Then only thing to change is angles to draw on + make diagonals at centers.
+        //total height is heightScale
+        //total width is 2 * apothem
+        const float heightScale = objectDimensions[0] * 2 - objectDimensions[1];    //total height of letter (don't fix what ain't broke)
+        const float m9_apothem = objectDimensions[0] / 2;     //center to outside edge
+
+        const float thickness = objectDimensions[1];        //outside edge to inner edge
+        const float m9_centralAngle = radians(360.0f / corners);
+
+        mat4 inertialWorldMatrix = mat4(1.0f);
+        //Offset for placements to center the model.
+        //modelPositioningMatrix =
+        //    translate(mat4(1.0f),
+        //        vec3(letterHalfWidth,
+        //            -(m_height / 2),
+        //            0));
+
+        //Draw in shape of regular polygons.
+        for (int i = 0; i < corners; ++i)
+        {
+            const float angle_i = m9_centralAngle * i;
+            //const float thickness = widthScale;
+
+            //draw head
+            if (toDrawTop[i]) {
+                inertialWorldMatrix =
+                    //top height, place center point of polygon.
+                    translate(mat4(1.0f),
+                        vec3(0,
+                            heightScale - m9_apothem,
+                            0))
+                    //rotate by angle_i. done after translating to simplify process of creating a ring.
+                    * rotate(mat4(1.0f),
+                        angle_i,
+                        vec3(0.0f, 0.0f, -1.0f))
+                    //apothem distance.
+                    * translate(mat4(1.0f),
+                        vec3(0,
+                            m9_apothem - thickness / 2,  //cube object is centered at origin, not its corner.
+                            0));
+                //no need to scale, as the object is in its final shape.
+                //* scale(mat4(1.0f),
+                //    vec3(m9_base, thickness, 1.0f));
+                drawBarWithSlits(inertialWorldMatrix);
+
+
+            }
+            //draw tail
+
+            if (i == 0) {
+                //this would draw a bar already controlled by the top half, so skip it and let top draw it if needed.
+                continue;
+            }
+            if (toDrawBot[i]) {
+                inertialWorldMatrix =
+                    //bottom height, center of polygon.
+                    translate(mat4(1.0f),
+                        vec3(0,
+                            m9_apothem,
+                            0))
+                    //rotate by angle_i. done after translating to simplify process.
+                    * rotate(mat4(1.0f),
+                        angle_i,
+                        vec3(0.0f, 0.0f, -1.0f))
+                    //apothem distance.
+                    * translate(mat4(1.0f),
+                        vec3(0,
+                            m9_apothem - thickness / 2,
+                            0));
+                //no need to scale, as the object is in its final shape.
+                //scale to sides of polygon match target.
+                //* scale(mat4(1.0f),
+                //    vec3(m9_base, thickness, 1.0f));
+                drawBarWithSlits(inertialWorldMatrix);
+            }
+        }
+        //draw cell diagonals
+        for (int i = 4; i < 6; i++) {
+            const int parity = (int)pow(-1, i + 1);
+            //top diagonals
+            if (toDrawTop[i]) {
+                inertialWorldMatrix =
+                    //top height, center of polygon.
+                    translate(mat4(1.0f),
+                        vec3(0, heightScale - m9_apothem, 0))
+                    //rotate by 45.
+                    * rotate(mat4(1.0f),
+                        radians(45.0f),
+                        vec3(0.0f, 0.0f, parity));
+                //no need to scale, as the object is in its final shape.
+                drawBarWithSlits(inertialWorldMatrix);
+            }
+
+            //bottom diagonals
+            if (toDrawBot[i]) {
+                inertialWorldMatrix =
+                    //bottom height, center of polygon.
+                    translate(mat4(1.0f),
+                        vec3(0, m9_apothem, 0))
+                    //rotate by 45.
+                    * rotate(mat4(1.0f),
+                        radians(45.0f),
+                        vec3(0.0f, 0.0f, parity));
+                //no need to scale, as the object is in its final shape.
+                drawBarWithSlits(inertialWorldMatrix);
+            }
+        }
+
+        //pattern to draw models to make use of relativeWorldMatrix:
+        //worldMatrix = relativeWorldMatrix * (model's original matrices);
+        //glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+        //glUniform3f(colorLocation, 1.0f, 233.0f / 255.0f, 0.0f);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+    char charToDraw;
+    char init_charToDraw;
+    bool toDrawTop[6];
+    bool toDrawBot[6];
+
+private:
+        void selectDraw(char);
+};
+//draw the main bar for the digital font, size according to specifications.
+void Model_DigitalFont::drawBar(mat4 inertialWorldMatrix) {
+    mat4 modelMatrix = mat4(1.0f);
+    //main bar
+    modelMatrix =
+        scale(mat4(1.0f),
+            vec3(1.0f, 0.5f, 0.25f));   //specification dimensions
+    mat4 worldMatrix = getRelativeWorldMatrix() * inertialWorldMatrix * modelMatrix;
+    glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+}
+//draw slits(? vocabulary. the protrusion on the sides) along with the main bar.
+void Model_DigitalFont::drawBarWithSlits(mat4 inertialWorldMatrix) {
+    mat4 modelMatrix = mat4(1.0f);
+    //main bar
+    drawBar(inertialWorldMatrix);
+    const float height_bar = 0.5f;
+    const float sideSlit = sqrt(2 * powf(height_bar, 2)) / 2;
+    //slits to add on each side
+    for (int i = 0; i < 2; i++) {
+        const int parity = (int)pow(-1, i + 1);
+
+        modelMatrix =
+            //center on side's surface
+            translate(mat4(1.0f),
+                vec3(0.5f * parity, 0.0f, 0.0f))
+            //rotate to get triangular protrusion
+            * rotate(mat4(1.0f),
+                radians(45.0f),
+                vec3(0.0f, 0.0f, -parity))
+            //scale to match bar's size
+            * scale(mat4(1.0f),
+                vec3(sideSlit, sideSlit, 0.25f));
+
+        mat4 worldMatrix = getRelativeWorldMatrix() * inertialWorldMatrix * modelMatrix;
+        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+}
+// Selects which parts of the 11-segment display to light up, depending on the selected char. 
+//undefined selection in case selected char is not in domain ([0-9][A-Z][a-z]). (most likely retains previous selection.)
+//https://stackoverflow.com/questions/12328301/cleanest-way-to-copy-a-constant-size-array-in-c11/12328330#12328330
+void Model_DigitalFont::selectDraw(char c) {
+    switch (toupper(c)) {
+    case 'A':
+    {
+        toDrawTop[0] = true;        //top
+        toDrawTop[1] = true;        //right
+        toDrawTop[2] = true;        //bot
+        toDrawTop[3] = true;        //left
+        toDrawTop[4] = false;        //main diagonal
+        toDrawTop[5] = false;       //secondary diagonal
+
+        //toDrawBot[0] = false;     //top
+        toDrawBot[1] = true;        //right
+        toDrawBot[2] = false;       //bot
+        toDrawBot[3] = true;        //left
+        toDrawBot[4] = false;        //main diagonal
+        toDrawBot[5] = false;       //secondary diagonal
+        break;
+    }
+    //for v1 of 'B', see current '8'.
+    //v2 small 'b'.
+    case 'B':   //small 'b' used instead
+    {
+        bool top[6] = { false , false, true, true, false, false };
+        bool bot[6] = { false, false, false, true, false, true };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'C':
+    {
+        bool top[6] = { true, false, false, true, false, false };
+        bool bot[6] = { false, false, true, true, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'D':
+    {
+        bool top[6] = { false, false, false, true, true, false };
+        bool bot[6] = { false, false, false, true, false, true };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'E':
+    {
+        bool top[6] = { true, false, true, true, false, false };
+        bool bot[6] = { false, false, true, true, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'F':
+    {
+        bool top[6] = { true, false, true, true, false, false };
+        bool bot[6] = { false, false, false, true, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'G':   // G needs short center segment
+    {
+        bool top[6] = { true, false, false, true, false, false };
+        bool bot[6] = { false, true, true, true, false, true };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'H':
+    {
+        bool top[6] = { false, true, true, true, false, false };
+        bool bot[6] = { false, true, false, true, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    //for v1 of 'I', see current case of '1'.
+    //v2 left side I
+    case 'I':   //sans-serif. only option is maybe make one shorter, or on opposite sides.
+    {
+        bool top[6] = { false, false, false, true, false, false };
+        bool bot[6] = { false, false, false, true , false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'J':
+    {
+        bool top[6] = { false, true, false, false, false, false };
+        bool bot[6] = { false, true, true, false , false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'K':
+    {
+        bool top[6] = { false, false, false, true, false, true };
+        bool bot[6] = { false, false, false, true , true, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'L':
+    {
+        bool top[6] = { false, false, false, true, false, false };
+        bool bot[6] = { false, false, true, true , false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'M':   //M is missing its inner teeth
+    {
+        bool top[6] = { true, true, false, true, false, true };
+        bool bot[6] = { false, true, false, true , false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'N':
+    {
+        bool top[6] = { false, true, false, true, true, false };
+        bool bot[6] = { false, true, false, true , false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    //case 'O':
+    //{
+    //    bool top[6] = { true, true, false, true, false, false };
+    //    bool bot[6] = { false, true, true, true, false, false };
+    //    copy(top, top + 6, toDrawTop);
+    //    copy(bot, bot + 6, toDrawBot);
+    //    break;
+    //}
+    ////v2 small o
+    case 'O':
+    {
+        bool top[6] = { false, false, true, false, false, false };
+        bool bot[6] = { false, true, true, true, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'P':
+    {
+        bool top[6] = { true, true, true, true, false, false };
+        bool bot[6] = { false, false, false, true, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'Q': // diagonal need to be smaller
+    {
+        bool top[6] = { true, true, false, true, false, false };
+        bool bot[6] = { false, true, true, true, true, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'R':
+    {
+        bool top[6] = { true, true, true, true, false, false };
+        bool bot[6] = { false, false, false, true, true, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'S':       //small 's'
+    {
+        bool top[6] = { false, false, true, false, false, true };
+        bool bot[6] = { false, false, false, false, false, true };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'T':       //needs middle collumn
+    {
+        bool top[6] = { true, false, false, true, false, false };
+        bool bot[6] = { false, false, false, true, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'U':
+    {
+        bool top[6] = { false, true, false, true, false, false };
+        bool bot[6] = { false, true, true, true, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'V':
+    {
+        bool top[6] = { false, true, false, true, false, false };
+        bool bot[6] = { false, false, false, true, false, true };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'W':       //needs middle teeth/collumn
+    {
+        bool top[6] = { false, true, false, true, false, false };
+        bool bot[6] = { false, true, true, true, true, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    //v1 straight edge
+    case 'X':
+    {
+        bool top[6] = { false, true, false, false, true, false };
+        bool bot[6] = { false, true, false, false, false, true };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    ////v2 small 'x'
+    //case 'X':
+    //{
+    //    bool top[6] = { false, false, false, false, false, false };
+    //    bool bot[6] = { false, false , false, false, true, true };
+    //    copy(top, top + 6, toDrawTop);
+    //    copy(bot, bot + 6, toDrawBot);
+    //    break;
+    //}
+    ////v1 small case 'y'
+    //case 'Y':
+    //{
+    //    bool top[6] = { false, true, true, true, false, false };
+    //    bool bot[6] = { false, true, true, false, false, false };
+    //    copy(top, top + 6, toDrawTop);
+    //    copy(bot, bot + 6, toDrawBot);
+    //    break;
+    //}
+    case 'Y':
+    {
+        bool top[6] = { false, true, false, false, true, false };
+        bool bot[6] = { false, true, false, false, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case 'Z':   //small 'z' used
+    {
+        bool top[6] = { false, false, true, false, false, false };
+        bool bot[6] = { false, false, true, false, false, true };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+
+    //v1 similar to O
+    case '0':
+    {
+        bool top[6] = { true, true, false, true, false, false };
+        bool bot[6] = { false, true, true, true, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    //// v2 parallelogram
+    //case '0':
+    //{
+    //    bool top[6] = { false, true, false, false, false, true};
+    //    bool bot[6] = { false, false, false, true, false, true };
+    //    copy(top, top + 6, toDrawTop);
+    //    copy(bot, bot + 6, toDrawBot);
+    //    break;
+    //}
+
+    case '1':
+    {
+        bool top[6] = { false, true, false, false, false, false };
+        bool bot[6] = { false, true, false, false , false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case '2':
+    {
+        bool top[6] = { true, true, true, false, false, false };
+        bool bot[6] = { false, false, true, true, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case '3':
+    {
+        bool top[6] = { true, true, true, false, false, false };
+        bool bot[6] = { false, true, true, false, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case '4':
+    {
+        bool top[6] = { false, true, true, true, false, false };
+        bool bot[6] = { false, true, false , false, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case '5':
+    {
+        bool top[6] = { true, false, true, true, false, false };
+        bool bot[6] = { false, true, true, false, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case '6':
+    {
+        bool top[6] = { true, false, true, true, false, false };
+        bool bot[6] = { false, true, true, true, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case '7':
+    {
+        bool top[6] = { true, true, false, false, false, false };
+        bool bot[6] = { false, false, false, false, false, true };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case '8':   //old 'B' code
+        toDrawTop[0] = true;        //top
+        toDrawTop[1] = true;        //right
+        toDrawTop[2] = true;        //bot
+        toDrawTop[3] = true;        //left
+        toDrawTop[4] = false;        //main diagonal
+        toDrawTop[5] = false;       //secondary diagonal
+
+        //toDrawBot[0] = false;     //top
+        toDrawBot[1] = true;        //right
+        toDrawBot[2] = true;       //bot
+        toDrawBot[3] = true;        //left
+        toDrawBot[4] = false;        //main diagonal
+        toDrawBot[5] = false;       //secondary diagonal
+        break;
+    case '9':
+    {
+        bool top[6] = { true, true, true, true, false, false };
+        bool bot[6] = { false, true, true, false, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+    case '-':
+        bool top[6] = { false, false, true, false, false, false };
+        bool bot[6] = { false, false, false, false, false, false };
+        copy(top, top + 6, toDrawTop);
+        copy(bot, bot + 6, toDrawBot);
+        break;
+    }
+}
 class ModelBox : public CharModel {
 public:
     ModelBox(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder())
@@ -1004,6 +1654,9 @@ public:
     //}
     void next() {
         targetAngle = 90.0f;
+        //start walking
+        updateWalkProgress(0, 1);
+        //rotate next state
         addRelativeRotateMatrix(
             rotate(mat4(1.0f),
                 radians(90.0f),
@@ -1011,6 +1664,9 @@ public:
     }
     void prev() {
         targetAngle = -90.0f;
+        //start walking
+        updateWalkProgress(0, 1);
+        //rotate nexte state
         addRelativeRotateMatrix(
             rotate(mat4(1.0f),
                 radians(-90.0f),
@@ -1033,11 +1689,7 @@ protected:
         const float rotationAngle = targetAngle;
         //const float position = updateWalkProgress(0);
     
-        //shear side-to-side + vertical scaling.
-        //mat4 motion =
-        //    rotate(mat4(1.0f),
-        //        radians(rotationAngle) * position,
-        //        vec3(0.0f, 0.0f, -1.0f));
+        //rotate along its axis CW or CCW.
         mat4 motion =
             rotate(mat4(1.0f),
                 radians(rotationAngle) * (position),
@@ -1862,7 +2514,8 @@ int createTexturedCubeVertexArrayObject()
 {
     // Cube model (used for models and axis)
 
-    vec3 vertexArray[] = {  // position and normal
+    vec3 vertexArray[] = {  
+        // position and normal and face
         //cube (-0.5,-0.5,-0.5) to (0.5,0.5,0.5)
         //left
         vec3(-0.5f,-0.5f,-0.5f), vec3(-1.0f, 0.0f, 0.0f), vec3(5, 0.0f, 0.0f),
@@ -2014,7 +2667,7 @@ int createTexturedCubeVertexArrayObject()
     );
     glEnableVertexAttribArray(4);
 
-    //Setting up the face array
+    //Setting up the face array. is in vec3 because method is known and had trouble with only int.
     glVertexAttribPointer(5,                   // attribute 5 matches face in Vertex Shader
         3,                   // size
         GL_FLOAT,            // type
@@ -2230,31 +2883,6 @@ const char* getVertexShaderSource()
         "   vertexUV = vec2(vertexUV.x + 0.5f, vertexUV.y + 0.5f);"
         "	break;"
         "}"
-        //"switch (face_s) {"
-        //"case 0:"
-        //    "switch (int(face.x)) {"
-        //    "case 4:"
-        //    "   face_s = 3;"
-        //    "   break;"
-        //    "case 1:"
-        //    //"   vertexUV = vec2(aUV.x/3 + (gl_InstanceID%3)/3.0f + 0* mod(gl_InstanceID/9, 3)/3.0f, aUV.y/3 +  mod(gl_InstanceID/3, 3)/3.0f);"
-        //    "   vertexUV = vec2(aUV.x/3 + x/3.0f, aUV.y/3 + y/3.0f);"
-        //    "	break;"
-        //    "case 2:"
-        //    //"	vertexUV = vec2(vertexUV.x -2/3.0f, vertexUV.y);"
-        //    "	break;"
-        //    "}"
-        //"   break;"
-        //"case 1:"
-        ////"   vertexUV = vec2(aUV.x/3 + (gl_InstanceID%3)/3.0f + 0* mod(gl_InstanceID/9, 3)/3.0f, aUV.y/3 +  mod(gl_InstanceID/3, 3)/3.0f);"
-        //"   vertexUV = vec2(aUV.x/3 + x/3.0f, aUV.y/3 + y/3.0f);"
-        //"	break;"
-        //"case 2:"
-        ////"	vertexUV = vec2(vertexUV.x -2/3.0f, vertexUV.y);"
-        //"	break;"
-        //"}"
-
-        //"   vertexUV = vec2(aUV.x/3 , aUV.y/3 );"
         "}";
 }
 const char* getFragmentShaderSource()
@@ -3292,7 +3920,6 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
     const float translateSpeed = transformSpeed;
     const float rotateSpeed = 5.0f;   //specifications
     const float scaleSpeed = transformSpeed / 12;
-    //TODO: code shearing into separate movement function (since the shearing itself is not in the user's control, only the movement)
     const float shearSpeed = transformSpeed * 3;        //temporary, will move to another method for movement
     // capital case letters only
     if (isShiftPressed(window))
@@ -3345,7 +3972,7 @@ mat4* modelControl(GLFWwindow* window, float dt, map<int, KeyState> previousKeyS
     {
         //shear model if pressed
         //temporary, will move to another method for movement
-        //TODO: code shearing into separate movement function (since the shearing itself is not in the user's control, only the movement)
+        //TODO: delete later, since this isn't needed anymore.
         inputsToModelMatrix.insert(pair<int, Transformation>(GLFW_KEY_Q, {
             mat4(1, 0, 0, 0,  // first column
             0, 1, 0, 0,  // second column
@@ -3553,7 +4180,6 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models, vector<CharM
     vector<int> posIndex = CharModel::getPosIndex(attachedToCore);
     vector<vec3> colors = CharModel::getColor(attachedToCore);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "worldMatrix"), 27, false, &trsMatrices[0][0][0]);
-    //glUniform1i(glGetUniformLocation(shaderProgram, "mainFace"), 0);
     glUniform1iv(glGetUniformLocation(shaderProgram, "mainFace"), 27, &mainFace[0]);
     glUniform1iv(glGetUniformLocation(shaderProgram, "position"), 27, &posIndex[0]);
     glUniform3fv(colorLocation, 27, &colors[0][0]);
@@ -3569,9 +4195,8 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models, vector<CharM
     //Sphere has no texture for now.
     glBindTexture(GL_TEXTURE_2D, 0);
     glUniform1i(enableTextureLocation, 0);
-    //CharModel::draw(models);
     glBindVertexArray(sphereVAOa);
-    //CharModel::drawSphere(models);
+    CharModel::drawSphere(models);
     glUniform1i(enableTextureLocation, enableTexture);
 
     //swap back
@@ -3994,17 +4619,20 @@ void attachBoxToCube(vector<CharModel*> attachedToRotater, RubikCube rCube) {
 //Make a random turn on RubikCube.
 int randomTurn(vector<CharModel*> attachedToRotater, RubikCube* rCube) {
     const int randNum = rand();
+    //random part index
     const int randPartIndex = randNum % attachedToRotater.size();
+    //random direction
     const int randDirection = (randNum/10) % 2;
-    //make selected part model display next mode
-    attachedToRotater[randPartIndex]->setAttachedMotionData(attachedToRotater[randPartIndex]->getMotionData());
+    //Prepare randomly selected part to rotate.
+    CharModel* randPart = attachedToRotater[randPartIndex];
+    randPart->setAttachedMotionData(randPart->getMotionData());
     //rotate internal model, and apply to cube.
     if (randDirection) {
-        attachedToRotater[randPartIndex]->attachedNext();
+        randPart->attachedNext();
         rCube->rotateFace(1, randPartIndex);
     }
     else {
-        attachedToRotater[randPartIndex]->attachedPrev();
+        randPart->attachedPrev();
         rCube->rotateFace(-1, randPartIndex);
     }
     attachBoxToCube(attachedToRotater, *rCube);
@@ -4112,7 +4740,7 @@ int main(int argc, char* argv[])
 #endif
     //randomize rand();
     srand(time(0));
-    // Grey background
+    // Gull Grey background
     //glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
     glClearColor(164 / 255.0f, 173 / 255.0f, 176 / 255.0f, 1.0f);
 
@@ -4355,7 +4983,34 @@ int main(int argc, char* argv[])
     int modelIndex = 0;
     int partIndex = 0;
 
+
+    //Prepare initial positions of digits.
+    TRSMatricesHolder pos_m[numDigits];
+    //get some units to position models in + measurements for extra border around.
+    const float z_position = 0;
+    const float width_base_model = 2;
+    const float spacing = (0.24f + 0.2f) * width_base_model;
+    //border measurement
+    const float total_width = width_base_model * numDigits + spacing * (numDigits);
+    const float total_height = 2 * width_base_model + spacing;
+    //border's constant
+    const float border_thickness = width_base_model / 5;
+    //skate constant
+    const float skate_height = border_thickness;
+    for (int i = 0; i < numDigits; i++) {
+        pos_m[i].translateMatrix = translate(mat4(1.0f),
+            vec3(-total_width / 2 + (i + 0.5f) * (width_base_model + spacing),
+                border_thickness + spacing / 2 + skate_height,
+                0));
+    }
+
+    TRSMatricesHolder(initBase);
+    initBase.translateMatrix = translate(mat4(1.0f), vec3(0.0f,0.0f,6.0f));
+    
+    
+
     //base
+    Model_Border base(shaderProgram, initBase);
     CharModel boxCore(shaderProgram, TRSMatricesHolder(mat4(1.0f), translate(mat4(1.0f), vec3(0, cubeCenterHeight, 0)), mat4(1.0f)));
     ModelFace boxTop(shaderProgram);
     ModelFace boxBot(shaderProgram);
@@ -4374,7 +5029,7 @@ int main(int argc, char* argv[])
     boxBack.setAxis(vec3(0, 0, 1));
 
     ModelV9 v9(shaderProgram);
-    ModelS3 s3(shaderProgram, TRSMatricesHolder(translate(mat4(1.0f), vec3(100)), mat4(1.0f), mat4(1.0f)));
+    ModelS3 s3(shaderProgram, TRSMatricesHolder(translate(mat4(1.0f), vec3(25,0,0)), mat4(1.0f), mat4(1.0f)));
     ModelA9 a9(shaderProgram);
     ModelN2 n2(shaderProgram);
     ModelN4 n4(shaderProgram);
@@ -4476,12 +5131,7 @@ int main(int argc, char* argv[])
     attachedToRotater.push_back(&boxPort);
     attachedToRotater.push_back(&boxStarboard);
 
-    //set face
-    int i = 0;
-    //for (vector<CharModel*>::iterator itBox = attachedToCore.begin(); itBox != attachedToCore.end(); itBox++, i++) {
-    //    (*itBox)->setFace(faces[i]);
-    //}
-
+    //set face and position index
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
             for (int k = 0; k < 3; k++) {
@@ -4495,6 +5145,7 @@ int main(int argc, char* argv[])
     RubikCube rubik(attachedToCore);
     attachBoxToCube(attachedToRotater, rubik);
 
+    //attach parts to base
     boxCore.setAttachedModels(attachedToCore);
     boxRotater.setAttachedModels(attachedToRotater);
 
@@ -4508,20 +5159,40 @@ int main(int argc, char* argv[])
         selectedPartModel = boxRotater.getAttachedModels()[partIndex];
         selectedPartModel->setAttachedColor(selectedBoxColor);
     }
-    //CharModel::setOffset(boxTop.getAttachedModels(), rotate(mat4(1.0f), radians(-90.0f), vec3(1.0f, 0.0f, 0.0f)));
-    //CharModel::setOffset(boxBot.getAttachedModels(), rotate(mat4(1.0f), radians(90.0f), vec3(1.0f, 0.0f, 0.0f)));
-    //CharModel::setOffset(boxFront.getAttachedModels(), rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, -1.0f, 0.0f)));
-    //CharModel::setOffset(boxBack.getAttachedModels(), rotate(mat4(1.0f), radians(0.0f), vec3(1.0f, 0.0f, 0.0f)));
-    //CharModel::setOffset(boxPort.getAttachedModels(), rotate(mat4(1.0f), radians(-90.0f), vec3(0.0f, -1.0f, 0.0f)));
-    //CharModel::setOffset(boxStarboard.getAttachedModels(), rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, -1.0f, 0.0f)));
 
-    //boxBot.setAttachedModels(attachedToBack);
-    //workaround to get the shadow map to include the parts.
-    //base
+
+    //digits parts
+    Model_DigitalFont m_hourTens    (shaderProgram, '0', pos_m[0]);
+    Model_DigitalFont m_hourOnes    (shaderProgram, '0', pos_m[1]);
+    Model_DigitalFont m_hmSeparator (shaderProgram, '-', pos_m[2]);
+    Model_DigitalFont m_minutesTens (shaderProgram, '0', pos_m[3]);
+    Model_DigitalFont m_minutesOnes (shaderProgram, '0', pos_m[4]);
+    Model_DigitalFont m_msSeparator (shaderProgram, '-', pos_m[5]);
+    Model_DigitalFont m_secondsTens (shaderProgram, '0', pos_m[6]);
+    Model_DigitalFont m_secondsOnes (shaderProgram, '0', pos_m[7]);
+    Model_DigitalFont m_ssSeparator (shaderProgram, '-', pos_m[8]);
+    Model_DigitalFont m_centiSTens  (shaderProgram, '0', pos_m[9]);
+    Model_DigitalFont m_centiSOnes  (shaderProgram, '0', pos_m[10]);
+
+    vector<CharModel*> attachedToBase;
+    attachedToBase.push_back(&m_k);
+    attachedToBase.push_back(&m_2);
+    attachedToBase.push_back(&m_e);
+    attachedToBase.push_back(&m_7);
+    attachedToBase.push_back(&m_k2);
+    attachedToBase.push_back(&m_22);
+    attachedToBase.push_back(&m_e2);
+    attachedToBase.push_back(&m_72);
+    attachedToBase.push_back(&m_k3);
+    attachedToBase.push_back(&m_23);
+    attachedToBase.push_back(&m_e3);
+
+    //attach to base
+    base.setAttachedModels(attachedToBase);
+
+
+    //for some reason, shadows don't display if the parts' draw call aren't called directly.
     modelsAndParts = vModels;
-    //modelsAndParts.push_back(&n2a);
-    //modelsAndParts.push_back(&a9a);
-    //modelsAndParts.push_back(&s3a);
     for (int i = 0; i < numMainModels; i++) {
         vector<CharModel*> temp;
         vector<CharModel*>::iterator it;
@@ -4540,7 +5211,6 @@ int main(int argc, char* argv[])
             }
         }
     }
-
     //previous frame, if valid input to model.
     bool prevHadMovement = false;
     
@@ -4555,7 +5225,8 @@ int main(int argc, char* argv[])
     while (!glfwWindowShouldClose(window))
     {
         // Frame time calculation
-        float dt = glfwGetTime() - lastFrameTime;
+        currentTime = glfwGetTime();
+        float dt = currentTime - lastFrameTime;
         lastFrameTime += dt;
         timeThreshold += dt;
         // Each frame, reset color of each pixel to glClearColor
@@ -4566,6 +5237,19 @@ int main(int argc, char* argv[])
         //glClearColor(0.4f * (1 + cosf(radians(1.3f * time))), 0.4f * (1 + cosf(radians(1.5f * time + 120))), 0.4f * (1 + cosf(radians(1.7f * time - 120))), 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // Handle timer
+        string time = getTimerString();
+        if (!paused)
+        {
+            // Computes seconds and decimals elapsed since the last minute
+            float elapsed = (currentTime - timeReset - totalTimePaused) - (hours * 60 * 60 + minutes * 60);
+            seconds = (int) elapsed;
+            decimals = (int) ((elapsed - seconds) * 100);
+            // Increment minutes and hours as needed
+            adjustTimer();
+        }
+        
+        
         //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
         // 1. render depth of scene to texture (from light's perspective)
        // --------------------------------------------------------------
@@ -4607,6 +5291,7 @@ int main(int argc, char* argv[])
         renderInfo.textures.boxTextureID = boxTextureID;
         renderInfo.textures.metalTextureID = metalTextureID;
 
+        //rubik textures
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, a);
         glActiveTexture(GL_TEXTURE3);
@@ -4840,10 +5525,10 @@ int main(int argc, char* argv[])
             CharModel::update(vModels, dt);
             CharModel::update(attachedToCore, dt);
             CharModel::resetCumulativeTRS(vModels);
-            TRSMatricesHolder(tempTop);
-            tempTop.rotateMatrix = rotate(mat4(1.0f), radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
-            //boxTop.accumulateTRS(tempTop);
             CharModel::updateAttachedCumulativeTRS(vModels);
+
+            //display time on timer
+            base.selectMode(time);
 		}
 
 
@@ -5071,4 +5756,104 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     // Spacebar will translate a selected model to a random position
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
         randomPosModel(selectedModel);
+    
+    // Temporary controls for timer
+    if (key == GLFW_KEY_9 && action == GLFW_PRESS) {
+        paused = !paused; // pause/resume timer
+        handlePauseTimer();
+    }
+    if (key == GLFW_KEY_0 && action == GLFW_PRESS)
+        resetTimer(); // reset timer
+}
+
+// Returns the current timer in "HH-MM-SS-DD" format
+string getTimerString() {
+    string timerOutput = "";
+    
+    //add hours
+    if (hours < 10)
+        timerOutput += "0" + to_string(hours);
+    else
+        timerOutput += to_string(hours);
+    
+    //hours-minutes separator
+    timerOutput += "-";
+    
+    //add minutes
+    if (minutes < 10)
+        timerOutput += "0" + to_string(minutes);
+    else
+        timerOutput += to_string(minutes);
+
+    //minutes-seconds separator
+    timerOutput += "-";
+    
+    //add seconds
+    if (seconds < 10)
+        timerOutput += "0" + to_string(seconds);
+    else
+        timerOutput += to_string(seconds);
+
+    //seconds-centiseconds separator
+    timerOutput += "-";
+        
+    //add centiseconds
+    if (decimals < 10)
+        timerOutput += "0" + to_string(decimals);
+    else
+        timerOutput += to_string(decimals);
+    
+    //output time in string
+    return timerOutput;
+}
+
+// Reset seconds and minutes variables when they reach 60
+void adjustTimer()
+{
+    // if seconds reaches 60
+    if (seconds >= 60)
+    {
+        // increment minutes
+        minutes++;
+        // if minutes reaches 60
+        if (minutes == 60)
+        {
+            // increment hours
+            hours++;
+            minutes = 0;
+        }
+        // reduce seconds by equivalent minutes.
+        seconds -= 60;
+    }
+}
+
+// Handle pause/resume timer events
+void handlePauseTimer()
+{
+    if (paused)
+        // Store time at which timer is paused
+        timePause = currentTime;
+    else
+    {
+        // Store time at which timer is resumed
+        timeResume = currentTime;
+        // Add to cumulated time for which the time is paused
+        totalTimePaused += timeResume - timePause;
+    }
+}
+
+// Reset timer to inital time
+void resetTimer()
+{
+    // Reset time variables
+    hours = 0;
+    minutes = 0;
+    seconds = 0;
+    decimals = 0;
+    // Store time at which the time was reset
+    timeReset = currentTime;
+    // Handle pause functionalitites for resetting
+    totalTimePaused = 0;
+    if (paused)
+        timePause = timeReset;
 }
