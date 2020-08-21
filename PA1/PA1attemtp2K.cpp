@@ -999,8 +999,7 @@ public:
         }
     }
 
-    void draw() {
-
+    void drawNumber() {
         //border's constants
         //for now, hard-coded constants
         const float width_base_model = 2;
@@ -1039,7 +1038,7 @@ public:
         selectDraw(letter);
     }
     //no need to change anything here, except drawModel's name if you feel like it.
-    void draw() {
+    void drawNumber() {
         //set color to draw with, and texture.
         //glUniform3f(colorLocation, color.red, color.green, color.blue);
         //glBindTexture(GL_TEXTURE_2D, textureID);
@@ -5034,6 +5033,7 @@ int main(int argc, char* argv[])
     ModelN2 n2(shaderProgram);
     ModelN4 n4(shaderProgram);
     vModels.push_back(&boxCore);
+    vModels.push_back(&base);
     vModels.push_back(&s3);
     vModels.push_back(&n2);
     vModels.push_back(&a9);
@@ -5150,7 +5150,7 @@ int main(int argc, char* argv[])
     boxRotater.setAttachedModels(attachedToRotater);
 
     const Color initialBoxColor = { 1,1,1 };
-    Color selectedBoxColor = { 1,0.8,0.8 };
+    Color selectedBoxColor = { 2,1,1 };
     //set color of boxes
     {
         //set color of all boxes
@@ -5175,17 +5175,17 @@ int main(int argc, char* argv[])
     Model_DigitalFont m_centiSOnes  (shaderProgram, '0', pos_m[10]);
 
     vector<CharModel*> attachedToBase;
-    attachedToBase.push_back(&m_k);
-    attachedToBase.push_back(&m_2);
-    attachedToBase.push_back(&m_e);
-    attachedToBase.push_back(&m_7);
-    attachedToBase.push_back(&m_k2);
-    attachedToBase.push_back(&m_22);
-    attachedToBase.push_back(&m_e2);
-    attachedToBase.push_back(&m_72);
-    attachedToBase.push_back(&m_k3);
-    attachedToBase.push_back(&m_23);
-    attachedToBase.push_back(&m_e3);
+    attachedToBase.push_back(&m_hourTens    );
+    attachedToBase.push_back(&m_hourOnes    );
+    attachedToBase.push_back(&m_hmSeparator );
+    attachedToBase.push_back(&m_minutesTens );
+    attachedToBase.push_back(&m_minutesOnes );
+    attachedToBase.push_back(&m_msSeparator );
+    attachedToBase.push_back(&m_secondsTens );
+    attachedToBase.push_back(&m_secondsOnes );
+    attachedToBase.push_back(&m_ssSeparator );
+    attachedToBase.push_back(&m_centiSTens  );
+    attachedToBase.push_back(&m_centiSOnes  );
 
     //attach to base
     base.setAttachedModels(attachedToBase);
@@ -5229,6 +5229,11 @@ int main(int argc, char* argv[])
         float dt = currentTime - lastFrameTime;
         lastFrameTime += dt;
         timeThreshold += dt;
+
+        selectedBoxColor = Color(
+            1.6f + 0.4f * cosf(radians(currentTime * 22.5f*10 / 8)),
+            1.6f + 0.4f * cosf(radians(currentTime * 20 * 10 / 9 + 120)),
+            1.6f + 0.4f * cosf(radians(currentTime * 25 * 10 / 7 - 120)));
         // Each frame, reset color of each pixel to glClearColor
         // @TODO 1 - Clear Depth Buffer Bit as well
         // ...
@@ -5406,6 +5411,7 @@ int main(int argc, char* argv[])
             mat4* relativeWorldMatrix = modelControl(window, dt, previousKeyStates);
             bool hasMovement = checkModelMovement(window, previousKeyStates);
             bool* selectedSetting = customControl(window, previousKeyStates);
+            selectedPartModel->setAttachedColor(selectedBoxColor);
             //Home key has been pressed, so reset world matrices.
             if (selectedSetting[0] || selectedSetting[1]) {
                 //reset TRS matrices
