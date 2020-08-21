@@ -2581,19 +2581,19 @@ int createTexturedCubeVertexArrayObject()
     const int sideLength = 100;
     const float cellLength = 1.0f;
     const float height = 0.0f;
-    vec3 offsetArray[sideLength * sideLength] = {};
+    vec3 offsetArray[sideLength * sideLength + 27] = {};
     for (int i = 0; i < sideLength; ++i)
     {
         for (int j = 0; j < sideLength; ++j)
         {
-            ////skip the extra one (the last one)
-            //if (i == sideLength - 1 && j == sideLength - 1) {
-            //    break;
-            //}
-            //offsetArray[sideLength * i + j + 1] =
-            //    vec3(-cellLength * sideLength + (i + 1) * cellLength,
-            //        height,
-            //        -cellLength * sideLength + (j + 1) * cellLength);
+            //skip the extra one (the last one)
+            if (i == sideLength - 1 && j == sideLength - 1) {
+                break;
+            }
+            offsetArray[sideLength * i + j + 1 + 27] =
+                vec3(-cellLength * sideLength + (i + 1) * cellLength,
+                    height,
+                    -cellLength * sideLength + (j + 1) * cellLength);
 
             //offsetArray[sideLength * i + j + 1] = vec3(0, 0, 0);
         }
@@ -2780,6 +2780,7 @@ const char* getVertexShaderSource()
         "uniform mat4 worldMatrix[27];"
         "uniform int mainFace[27];"
         "uniform int position[27];"
+        "uniform bool isRubik;"
         "uniform mat4 viewMatrix = mat4(1.0);"  // default value for view matrix (identity)
         "uniform mat4 projectionMatrix = mat4(1.0);"
         "uniform mat4 lightSpaceMatrix;"                //shadow
@@ -2801,23 +2802,32 @@ const char* getVertexShaderSource()
 
         "void main()"
         "{"
-        "   normalVec = mat3(transpose(inverse(worldMatrix[gl_InstanceID]))) * aNormal;"
-        "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix[gl_InstanceID];"
+        "   int voidFace = 7-1;"
+        "   int instanceIndex = 0;"
+        "   face_s = 0;"
+        "   if (isRubik){"
+        "      instanceIndex = gl_InstanceID;"
+        "      face_s = mainFace[instanceIndex];"
+        "   }"
+        "   normalVec = mat3(transpose(inverse(worldMatrix[instanceIndex]))) * aNormal;"
+        "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix[instanceIndex];"
         //"   gl_Position = modelViewProjection * vec4(aPos + instanceVec, 1.0);"
-        "   gl_Position = modelViewProjection * vec4(aPos.x, aPos.y, aPos.z, 1.0);"
-        "   fragPos = vec3(worldMatrix[gl_InstanceID] * vec4(aPos + instanceVec, 1.0));"
+        "   gl_Position = modelViewProjection * vec4(aPos + instanceVec, 1.0);"
+        "   fragPos = vec3(worldMatrix[instanceIndex] * vec4(aPos + instanceVec, 1.0));"
         //fragPos from light's view
         "   fragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);"
-        "   objectC = objectColor[gl_InstanceID];"
-        "   face_s = mainFace[gl_InstanceID];"
-        "   int x = position[gl_InstanceID]%3;"
-        "   int y = position[gl_InstanceID]/3;"
+        "   objectC = objectColor[instanceIndex];"
+        "   int x = position[instanceIndex]%3;"
+        "   int y = position[instanceIndex]/3;"
         "   vertexUV  = aUV;"
 
         "   int angle = 0;"
         "switch (int(face.x)) {"
         //if drawing inside, //void? also maybe add void to mainface[center]
         "case 0:"
+        "   if (isRubik){"
+        "       face_s = voidFace;"
+        "   }"
         "   break;"
         //if drawing outside,
         "case 1:"
@@ -2826,6 +2836,9 @@ const char* getVertexShaderSource()
         //if drawing right side, then draw right side texture
         "case 4:"
         "   face_s = int(mod(face_s + 1 , 4));"
+        "   if (x != 2){"
+        "       face_s = voidFace;"
+        "   }"
         "   vertexUV = vec2(aUV.x, aUV.y);"
         //translate
         "   vertexUV = vec2(vertexUV.x - 0.5f, vertexUV.y - 0.5f);"
@@ -2840,12 +2853,16 @@ const char* getVertexShaderSource()
         //if drawing left side, then draw left side texture //void?
         "case 5:"
         "   face_s = int(mod(face_s - 1 , 4));"
+        "   face_s = voidFace;"
         "	break;"
         "case 3:"
         //if drawing top, then choose top texture
         "   face_s = 4;"
+        "   if (y != 2){"
+        "       face_s = voidFace;"
+        "   }"
 
-        "   angle = mainFace[gl_InstanceID] * -90;"
+        "   angle = mainFace[instanceIndex] * -90;"
         //shift
         "   y -=2;"
         "   vertexUV = vec2(vertexUV.x/3+ x/3.0f, vertexUV.y/3 + y/3.0f);"
@@ -2860,8 +2877,11 @@ const char* getVertexShaderSource()
         //if drawing bot, then choose bot texture
         "case 2:"
         "   face_s = 5;"
+        "   if (y != 0){"
+        "       face_s = voidFace;"
+        "   }"
 
-        "   angle = mainFace[gl_InstanceID] * 90;"
+        "   angle = mainFace[instanceIndex] * 90;"
         //flip and shift
         "   vertexUV = vec2(aUV.x, -aUV.y);"
         "   vertexUV = vec2(vertexUV.x/3+ x/3.0f, vertexUV.y/3 + y/3.0f);"
@@ -2874,6 +2894,12 @@ const char* getVertexShaderSource()
         "	break;"
         "}" //end switch
 
+        //"   if (mainFace[instanceIndex] == 6){"
+        //"       face_s = voidFace;"
+        //"   }"
+        "   if (isRubik){"
+        "      face_s++;"
+        "   }"
         "}";
 }
 const char* getFragmentShaderSource()
@@ -2882,7 +2908,7 @@ const char* getFragmentShaderSource()
     "#version 330 core\n"
     "uniform vec3 lightPos;"        //light properties
     "uniform vec3 viewPos;"
-	"uniform sampler2D textureSampler[7];" //texture properties
+	"uniform sampler2D textureSampler[9];" //texture properties
 	"uniform bool hasTexture;"
     "uniform sampler2D shadowMap;"  //shadow
     "uniform bool hasShadow;"
@@ -3720,7 +3746,7 @@ void drawGrid(GLuint worldMatrixLocation, GLuint colorLocation, mat4 relativeWor
 void drawTileGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.0f)) {
     const float sideLength = 100; //# of cells on side.
     const float cellLength = 1; //length of side of a cell.
-    const int numCells = (int)pow(sideLength,2);
+    const int numCells = (int)pow(sideLength,2) + 27;
     const float height = 0.0f;     //y-position of grid.
 
     mat4 tileWorldMatrix;
@@ -3739,7 +3765,7 @@ void drawTileGrid(GLuint worldMatrixLocation, mat4 relativeWorldMatrix = mat4(1.
     glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &worldMatrix[0][0]);
     //Call to use instances
     //https://learnopengl.com/Advanced-OpenGL/Instancing
-    //glDrawArraysInstanced(GL_TRIANGLES, 38, 6, numCells);
+    glDrawArraysInstanced(GL_TRIANGLES, 38, 6, numCells);
 }
 
 // Draws x, y, z axis at the center of the grid
@@ -4109,10 +4135,12 @@ struct RenderInfo {
     GLuint colorLocation;
     GLuint enableTextureLocation;
     GLuint enableShadowLocation;
+    //GLuint enableRubikLocation;
     GLuint worldMatrixLocation;
 
     int enableTexture;
     int enableShadow;
+    //int enableRubik;
     TextureId textures;
 
     VAO vao;
@@ -4124,9 +4152,11 @@ void renderDecor(RenderInfo renderInfo) {
     GLuint colorLocation = renderInfo.colorLocation;
     GLuint enableTextureLocation = renderInfo.enableTextureLocation;
     GLuint enableShadowLocation = renderInfo.enableShadowLocation;
+    //GLuint enableRubikLocation = renderInfo.enableRubikLocation;
     GLuint worldMatrixLocation = renderInfo.worldMatrixLocation;
     int enableTexture = renderInfo.enableTexture;
     int enableShadow = renderInfo.enableShadow;
+    //int enableRubik = renderInfo.enableRubik;
     int tiledTextureID = renderInfo.textures.tiledTextureID;
 
     int cubeVAOa = renderInfo.vao.cubeVAO;
@@ -4134,6 +4164,9 @@ void renderDecor(RenderInfo renderInfo) {
     glActiveTexture(GL_TEXTURE1);
     // Draw ground
     glUniform1i(enableShadowLocation, enableShadow);
+    //glUniform1i(enableRubikLocation, enableRubik);
+    GLuint enableRubikLocation = glGetUniformLocation(shaderProgram, "isRubik");
+    glUniform1i(enableRubikLocation, 0);
     //draw grid
     glBindTexture(GL_TEXTURE_2D, 0);
     glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
@@ -4163,11 +4196,15 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models, vector<CharM
 
     glBindVertexArray(cubeVAOa);
     glUniform1i(enableTextureLocation, enableTexture);
+    //glUniform1i(enableShadowLocation, enableShadow);
+    //glUniform1i(enableRubikLocation, enableRubik);
     GLuint temp = CharModel::swapWorldMatrixLocation(models, worldMatrixLocation);
 
     //draw all models
 
     //boxes
+    GLuint enableRubikLocation = glGetUniformLocation(shaderProgram, "isRubik");
+    glUniform1i(enableRubikLocation, 1);
     vector<mat4> trsMatrices = CharModel::getTRS(attachedToCore);
     vector<int> mainFace = CharModel::getFace(attachedToCore);
     vector<int> posIndex = CharModel::getPosIndex(attachedToCore);
@@ -4177,6 +4214,7 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models, vector<CharM
     glUniform1iv(glGetUniformLocation(shaderProgram, "position"), 27, &posIndex[0]);
     glUniform3fv(colorLocation, 27, &colors[0][0]);
     glDrawArraysInstanced(GL_TRIANGLES, 0, 36, 27);
+    glUniform1i(enableRubikLocation, 0);
 
     //remove textures from everything else
     glUniform1i(enableTextureLocation, 0);
@@ -4753,6 +4791,7 @@ int main(int argc, char* argv[])
     glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler[4]"), 5);
     glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler[5]"), 6);
     glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler[6]"), 7);
+    glUniform1i(glGetUniformLocation(shaderProgram, "textureSampler[7]"), 8);
 
     vector<int> depth = configureDepthMap();
     int depthMapFBO = depth[0];
@@ -4895,7 +4934,7 @@ int main(int argc, char* argv[])
     const float boxSpacing = boxSideLength * 0.10f;
     const int boxPerSide = 3;
     const float cubeLength = boxPerSide / 2 * (boxSideLength + boxSpacing);
-    const float cubeCenterHeight = boxPerSide / 2 * boxSideLength + boxSideLength;
+    const float cubeCenterHeight = boxPerSide / 2 * boxSideLength + boxSideLength*1.5;
     //// indexes 0 to 2 is back bottom row
     //// indexes 0 to 8 is back wall
     //for (int i = 0; i < boxPerSide; i++) {
@@ -4909,7 +4948,7 @@ int main(int argc, char* argv[])
     //        }
     //    }
     //}
-    mat4 initScale = scale(glm::mat4(1.0f), glm::vec3(3.0f, 3.0f, 3.0f));
+    mat4 initScale = scale(glm::mat4(1.0f), glm::vec3(boxSideLength));
     //indexes 0 to 5 are 6 left-most cells of tall 3x3 in the back.
     //construct initial positions for sides
     //i from [0,3] are sides, [4,5] are top/bot, [6] center
@@ -5259,7 +5298,7 @@ int main(int argc, char* argv[])
        // --------------------------------------------------------------
         glm::mat4 lightProjection, lightView;
         glm::mat4 lightSpaceMatrix;
-        float near_plane = -40.0f, far_plane = 35.0f;
+        float near_plane = -40.0f, far_plane = 90.0f;
         lightProjection = glm::ortho(-80.0f, 80.0f, -80.0f, 80.0f, near_plane, far_plane);
         lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         lightSpaceMatrix = lightProjection * lightView;
@@ -5291,7 +5330,7 @@ int main(int argc, char* argv[])
         renderInfo.enableShadow = enableShadow;
 
         renderInfo.textures.depthMap = depthMap;
-        renderInfo.textures.tiledTextureID = tiledTextureID;
+        renderInfo.textures.tiledTextureID = depthMap;
         renderInfo.textures.boxTextureID = boxTextureID;
         renderInfo.textures.metalTextureID = metalTextureID;
 
@@ -5308,6 +5347,8 @@ int main(int argc, char* argv[])
         glBindTexture(GL_TEXTURE_2D, e);
         glActiveTexture(GL_TEXTURE7);
         glBindTexture(GL_TEXTURE_2D, f);
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_2D, metalTextureID);
         glActiveTexture(GL_TEXTURE0);
         renderInfo.vao.cubeVAO = cubeVAOa;
         renderInfo.vao.sphereVAO = sphereVAOa;
