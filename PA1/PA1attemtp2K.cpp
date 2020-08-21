@@ -51,7 +51,7 @@ using namespace std;
 
 GLuint loadTexture(const char* filename);
 
-const int numMainModels = 6;
+const int numMainModels = 7;
 const int numAttachedModelsPerMain = 6;
 const int numDigits = 11;
 
