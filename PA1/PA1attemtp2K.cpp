@@ -65,7 +65,7 @@ int window_width = 1024, window_height = 768;
 
 // Position of light source
 //slightly offcenter, because the light doesn't like looking straight down.
-vec3 lightPos = vec3(-10.0f, 30.0f, 5);
+vec3 lightPos = vec3(-10.0f, 30.0f, 30);
 //vec3 lightPos = vec3(-2.0f, 4.0f, -1.0f);
 
 // Callback function for handling window resize and key input
@@ -1016,7 +1016,65 @@ public:
 protected:
 private:
 };
+class SkyBox : public CharModel {
+public:
+    SkyBox(int shaderProgram, int vAO, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder()) : CharModel(shaderProgram, ini_relTRSMatrices) {
+        //let super do the initializations.
+        mode = false;
+        sphereOffset = { 0,0, 75 };//origin and 75 radius, specifications
+        vao = vAO;
+    }
 
+    void next() {
+        mode = !mode;
+    }
+    void prev() {
+        next();
+    }
+    void draw() {
+        glBindVertexArray(vao);
+        //do not let model be transformed.
+        (!mode) ? drawSemiSphere(mat4(1.0f)) : drawBox(mat4(1.0f));
+    }
+
+protected:
+    void drawSemiSphere(mat4 relativeWorldMatrix) {
+        // Draw sphere
+        const float yHover = 0.0f;
+
+        const float xOffset = sphereOffset.xOffset;
+        const float yOffset = sphereOffset.yOffset + yHover;
+        const float scaler = sphereOffset.scaler;
+
+        mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(-scaler, -scaler, -scaler));
+        mat4 mWorldMatrix = relativeWorldMatrix * worldMatrix;
+        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+
+
+        //match these numbers to those passed to sphereVertices().
+        const int heightParts = 22;
+        const int ringParts = 30;
+        const int numVertices = (heightParts - 1) * ringParts * 8;
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, numVertices / 2);
+    }
+    void drawBox(mat4 relativeWorldMatrix) {
+        // Draw box
+        //omit top, then scale top by -0.5f.
+        const float yHover = 0.0f;
+
+        const float xOffset = sphereOffset.xOffset;
+        const float yOffset = sphereOffset.yOffset + yHover;
+        const float scaler = sphereOffset.scaler;
+
+        mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(-scaler, -0.5f * scaler, -scaler));
+        mat4 mWorldMatrix = relativeWorldMatrix * worldMatrix;
+        glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+
+        glDrawArrays(GL_TRIANGLES, 0, 30);
+    }
+    bool mode;
+    int vao;
+};
 class Model_DigitalFont : public CharModel {
 public:
     Model_DigitalFont(int shaderProgram, TRSMatricesHolder ini_relTRSMatrices = TRSMatricesHolder()) : CharModel(shaderProgram, ini_relTRSMatrices), toDrawTop{}, toDrawBot{} {
@@ -2500,7 +2558,52 @@ vector<vec3> sphereVertices(const int heightParts, const int ringParts) {
     //return sphereArray;
     return vecSphereArray;
 }
+vector<vec3> halfSphereVertices(const int heightParts, const int ringParts) {
 
+    //sphere radius, rho
+    const float radius = 1.0f;
+    vector<vec3> vecSphereArray(0);
+
+    //for every height part
+    for (int i = 0; i < heightParts - 1; i++) {
+        //for each part of a ring
+        for (int j = 0; j < ringParts; j++) {
+            //alternate between heights to form a strip.
+            //slightly redundant on bottommost and topmost vertices.
+            for (int k = 0; k < 2; k++) {
+                int alternate = 1 - k;
+                //y is height
+                // v v v diameter divided by area part count, then center to origin. so spacing is by diameter
+                //float ya = (i + alternate) * radius / (heightParts - 1);
+                // v v v height segment is given by phi angle.
+                //float y = -radius * (sinf(radians(2 * 90 * ((float)(i + alternate) / (heightParts)))));
+                float y = radius * (sinf(radians(2 * 90 * ((float)(i + alternate) / (heightParts - 1) - 0.5f))));
+                y = -(y + 1) / 2;
+                //vertices for a xz-ring at height y.
+                //r is radial distance
+                float r = sqrt(radius * radius - y * y);
+
+                //ring
+                float theta = radians(j * 360.0f / ringParts);
+                float x = r * cosf(theta);
+                float z = r * sinf(theta);
+                //every height will have ringParts# * 2 of elements
+
+                //position
+                vecSphereArray.push_back(vec3(x, y, z));
+                //normal
+                vecSphereArray.push_back(vec3(x, y, z));
+                //uv
+                //bound to [0.0f, 1.0f] interval from [-1.0f, 1.0f].
+                float norm_x = (x + 1) / (2 * radius);
+                float norm_z = (z + 1) / (2 * radius);
+                //ignore 3rd float
+                vecSphereArray.push_back(vec3(norm_x, norm_z, 0.0f));
+            }
+        }
+    }
+    return vecSphereArray;
+}
 int createTexturedCubeVertexArrayObject()
 {
     // Cube model (used for models and axis)
@@ -2761,7 +2864,76 @@ int createTexturedSphereVertexArrayObject()
 
     return vertexArrayObject;
 }
+int createTexturedHalfSphereVertexArrayObject()
+{
+    // Create a vertex array
+    GLuint vertexArrayObject;
+    glGenVertexArrays(1, &vertexArrayObject);
+    glBindVertexArray(vertexArrayObject);
 
+    // Upload Vertex Buffer to the GPU, keep a reference to it (vertexBufferObject)
+    //Have multiple arrays/buffer.
+    //https://www.khronos.org/opengl/wiki/Tutorial2:_VAOs,_VBOs,_Vertex_and_Fragment_Shaders_(C_/_SDL)
+    GLuint vertexBufferObject[2];
+    glGenBuffers(2, vertexBufferObject);
+
+    const int heightParts = 22;
+    const int ringParts = 30;
+    const int numStride = 3;
+    const int numVertexes = (heightParts - 1) * ringParts * 2 * numStride;
+    //make sure the sphere draw function draws [numVertexes/numStride] figures.
+    //https://stackoverflow.com/questions/4264304/how-to-return-an-array-from-a-function
+    vector<vec3> vertexArraySphere = halfSphereVertices(heightParts, ringParts);
+
+    vec3 vertexArr2[numVertexes];
+    //convert it to array
+    for (int i = 0; i < vertexArraySphere.size(); i++) {
+        vertexArr2[i] = vertexArraySphere[i];
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[0]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexArr2), vertexArr2, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0,                   // attribute 0 matches aPos in Vertex Shader
+        3,                   // size
+        GL_FLOAT,            // type
+        GL_FALSE,            // normalized?
+        3 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        (void*)0             // array buffer offset
+    );
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(2,                            // attribute 2 matches aUV in Vertex Shader
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        3 * sizeof(vec3),
+        (void*)(2 * sizeof(vec3))      // uv is offseted by 2 vec3 (comes after position and normal)
+    );
+    glEnableVertexAttribArray(2);
+
+    glVertexAttribPointer(4,                   // attribute 1 matches aNormal in Vertex Shader
+        3,                   // size
+        GL_FLOAT,            // type
+        GL_FALSE,            // normalized?
+        3 * sizeof(vec3),        // stride - each vertex contains vec3 (position)
+        (void*)sizeof(vec3)  // array buffer offset
+    );
+    glEnableVertexAttribArray(4);
+
+
+    vec3 offsetArray[1] = { vec3(0) };
+    //https://learnopengl.com/Advanced-OpenGL/Instancing
+    //Setting up the instance array
+    glEnableVertexAttribArray(3);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(offsetArray), offsetArray, GL_STATIC_DRAW);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribDivisor(3, 1);
+
+    return vertexArrayObject;
+}
 //glsl functions, thank you for making coding in strings slightly less trial and error.
 //https://www.shaderific.com/glsl-functions
 //main shaders for program.
@@ -2805,9 +2977,11 @@ const char* getVertexShaderSource()
         "   int voidFace = 7-1;"
         "   int instanceIndex = 0;"
         "   face_s = 0;"
+        "   int facingDir = 0;"      
         "   if (isRubik){"
         "      instanceIndex = gl_InstanceID;"
         "      face_s = mainFace[instanceIndex];"
+        "      facingDir = int(face.x);"  
         "   }"
         "   normalVec = mat3(transpose(inverse(worldMatrix[instanceIndex]))) * aNormal;"
         "   mat4 modelViewProjection = projectionMatrix * viewMatrix * worldMatrix[instanceIndex];"
@@ -2822,7 +2996,7 @@ const char* getVertexShaderSource()
         "   vertexUV  = aUV;"
 
         "   int angle = 0;"
-        "switch (int(face.x)) {"
+        "switch (facingDir) {"
         //if drawing inside, //void? also maybe add void to mainface[center]
         "case 0:"
         "   if (isRubik){"
@@ -2944,11 +3118,11 @@ const char* getFragmentShaderSource()
     "       float currentDepth = projCoords.z;"
         //is in shadow if not the closest depth.
     //"    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;"
-    "float bias = 0.05;"
+    //"float bias = 0.005;"
     // calculate bias (based on depth map resolution and slope)
     "       vec3 normal = normalize(normalVec);"
     "       vec3 lightDir = normalize(lightPos - fragPos);"
-    //"       float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);"
+    "       float bias = max(0.015 * (1.0 - dot(normal, lightDir)), 0.005);"
     //"       shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;"
     "       shadow = 0.0f;"
     //Percentage close filter
@@ -4076,10 +4250,10 @@ bool* customControl(GLFWwindow * window, map<int, KeyState> previousKeyStates) {
         //signal to cycle through textures
         { GLFW_KEY_Z },
         { GLFW_KEY_Z, true },
+        //signal toggle skybox  
+        {GLFW_KEY_O, true},
         //signal toggle lights  //not implemented
         {GLFW_KEY_L, true},
-        //signal toggle skybox  //not implemented
-        {GLFW_KEY_O, true},
     };
 
     //all below is automatic
@@ -4126,11 +4300,13 @@ struct TextureId {
     int boxTextureID;
     int metalTextureID;
     //etc
+    int skybox;
 };
 //individual fields are VAO
 struct VAO {
     int cubeVAO;
-    int sphereVAO;
+    int sphereVAO; 
+    int halfSphereVAO;
 };
 //has info on all settings to render.
 struct RenderInfo {
@@ -4143,6 +4319,7 @@ struct RenderInfo {
 
     int enableTexture;
     int enableShadow;
+    bool toggleSkybox;
     //int enableRubik;
     TextureId textures;
 
@@ -4150,6 +4327,40 @@ struct RenderInfo {
     //etc
 };
 
+void drawBox(GLuint worldMatrixLocation, mat4 relativeWorldMatrix) {
+    // Draw box
+    //omit top, then scale top by -0.5f.
+    const float yHover = 0.0f;
+
+    const float scaler = 75;
+    const float xOffset = 0;
+    const float yOffset = scaler / 4;
+
+    mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(-scaler, -0.5f * scaler, -scaler));
+    mat4 mWorldMatrix = relativeWorldMatrix * worldMatrix;
+    glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+
+    glDrawArrays(GL_TRIANGLES, 0, 30);
+}
+void halfSphereSkybox(GLuint worldMatrixLocation, mat4 relativeWorldMatrix) {
+    // Draw half sphere
+    const float yHover = 0.0f;
+
+    const float xOffset = 0;
+    const float yOffset = 0;
+    const float scaler = 75;
+
+    mat4 worldMatrix = translate(mat4(1.0f), vec3(xOffset, yOffset, 0.0f)) * scale(mat4(1.0f), glm::vec3(-scaler, -scaler, -scaler));
+    mat4 mWorldMatrix = relativeWorldMatrix * worldMatrix;
+    glUniformMatrix4fv(worldMatrixLocation, 1, GL_FALSE, &mWorldMatrix[0][0]);
+
+
+    //match these numbers to those passed to sphereVertices().
+    const int heightParts = 22;
+    const int ringParts = 30;
+    const int numVertices = (heightParts - 1) * ringParts * 2;
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, numVertices);
+}
 void renderDecor(RenderInfo renderInfo) {
     int shaderProgram = renderInfo.shaderProgram;
     GLuint colorLocation = renderInfo.colorLocation;
@@ -4161,8 +4372,11 @@ void renderDecor(RenderInfo renderInfo) {
     int enableShadow = renderInfo.enableShadow;
     //int enableRubik = renderInfo.enableRubik;
     int tiledTextureID = renderInfo.textures.tiledTextureID;
+    int skyboxTexture = renderInfo.textures.skybox;
+    bool toggleSkybox = renderInfo.toggleSkybox;
 
     int cubeVAOa = renderInfo.vao.cubeVAO;
+    int halfSphereVAOa = renderInfo.vao.halfSphereVAO;
     glBindVertexArray(cubeVAOa);
     glActiveTexture(GL_TEXTURE1);
     // Draw ground
@@ -4183,6 +4397,17 @@ void renderDecor(RenderInfo renderInfo) {
     glBindTexture(GL_TEXTURE_2D, tiledTextureID);
     glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
     drawTileGrid(worldMatrixLocation, mat4(1.0f));
+    //skybox
+    glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
+    glBindTexture(GL_TEXTURE_2D, skyboxTexture);
+    if (toggleSkybox) {
+        glBindVertexArray(halfSphereVAOa);
+        halfSphereSkybox(worldMatrixLocation, mat4(1.0f));
+    }
+    else {
+        glBindVertexArray(cubeVAOa);
+        drawBox(worldMatrixLocation, mat4(1.0f));
+    }
 }
 void renderModels(RenderInfo renderInfo, vector<CharModel*> models, vector<CharModel*> attachedToCore, bool shadow = false) {
     int shaderProgram = renderInfo.shaderProgram;
@@ -4819,6 +5044,9 @@ int main(int argc, char* argv[])
     GLuint Logo5TextureID = loadTexture("../Assets/Textures/ProgrammingLogo5.jpg");
     GLuint Logo6TextureID = loadTexture("../Assets/Textures/ProgrammingLogo6.jpg");
 
+    //skybox
+    //courtesy of Kevin Rao with paint.
+    GLuint t5ID = loadTexture("../Assets/Textures/T5.png");
 #endif
     GLuint rubikFrontTexture     = redTextureID   ;
     GLuint rubikBackTexture      = blueTextureID  ;
@@ -4881,6 +5109,9 @@ int main(int argc, char* argv[])
     // Used to set light position for shadow calculation in shader
     GLuint lightSpaceMatrixLocation = glGetUniformLocation(shaderProgram, "lightSpaceMatrix");
 
+    //toggle skybox
+    bool toggleSkybox = false;
+
     // Camera parameters for view transform
     const float initial_xpos = -10;
     const float initial_ypos = 20;
@@ -4918,7 +5149,7 @@ int main(int argc, char* argv[])
     // Set projection matrix for shader
     mat4 projectionMatrix = glm::perspective(radians(initialFoV),   // field of view in degrees
         800.0f / 600.0f,  // aspect ratio
-        0.01f, 100.0f);   // near and far (near > 0)
+        0.01f, 200.0f);   // near and far (near > 0)
 
     //glm::mat4 projectionMatrix = glm::ortho(-40.0f, 40.0f,    // left/right
     //    -40.0f, 40.0f,    // bottom/top
@@ -4937,6 +5168,7 @@ int main(int argc, char* argv[])
     // Define and upload geometry to the GPU here ...
     int cubeVAOa = createTexturedCubeVertexArrayObject();
     int sphereVAOa = createTexturedSphereVertexArrayObject();
+    int halfSphereVAOa = createTexturedHalfSphereVertexArrayObject();
     int planeVAO = createPlaneVertexArrayObject();
     // For frame time
     float lastFrameTime = glfwGetTime();
@@ -5330,7 +5562,69 @@ int main(int argc, char* argv[])
     inputsToIndexIncrement_Part.insert(pair<int, GLchar>(GLFW_KEY_G, 1));
     map<int, int> inputsToIndexIncrement_Theme;;
     inputsToIndexIncrement_Theme.insert(pair<int, GLchar>(GLFW_KEY_Z, 1));
+
+    //Theme sets
+    vector<GLuint> textureSet1(0);
+    //faces: front, back, top, bot, port, starboard.
+    //inner
+    textureSet1.push_back(redTextureID);
+    textureSet1.push_back(blueTextureID);
+    textureSet1.push_back(yellowTextureID);
+    textureSet1.push_back(greenTextureID);
+    textureSet1.push_back(orangeTextureID);
+    textureSet1.push_back(purpleTextureID);
+    textureSet1.push_back(metalTextureID);
+    vector<GLuint> textureSet2(0);
+    textureSet2.push_back(baseballTextureID);
+    textureSet2.push_back(basketballTextureID);
+    textureSet2.push_back(hockeyTextureID);
+    textureSet2.push_back(soccerTextureID);
+    textureSet2.push_back(tennisTextureID);
+    textureSet2.push_back(bowlingballTextureID);
+    textureSet2.push_back(metalTextureID);
+    vector<GLuint> textureSet3(0);
+    textureSet3.push_back(drumTextureID);
+    textureSet3.push_back(fluteTextureID);
+    textureSet3.push_back(guitaurTextureID);
+    textureSet3.push_back(pianoTextureID);
+    textureSet3.push_back(triangleTextureID);
+    textureSet3.push_back(trumpetTextureID);
+    textureSet3.push_back(metalTextureID);
+    vector<GLuint> textureSet4(0);
+    textureSet4.push_back(Logo1TextureID);
+    textureSet4.push_back(Logo2TextureID);
+    textureSet4.push_back(Logo3TextureID);
+    textureSet4.push_back(Logo4TextureID);
+    textureSet4.push_back(Logo5TextureID);
+    textureSet4.push_back(Logo6TextureID);
+    textureSet4.push_back(metalTextureID);
+    vector<vector<GLuint>> textureSets(0);
+    textureSets.push_back(textureSet1);
+    textureSets.push_back(textureSet2);
+    textureSets.push_back(textureSet3);
+    textureSets.push_back(textureSet4);
     //theme selection
+
+    //put store info, so can render easier for shadow map.
+    RenderInfo renderInfo;
+
+    renderInfo.colorLocation = colorLocation;
+    renderInfo.enableTextureLocation = enableTextureLocation;
+    renderInfo.enableShadowLocation = enableShadowLocation;
+
+    renderInfo.enableTexture = enableTexture;
+    renderInfo.enableShadow = enableShadow;
+    renderInfo.toggleSkybox = toggleSkybox;
+
+    renderInfo.textures.depthMap = depthMap;
+    renderInfo.textures.tiledTextureID = tiledTextureID;
+    renderInfo.textures.boxTextureID = boxTextureID;
+    renderInfo.textures.metalTextureID = metalTextureID;
+    renderInfo.textures.skybox = t5ID;
+
+    renderInfo.vao.cubeVAO = cubeVAOa;
+    renderInfo.vao.sphereVAO = sphereVAOa;
+    renderInfo.vao.halfSphereVAO = halfSphereVAOa;
     // Entering Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -5364,7 +5658,6 @@ int main(int argc, char* argv[])
             adjustTimer();
         }
         
-        
         //https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
         // 1. render depth of scene to texture (from light's perspective)
        // --------------------------------------------------------------
@@ -5389,22 +5682,8 @@ int main(int argc, char* argv[])
         //avoid peter panning
         //glCullFace(GL_FRONT);
 
-        //put store info, so can render easier for shadow map.
-        RenderInfo renderInfo;
         renderInfo.shaderProgram = shaderProgramShadow;
-
-        renderInfo.colorLocation = colorLocation;
         renderInfo.worldMatrixLocation = shadowWorldMatrixLocation;
-        renderInfo.enableTextureLocation = enableTextureLocation;
-        renderInfo.enableShadowLocation = enableShadowLocation;
-
-        renderInfo.enableTexture = enableTexture;
-        renderInfo.enableShadow = enableShadow;
-
-        renderInfo.textures.depthMap = depthMap;
-        renderInfo.textures.tiledTextureID = tiledTextureID;
-        renderInfo.textures.boxTextureID = boxTextureID;
-        renderInfo.textures.metalTextureID = metalTextureID;
 
         //rubik textures
         glActiveTexture(GL_TEXTURE2);
@@ -5423,54 +5702,11 @@ int main(int argc, char* argv[])
         glActiveTexture(GL_TEXTURE8);
         glBindTexture(GL_TEXTURE_2D, rubikInnerTexture);
         glActiveTexture(GL_TEXTURE0);
-
-        //Theme sets
-        vector<GLuint> textureSet1(0);
-        //faces: front, back, top, bot, port, starboard.
-        //inner
-        textureSet1.push_back(redTextureID   );
-        textureSet1.push_back(blueTextureID  );
-        textureSet1.push_back(yellowTextureID);
-        textureSet1.push_back(greenTextureID );
-        textureSet1.push_back(orangeTextureID);
-        textureSet1.push_back(purpleTextureID);
-        textureSet1.push_back(metalTextureID);
-        vector<GLuint> textureSet2(0);
-        textureSet2.push_back(baseballTextureID   );
-        textureSet2.push_back(basketballTextureID );
-        textureSet2.push_back(hockeyTextureID     );
-        textureSet2.push_back(soccerTextureID     );
-        textureSet2.push_back(tennisTextureID     );
-        textureSet2.push_back(bowlingballTextureID);
-        textureSet2.push_back(metalTextureID);
-        vector<GLuint> textureSet3(0);
-        textureSet3.push_back(drumTextureID    );
-        textureSet3.push_back(fluteTextureID   );
-        textureSet3.push_back(guitaurTextureID );
-        textureSet3.push_back(pianoTextureID   );
-        textureSet3.push_back(triangleTextureID);
-        textureSet3.push_back(trumpetTextureID );
-        textureSet3.push_back(metalTextureID);
-        vector<GLuint> textureSet4(0);
-        textureSet4.push_back(Logo1TextureID);
-        textureSet4.push_back(Logo2TextureID);
-        textureSet4.push_back(Logo3TextureID);
-        textureSet4.push_back(Logo4TextureID);
-        textureSet4.push_back(Logo5TextureID);
-        textureSet4.push_back(Logo6TextureID);
-        textureSet4.push_back(metalTextureID);
-        vector<vector<GLuint>> textureSets(0);
-        textureSets.push_back(textureSet1);
-        textureSets.push_back(textureSet2);
-        textureSets.push_back(textureSet3);
-        textureSets.push_back(textureSet4);
         
 
-        renderInfo.vao.cubeVAO = cubeVAOa;
-        renderInfo.vao.sphereVAO = sphereVAOa;
         //renderScene(shaderProgramShadow, cubeVAOa);
         glBindBuffer(GL_ARRAY_BUFFER, cubeVAOa);
-        renderDecor(renderInfo);
+        //renderDecor(renderInfo);
         renderModels(renderInfo, modelsAndParts, attachedToCore,true);
 
         //{
@@ -5548,7 +5784,7 @@ int main(int argc, char* argv[])
 
         renderInfo.shaderProgram = shaderProgram;
         renderInfo.worldMatrixLocation = worldMatrixLocation;
-        
+        renderInfo.toggleSkybox = toggleSkybox;
 
         //Draw ground
         renderDecor(renderInfo);
@@ -5654,6 +5890,10 @@ int main(int argc, char* argv[])
                 rubikPortTexture      = textureSets[textureThemeIndex][4];
                 rubikStarboardTexture = textureSets[textureThemeIndex][5];
                 rubikInnerTexture     = textureSets[textureThemeIndex][6];
+            }
+            //O key has been pressed, so toggle skybox.
+            if (selectedSetting[12]) {
+                toggleSkybox = !toggleSkybox;
             }
             //many random turns made over period of time.
             //also make time in-between turns vary a bit.
@@ -5819,7 +6059,7 @@ int main(int argc, char* argv[])
         // Recompute projection matrix depending on FoV
         projectionMatrix = glm::perspective(radians(foV),   // field of view in degrees
             (float)window_width / (float)window_height,     // aspect ratio
-            0.01f, 100.0f);                                 // near and far (near > 0)
+            0.01f, 200.0f);                                 // near and far (near > 0)
         glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
 
         // @TODO 5 = use camera lookat and side vectors to update positions with HNBM
