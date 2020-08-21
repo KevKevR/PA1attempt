@@ -4690,7 +4690,7 @@ int main(int argc, char* argv[])
 #endif
 
     // Create Window and rendering context using GLFW, resolution is 800x600
-    GLFWwindow* window = glfwCreateWindow(window_width, window_height, "COMP 371 - A2 - Team 4", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(window_width, window_height, "COMP 371 - A3 - Team 4", NULL, NULL);
     if (window == NULL)
     {
         std::cerr << "Failed to create GLFW window" << std::endl;
@@ -4823,8 +4823,8 @@ int main(int argc, char* argv[])
     GLuint lightSpaceMatrixLocation = glGetUniformLocation(shaderProgram, "lightSpaceMatrix");
 
     // Camera parameters for view transform
-    const float initial_xpos = 0;
-    const float initial_ypos = 5;
+    const float initial_xpos = -10;
+    const float initial_ypos = 20;
     const float initial_zpos = 20;
     //distance to origin in xz-plane.
     const float initial_rpos = sqrt(powf(initial_xpos, 2) + powf(initial_zpos, 2));
@@ -5042,7 +5042,7 @@ int main(int argc, char* argv[])
 
     //base
     Model_Border base(shaderProgram, initBase);
-    CharModel boxCore(shaderProgram, TRSMatricesHolder(mat4(1.0f), translate(mat4(1.0f), vec3(0, cubeCenterHeight, 0)), mat4(1.0f)));
+    CharModel boxCore(shaderProgram, TRSMatricesHolder(translate(mat4(1.0f), vec3(0, cubeCenterHeight, 0)), rotate(mat4(1.0f), radians(180.0f), vec3(0,0,1)) , mat4(1.0f)));
     ModelFace boxTop(shaderProgram);
     ModelFace boxBot(shaderProgram);
     ModelFace boxPort(shaderProgram);
@@ -5074,17 +5074,17 @@ int main(int argc, char* argv[])
 
     //parts
     vector<CharModel*>::iterator itBox;
-    ModelN2 n2a(shaderProgram);
-    ModelA9 a9a(shaderProgram);
-    ModelS3 s3a(shaderProgram);
-    vector<CharModel*> attachedToS3;
-    attachedToS3.push_back(&n2a);
-    attachedToS3.push_back(&a9a);
-    vector<CharModel*> attachedToN2;
-    attachedToN2.push_back(&a9a);
-    attachedToN2.push_back(&s3a);
-    s3.setAttachedModels(attachedToS3);
-    n2.setAttachedModels(attachedToN2);
+    //ModelN2 n2a(shaderProgram);
+    //ModelA9 a9a(shaderProgram);
+    //ModelS3 s3a(shaderProgram);
+    //vector<CharModel*> attachedToS3;
+    //attachedToS3.push_back(&n2a);
+    //attachedToS3.push_back(&a9a);
+    //vector<CharModel*> attachedToN2;
+    //attachedToN2.push_back(&a9a);
+    //attachedToN2.push_back(&s3a);
+    //s3.setAttachedModels(attachedToS3);
+    //n2.setAttachedModels(attachedToN2);
 
 
     //for some reason, keeps sending the same object reference.
@@ -5235,12 +5235,12 @@ int main(int argc, char* argv[])
         case 1:
             temp = attachedToBase;
             break;
-        case 2:
-            temp = attachedToS3;
-            break;
-        case 3:
-            temp = attachedToN2;
-            break;
+        //case 2:
+        //    temp = attachedToS3;
+        //    break;
+        //case 3:
+        //    temp = attachedToN2;
+        //    break;
         }
         for (it = temp.begin(); it != temp.end(); it++) {
             //parts
