@@ -1,8 +1,8 @@
-Programming Assignment 2
+Programming Assignment 3
 ======
 for COMP371 CC, Concordia University Summer 2020
 with instructor Serguei A. Mokhov, 
-due by the end of July 27th, 2020.
+due by the end of August 21st, 2020.
 
 Team List
 ======
@@ -20,6 +20,7 @@ Models representing each of the students are arbitrarily placed in each of the f
 The view camera initially centers its focus onto the origin point (0, 0, 0). Additional camera and display properties can be found in the **Display/Camera** section. The camera moves in first person view tradition. Further details on how to move it are found in the **Camera Controls** section.
 Rendering mode can change between triangles, lines and points. Controls found in **Rendering Controls** section.
 
+Moreover, the program includes a 3x3x3 Rubik's cube textured with 4 puzzle themes to be solved: programming language logos, abstract colors, music and sports. Controls to manipulate the Rubik's cube are found in **Rubik's Cube Controls** section. The cube is impacted by lighting and shadows, which were implemented previously in Assignment 2. In addition, there is a pausable/resetable timer which keeps track of elapsed time. It is displayed in a green timex digital font in the format "HH-MM-SS-DD" (hours, minutes, seconds, second decimals). Controls for the timer are found in the **Timer Controls** section.
 
 Display/Camera
 ----
@@ -66,3 +67,14 @@ The models will be rendered according to the following scheme:
 The model and scenery textures and shadows can be turned on and off according to the following scheme:
 - X    Textures
 - B    Shadows (overlap with hbnm camera control when holding shift)
+
+Rubik's Cube Controls
+------
+- f/g     Select face to rotate (cycle)
+- c/v     Rotate selected face
+- z       Change texture theme (cycle)
+
+Timer Controls
+------
+- 9    Pause/resume timer
+- 0    Reset timer
