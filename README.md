@@ -70,10 +70,11 @@ The model and scenery textures and shadows can be turned on and off according to
 
 Rubik's Cube Controls
 ------
-- f/g     Select face to rotate (cycle)
+- f/g     Select face to rotate (cycle). The selected side will be highlighted in a different color.
 - c/v     Rotate selected face
 - z       Change texture theme (cycle)
-- ctrl+r  Scramble the cube (makes 100 random rotations)
+- r to make a random turn for a random side.
+- ctrl+r  Scramble the cube (makes 100 random rotations). Press again to stop it before 100 rotations.
 
 Timer Controls
 ------
