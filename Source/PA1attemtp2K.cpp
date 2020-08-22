@@ -4399,7 +4399,7 @@ void renderDecor(RenderInfo renderInfo) {
     glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
     drawTileGrid(worldMatrixLocation, mat4(1.0f));
     //skybox
-    glUniform3f(colorLocation, 1.0f, 1.0f, 1.0f);
+    glUniform3f(colorLocation, 1.5f, 1.75f, 2.0f);
     glBindTexture(GL_TEXTURE_2D, skyboxTexture);
     if (toggleSkybox) {
         glBindVertexArray(halfSphereVAOa);
@@ -5111,7 +5111,7 @@ int main(int argc, char* argv[])
     GLuint lightSpaceMatrixLocation = glGetUniformLocation(shaderProgram, "lightSpaceMatrix");
 
     //toggle skybox
-    bool toggleSkybox = false;
+    bool toggleSkybox = true;
 
     // Camera parameters for view transform
     const float initial_xpos = -10;
