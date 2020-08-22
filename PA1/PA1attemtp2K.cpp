@@ -10,6 +10,7 @@
 // due August 21st, 2020.
 //
 
+// For more detailed information about the program, consult the README.
 //cube controls (temporary)
 // select model 1 - WASD to move cube, ad to rotate.
 // - - - - - - - - - - - - - - - - - - - - - - 
