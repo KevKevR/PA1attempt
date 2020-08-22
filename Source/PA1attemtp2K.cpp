@@ -4298,7 +4298,7 @@ void randomPosModel(CharModel* selectedModel) {
 struct TextureId {
     int depthMap;
     int tiledTextureID;
-    int boxTextureID;
+    //int boxTextureID;
     int metalTextureID;
     //etc
     int skybox;
@@ -4417,7 +4417,7 @@ void renderModels(RenderInfo renderInfo, vector<CharModel*> models, vector<CharM
     GLuint worldMatrixLocation = renderInfo.worldMatrixLocation;
     int enableTexture = renderInfo.enableTexture;
 
-    int boxTextureID = renderInfo.textures.boxTextureID;
+    //int boxTextureID = renderInfo.textures.boxTextureID;
     int metalTextureID = renderInfo.textures.metalTextureID;
 
     int cubeVAOa = renderInfo.vao.cubeVAO;
@@ -4950,10 +4950,10 @@ int main(int argc, char* argv[])
 #endif
     // Load Textures
 #if defined(PLATFORM_OSX)
-    GLuint tiledTextureID = loadTexture("Textures/brick.jpg");
-    GLuint cementTextureID = loadTexture("Textures/cement.jpg");
-    GLuint metalTextureID = loadTexture("Textures/metal.jpg");
-    GLuint boxTextureID = loadTexture("Textures/box.jpg");
+    //GLuint tiledTextureID = loadTexture("Textures/brick.jpg");
+    //GLuint cementTextureID = loadTexture("Textures/cement.jpg");
+    //GLuint metalTextureID = loadTexture("Textures/metal.jpg");
+    //GLuint boxTextureID = loadTexture("Textures/box.jpg");
     GLuint jaguarTextureID = loadTexture("Textures/jaguar.jpg");
     GLuint woodTextureID = loadTexture("Textures/wood.jpg");
 
@@ -4994,13 +4994,13 @@ int main(int argc, char* argv[])
 #else
     //GLuint tiledTextureID = loadTexture("../Assets/Textures/brick.jpg");
     //GLuint cementTextureID = loadTexture("../Assets/Textures/cement.jpg");
-    //GLuint metalTextureID = loadTexture("../Assets/Textures/metal.jpg");
+    GLuint metalTextureID = loadTexture("../Assets/Textures/metal.jpg");
     //GLuint boxTextureID = loadTexture("../Assets/Textures/box.jpg");
-    GLuint brickTextureID = loadTexture("Assets/Textures/brick.jpg");
+    //GLuint brickTextureID = loadTexture("Assets/Textures/brick.jpg");
     //GLuint tiledTextureID = loadTexture("Assets/Textures/tiled.jpg");
-    GLuint cementTextureID = loadTexture("Assets/Textures/cement.jpg");
-    GLuint metalTextureID = loadTexture("Assets/Textures/metal.jpg");
-    GLuint boxTextureID = loadTexture("Assets/Textures/box.jpg");
+    //GLuint cementTextureID = loadTexture("Assets/Textures/cement.jpg");
+    //GLuint metalTextureID = loadTexture("Assets/Textures/metal.jpg");
+    //GLuint boxTextureID = loadTexture("Assets/Textures/box.jpg");
 
     GLuint tiledTextureID = loadTexture("../Assets/Textures/tiled.jpg");
 
@@ -5619,7 +5619,7 @@ int main(int argc, char* argv[])
 
     renderInfo.textures.depthMap = depthMap;
     renderInfo.textures.tiledTextureID = tiledTextureID;
-    renderInfo.textures.boxTextureID = boxTextureID;
+    //renderInfo.textures.boxTextureID = boxTextureID;
     renderInfo.textures.metalTextureID = metalTextureID;
     renderInfo.textures.skybox = t5ID;
 
