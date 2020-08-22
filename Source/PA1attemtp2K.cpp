@@ -4326,6 +4326,8 @@ struct RenderInfo {
 
     VAO vao;
     //etc
+
+    Color backgroundColor;
 };
 
 void drawBox(GLuint worldMatrixLocation, mat4 relativeWorldMatrix) {
@@ -4378,6 +4380,9 @@ void renderDecor(RenderInfo renderInfo) {
 
     int cubeVAOa = renderInfo.vao.cubeVAO;
     int halfSphereVAOa = renderInfo.vao.halfSphereVAO;
+
+    Color backgroundColor = renderInfo.backgroundColor;
+
     glBindVertexArray(cubeVAOa);
     glActiveTexture(GL_TEXTURE1);
     // Draw ground
@@ -4399,7 +4404,11 @@ void renderDecor(RenderInfo renderInfo) {
     glUniform3f(colorLocation, 0.8f, 0.4f, 0.8f);
     drawTileGrid(worldMatrixLocation, mat4(1.0f));
     //skybox
-    glUniform3f(colorLocation, 1.5f, 1.75f, 2.0f);
+    Color skyColor = Color(0.5f, 0.75f, 1.0f);
+    skyColor.red += backgroundColor.red;
+    skyColor.green += backgroundColor.green;
+    skyColor.blue += backgroundColor.blue;
+    glUniform3f(colorLocation, skyColor.red, skyColor.green, skyColor.blue);
     glBindTexture(GL_TEXTURE_2D, skyboxTexture);
     if (toggleSkybox) {
         glBindVertexArray(halfSphereVAOa);
@@ -4842,6 +4851,16 @@ public:
         }
     }
 
+    bool checkSolved() {
+        bool solved = true;
+        for (int i = 0; i < 27; i++) {
+            if (positionsIndex[i] != i) {
+                solved = false;
+                break;
+            }
+        }
+        return solved;
+    }
 private:
     //boxes indexed in order
     vector<CharModel*> boxes;
@@ -5060,7 +5079,8 @@ int main(int argc, char* argv[])
     srand(time(0));
     // Gull Grey background
     //glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
-    glClearColor(164 / 255.0f, 173 / 255.0f, 176 / 255.0f, 1.0f);
+    Color backgroundColor = Color(164 / 255.0f, 173 / 255.0f, 176 / 255.0f);
+    glClearColor(backgroundColor.red, backgroundColor.green, backgroundColor.blue, 1.0f);
 
     // Compile and link shaders here ...
     int shaderProgram = compileAndLinkShaders();
@@ -5626,6 +5646,8 @@ int main(int argc, char* argv[])
     renderInfo.vao.cubeVAO = cubeVAOa;
     renderInfo.vao.sphereVAO = sphereVAOa;
     renderInfo.vao.halfSphereVAO = halfSphereVAOa;
+
+    renderInfo.backgroundColor = backgroundColor;
     // Entering Main Loop
     while (!glfwWindowShouldClose(window))
     {
@@ -5644,7 +5666,15 @@ int main(int argc, char* argv[])
         // ...
         //const float speed = dt * 30;
         //time += speed;
-        //glClearColor(0.4f * (1 + cosf(radians(1.3f * time))), 0.4f * (1 + cosf(radians(1.5f * time + 120))), 0.4f * (1 + cosf(radians(1.7f * time - 120))), 1.0f);
+
+        //if cube is solved, wildly change background color.
+        if (rubik.checkSolved()) { 
+            backgroundColor = Color(0.4f * (1 + cosf(radians(45 * 1.3f * currentTime))), 0.4f * (1 + cosf(radians(45 * 1.5f * currentTime + 120))), 0.4f * (1 + cosf(radians(45 * 1.7f * currentTime - 120))));
+        }
+        else {
+            backgroundColor = Color(164 / 255.0f, 173 / 255.0f, 176 / 255.0f);
+        }
+        glClearColor(backgroundColor.red, backgroundColor.green, backgroundColor.blue, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Handle timer
@@ -5685,6 +5715,7 @@ int main(int argc, char* argv[])
 
         renderInfo.shaderProgram = shaderProgramShadow;
         renderInfo.worldMatrixLocation = shadowWorldMatrixLocation;
+        renderInfo.backgroundColor = backgroundColor;
 
         //rubik textures
         glActiveTexture(GL_TEXTURE2);
